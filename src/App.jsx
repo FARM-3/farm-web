@@ -1,22 +1,26 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Login from './pages/Login'; // Import your Login page component
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import Login from './pages/Login.jsx'; 
+import WageEntry from './pages/WageEntry.jsx';
+import Wages from './pages/wages.jsx';
+// Import hooks we need for the cleanup
+import { useState, useEffect } from 'react'; 
+// Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
 function App() {
   return (
     <BrowserRouter> 
       <div className="App">
         <Routes> 
-          {/* Set the default route path ("/") to render the Login component.
-            When you open http://localhost:5173/, this is the page you will see.
-          */}
+          
+          {/* Path 1: Root path must show Login */}
           <Route path="/" element={<Login />} /> 
           
-          {/* We'll add a Dashboard route here later */}
-          {/* <Route path="/dashboard" element={<h1>Dashboard</h1>} /> */}
+          {/* Path 2: This path MUST render the WageEntry form. 
+            If you are seeing the Login form when the URL is /wage-entry,
+            it means the browser's memory is holding an older version.
+          */}
+          <Route path="/wage-entry" element={<WageEntry />} />
+          <Route path="/wages" element={<Wages />} />
           
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>
@@ -26,4 +30,3 @@ function App() {
 }
 
 export default App;
-
