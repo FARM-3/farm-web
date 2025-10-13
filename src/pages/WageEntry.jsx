@@ -61,7 +61,7 @@ function WageEntry() {
                 noted_reason: form.noted_reason || '',
             };
 
-            const res = await fetch('http://127.0.0.1:8000/api/wages/', {
+            const res = await fetch('https://api-3181.onrender.com/api/wages/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),

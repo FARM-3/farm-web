@@ -15,7 +15,7 @@ const Button = ({ children, onClick, type = 'button', disabled = false, classNam
         rounded-md 
         shadow-sm 
         text-sm font-medium text-white 
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
+        focus:outline-none focus:ring-2 focus:ring-offset-2
         ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
         ${className}
       `}
