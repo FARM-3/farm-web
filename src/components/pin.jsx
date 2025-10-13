@@ -45,7 +45,7 @@ const PinInput = ({ index, value, onChange, onFocusNext, onFocusPrev }) => {
         font-bold text-gray-800 
         border-2 border-gray-300 rounded-lg 
         shadow-sm transition-all duration-150
-        focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 
+        focus:ring-2 
         outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:hidden 
         [&::-webkit-outer-spin-button]:hidden
       "

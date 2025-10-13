@@ -33,7 +33,7 @@ function NavBar() {
                     className="flex items-center space-x-2 text-xl font-bold transition-colors hover:text-gray-300"
                 >
                     <LayoutDashboard className="w-6 h-6" />
-                    <span>FarmApp Dashboard</span>
+                    <span>Rugyeyo Financial Management</span>
                 </button>
 
                 {/* Navigation Links */}
@@ -41,20 +41,20 @@ function NavBar() {
                     
                     {/* Wages Link (Current Page) */}
                     <button
-                        onClick={() => navigate('/wage-entry')}
+                        onClick={() => navigate('/wages')}
                         className="flex items-center space-x-1 text-sm font-medium py-1 px-3 rounded-full transition-colors"
                         style={{ backgroundColor: NAV_COLORS.hover, color: NAV_COLORS.bg }}
                     >
                         <Wallet className="w-4 h-4" />
-                        <span>Wage Entry</span>
+                        <span>Wages</span>
                     </button>
 
                     {/* Placeholder for Dashboard Link */}
                     <button
-                        onClick={() => console.warn('Dashboard not yet implemented')}
+                        onClick={() => navigate('/expenses')}
                         className="flex items-center space-x-1 text-sm font-medium transition-colors hover:text-gray-300"
                     >
-                        <span>Reports</span>
+                        <span>Expenses</span>
                     </button>
 
                     {/* Logout Button */}

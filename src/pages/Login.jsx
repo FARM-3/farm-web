@@ -27,7 +27,7 @@ function Login() {
 
         const isLoginSuccessful = true;
         if (isLoginSuccessful) {
-            navigate('/wage-entry');
+            navigate('/wages');
         }else {
             alert('Login failed. Please try again.');
         } 
@@ -37,7 +37,7 @@ function Login() {
             
             // Redirect logic (This looks correct)
             if (fullPin === "1234") { 
-                navigate('/wage-entry'); 
+                navigate('/wages'); 
             } else {
                 // DO NOT USE alert(), it breaks the iFrame experience. Use a custom message state.
                 console.error('Incorrect PIN.');

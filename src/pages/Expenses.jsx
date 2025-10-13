@@ -1,25 +1,46 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus } from 'lucide-react'; 
-import NavBar from '../components/NavBar.jsx';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown } from 'lucide-react'; 
 
-// --- Custom Styles (Copied from WageEntry.jsx) ---
+// --- Custom Styles (Consistent with other files) ---
 const CUSTOM_COLORS = {
-    headerBg: '#702A0B', 
-    cardBg: '#F5EEDC', 
-    actionBg: '#702A0B', 
-    inputBg: '#FFFFFF', 
+    headerBg: '#702A0B', // Dark Brown
+    cardBg: '#F5EEDC', // Pale Cream
     inputBorder: '#B8A072',
-    submitBg: '#702A0B', 
-    primaryText: '#702A0B', 
-    tableHeaderBg: '#B8A072', // Mid-tone Gold/Brown for table header
+    actionBg: '#702A0B',
+    primaryText: '#702A0B',
+    tableHeaderBg: '#B8A072',
 };
 
-// IMPORTANT: This API endpoint must be running locally to fetch data
-const Wage_API_Endpoint = 'https://api-3181.onrender.com/api/wages/';
+// IMPORTANT: Updated to the live API endpoint
+const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/'; 
 
-// use shared NavBar component
+// --- Helper Components ---
+const NavBar = () => {
+    const navigate = useNavigate();
+    const handleLogout = () => {
+        localStorage.removeItem('isLoggedIn');
+        navigate('/');
+    };
+    return (
+        <nav className="fixed top-0 left-0 w-full p-4 shadow-xl z-10 font-sans" style={{ backgroundColor: CUSTOM_COLORS.headerBg }}>
+            <div className="flex justify-between items-center max-w-7xl mx-auto">
+                <div className="text-white text-xl font-bold flex items-center">
+                    <span className="mr-2">💰</span> Rugyeyo Financial Management
+                </div>
+                <div>
+                    <a href="/wages" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Wage Records</a> 
+                    {/* <a href="/wage-entry" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Wage Entry</a> */}
+                    {/* <a href="/expenses" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity font-bold">Expense Records</a>  */}
+                    {/* <a href="/expense-entry" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Expense Entry</a> */}
+                    <button onClick={handleLogout} className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Logout</button>
+                </div>
+            </div>
+        </nav>
+    );
+};
 
-const Button = ({ children, onClick, className, style, disabled }) => (
+const ActionButton = ({ children, onClick, className, style, disabled }) => (
     <button
         onClick={onClick}
         disabled={disabled}
@@ -30,11 +51,8 @@ const Button = ({ children, onClick, className, style, disabled }) => (
     </button>
 );
 
-// --- Component Logic ---
-
 // Helper function to format currency
 const formatCurrency = (amount) => {
-    // Check if amount is a valid number, otherwise default to 0.00
     const value = parseFloat(amount);
     if (isNaN(value)) return '$0.00';
     
@@ -48,55 +66,59 @@ const formatCurrency = (amount) => {
 
 // Data Structure for Table Headers (used for sorting)
 const TABLE_HEADERS = [
-    { key: 'employee_name', label: 'Employee', icon: User, type: 'string' },
-    { key: 'date_of_payment', label: 'Date Paid', icon: Calendar, type: 'date' },
-    { key: 'days_worked', label: 'Days', icon: Calendar, type: 'number' },
-    { key: 'monthly_pay', label: 'Base Pay', icon: Wallet, type: 'number' },
-    { key: 'amount_paid', label: 'Total Paid', icon: DollarSign, type: 'number' },
-    { key: 'deduction', label: 'Deduction', icon: MinusCircle, type: 'number' },
-    { key: 'noted_reason', label: 'Note', icon: null, type: 'string' },
+    { key: 'expense_name', label: 'Name', icon: Truck, type: 'string' },
+    { key: 'category', label: 'Category', icon: Tag, type: 'string' },
+    { key: 'date', label: 'Date', icon: Calendar, type: 'date' },
+    { key: 'amount', label: 'Amount', icon: DollarSign, type: 'number' },
+    { key: 'supplier', label: 'Supplier', icon: Truck, type: 'string' },
+    { key: 'location', label: 'Location', icon: MapPin, type: 'string' },
 ];
 
-function WageDisplay() {
-    const [wages, setWages] = useState([]);
-    const [loading, setLoading] = useState(false);
+
+function Expenses() { 
+    const [expenses, setExpenses] = useState([]);
+    const [loading, setLoading] = useState(true); 
     const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
     // Sorting state
-    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
 
-    // Function to fetch data from the API with exponential backoff
-    const fetchWages = useCallback(async (retries = 3) => {
+    // Live Data Fetcher with retry logic
+    const fetchExpenses = useCallback(async (retries = 3) => {
         setLoading(true);
         setError(null);
         
+        console.log('--- Expense Fetch Started from Live API ---');
+        
         for (let i = 0; i < retries; i++) {
             try {
-                const response = await fetch(Wage_API_Endpoint);
+                const response = await fetch(EXPENSE_API_ENDPOINT);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-
-                // Normalize response into an array to avoid runtime crashes
+                // Normalize API response to always be an array (handles paginated objects with `results`)
                 const normalized = Array.isArray(data)
                     ? data
                     : Array.isArray(data?.results)
                         ? data.results
                         : [];
 
-                setWages(normalized);
+                setExpenses(normalized);
                 setError(null);
-                setLoading(false);
-                return; // Success, exit function
+                setLoading(false); 
+                
+                console.log('Expense Data fetched successfully. Total records:', data.length);
+                return; 
 
             } catch (err) {
-                console.error(`Attempt ${i + 1} failed to fetch wages:`, err);
+                console.error(`Attempt ${i + 1} failed to fetch expenses:`, err);
                 if (i === retries - 1) {
-                    // Last attempt failed
-                    setError(`Could not load records. Check if the backend API is running at ${Wage_API_Endpoint}.`);
-                    setWages([]);
-                    setLoading(false);
+                    const finalError = `Could not load records from ${EXPENSE_API_ENDPOINT}. Failed reason: ${err.message}`;
+                    setError(finalError);
+                    setExpenses([]);
+                    setLoading(false); 
                     return;
                 }
                 // Exponential backoff delay
@@ -105,22 +127,25 @@ function WageDisplay() {
         }
     }, []);
 
+
     // Initial data fetch on component mount
     useEffect(() => {
-        fetchWages();
-    }, [fetchWages]);
+        fetchExpenses();
+    }, [fetchExpenses]);
 
-    // Sorting logic
-    const sortedWages = React.useMemo(() => {
-        const base = Array.isArray(wages) ? wages : [];
+    // Sorting logic (same as wages.jsx)
+    const sortedExpenses = React.useMemo(() => {
+        const base = Array.isArray(expenses) ? expenses : [];
         let sortableItems = [...base];
         if (sortConfig.key !== null) {
             sortableItems.sort((a, b) => {
                 const aValue = a[sortConfig.key];
                 const bValue = b[sortConfig.key];
 
-                // Handle number/currency sorting
-                if (TABLE_HEADERS.find(h => h.key === sortConfig.key)?.type === 'number') {
+                const headerType = TABLE_HEADERS.find(h => h.key === sortConfig.key)?.type;
+
+                // Handle number sorting
+                if (headerType === 'number') {
                     const numA = parseFloat(aValue || 0);
                     const numB = parseFloat(bValue || 0);
                     if (numA < numB) {
@@ -143,7 +168,7 @@ function WageDisplay() {
             });
         }
         return sortableItems;
-    }, [wages, sortConfig]);
+    }, [expenses, sortConfig]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -169,7 +194,7 @@ function WageDisplay() {
                 <tr className='h-24'>
                     <td colSpan={TABLE_HEADERS.length} className="text-center py-6 text-gray-600">
                         <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: CUSTOM_COLORS.primaryText }} />
-                        Loading wage records...
+                        Loading expense records...
                     </td>
                 </tr>
             );
@@ -185,25 +210,24 @@ function WageDisplay() {
             );
         }
 
-        if (sortedWages.length === 0) {
+        if (sortedExpenses.length === 0) {
             return (
                 <tr className='h-24'>
                     <td colSpan={TABLE_HEADERS.length} className="text-center py-6 text-gray-500 italic">
-                        No wage records found. Click "Refresh" to try again.
+                        No expense records found. Click "Refresh" or "Record New Expense".
                     </td>
                 </tr>
             );
         }
 
-        return sortedWages.map((wage, index) => (
+        return sortedExpenses.map((expense, index) => (
             <tr key={index} className="border-b transition-colors duration-150 hover:bg-white/50">
-                <td className="px-6 py-3 text-left font-medium text-gray-800">{wage.employee_name || 'N/A'}</td>
-                <td className="px-6 py-3 text-center text-gray-600">{wage.date_of_payment || 'N/A'}</td>
-                <td className="px-6 py-3 text-center text-gray-600">{wage.days_worked || 0}</td>
-                <td className="px-6 py-3 text-right text-gray-800 font-semibold">{(wage.monthly_pay)}</td>
-                <td className="px-6 py-3 text-right text-green-700 font-bold">{(wage.amount_paid)}</td>
-                <td className="px-6 py-3 text-right text-red-600">{(wage.deduction)}</td>
-                <td className="px-6 py-3 text-left text-sm italic text-gray-500">{wage.noted_reason || '-'}</td>
+                <td className="px-6 py-3 text-left font-medium text-gray-800">{expense.expense_name || 'N/A'}</td>
+                <td className="px-6 py-3 text-left text-gray-600">{expense.category || '-'}</td>
+                <td className="px-6 py-3 text-center text-gray-600">{expense.date || 'N/A'}</td>
+                <td className="px-6 py-3 text-right text-red-600 font-bold">{formatCurrency(expense.amount)}</td>
+                <td className="px-6 py-3 text-left text-gray-700">{expense.supplier || '-'}</td>
+                <td className="px-6 py-3 text-left text-sm italic text-gray-500">{expense.location || '-'}</td>
             </tr>
         ));
     };
@@ -219,40 +243,40 @@ function WageDisplay() {
                 {/* Header and Action Bar */}
                 <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 mb-6 flex justify-between items-center">
                     <h1 className="text-4xl font-extrabold" style={{ color: CUSTOM_COLORS.primaryText }}>
-                        Wages Records
+                        Expense Records Overview
                     </h1>
-                    <div className="flex gap-3">
-                    <Button onClick={() => fetchWages()} disabled={loading} className="py-2 px-4 shadow-xl">
-                        <RefreshCw className={`w-4 h-4 mr-2 {loading ? 'animate-spin' : ''}`} />
-                        Refresh Data
-                    </Button>
-                    <Button onClick={() => window.location.assign('/wage-entry')} className="py-2 px-4 shadow-xl">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Record New Wage
-                    </Button>
+                    <div className="flex space-x-4">
+                        <ActionButton onClick={() => fetchExpenses()} disabled={loading} className="py-2 px-4 shadow-xl" style={{ backgroundColor: CUSTOM_COLORS.headerBg }}>
+                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh Data
+                        </ActionButton>
+                        <ActionButton onClick={() => navigate('/expense-entry')} className="py-2 px-4 shadow-xl">
+                            <Send className="w-4 h-4 mr-2" />
+                            Record New Expense
+                        </ActionButton>
                     </div>
                 </div>
 
-                {/* Wage Records Table Container */}
+                {/* Expense Records Table Container */}
                 <div 
                     className="max-w-7xl w-full mx-4 p-4 sm:p-8 shadow-2xl rounded-2xl overflow-x-auto transition-all duration-300" 
                     style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }} 
                 >
-                    <div className="overflow-x-auto px-2 sm:px-4">
-                        <table className="min-w-full divide-y divide-gray-200 mt-2">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
                             <thead className="sticky top-0 z-10" style={{ backgroundColor: CUSTOM_COLORS.tableHeaderBg }}>
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
                                         <th 
                                             key={header.key} 
                                             className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
-                                            onClick={() => header.icon !== null && requestSort(header.key)} // Only allow sorting on specific columns
+                                            onClick={() => requestSort(header.key)} 
                                             scope="col"
                                         >
                                             <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
                                                 {header.icon && <header.icon className="w-4 h-4 mr-1" />}
                                                 {header.label}
-                                                {getSortIcon(header.key)}
+                                                {(header.icon !== null || header.key === sortConfig.key) && getSortIcon(header.key)}
                                             </div>
                                         </th>
                                     ))}
@@ -269,4 +293,4 @@ function WageDisplay() {
     );
 }
 
-export default WageDisplay;
+export default Expenses;
