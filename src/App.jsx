@@ -2,6 +2,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login.jsx'; 
 import WageEntry from './pages/WageEntry.jsx';
 import Wages from './pages/wages.jsx';
+import SalesEntry from './pages/SalesEntry.jsx';
+import Sales from './pages/Sales.jsx';
 // Import hooks we need for the cleanup
 import { useState, useEffect } from 'react'; 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
@@ -19,8 +21,13 @@ function App() {
             If you are seeing the Login form when the URL is /wage-entry,
             it means the browser's memory is holding an older version.
           */}
+          <Route path="/sales-entry" element={<SalesEntry />} />
+
+
           <Route path="/wage-entry" element={<WageEntry />} />
           <Route path="/wages" element={<Wages />} />
+          <Route path="/sales" element={<Sales />} />
+          
           
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>
