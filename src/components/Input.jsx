@@ -1,14 +1,13 @@
 
 import React from 'react';
 
-const Input = ({ 
-  label, 
-  type = 'text', 
-  name, 
-  value, 
-  onChange, 
-  placeholder, 
-  className = '', 
+const Input = ({
+  type = 'text',
+  name,
+  value,
+  onChange,
+  placeholder,
+  className = '',
   style = {} // Added style prop for custom colors
 }) => {
   return (

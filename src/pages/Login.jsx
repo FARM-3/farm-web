@@ -57,11 +57,6 @@ const ApiClient = {
   const [messageType, setMessageType] = useState("");
   const [focusedField, setFocusedField] = useState({ row: null, idx: null });
 
-  const getMessageStyle = () => {
-    if (messageType === "error") return "messageBox errorBox";
-    if (messageType === "success") return "messageBox successBox";
-    return null;
-  };
 
   const handlePinChange = (value, index) => {
     setMessage("");
@@ -117,8 +112,8 @@ const ApiClient = {
       setMessageType("success");
       
       setTimeout(() => {
-        console.log('Navigating to sales...');
-        navigate('/sales');
+        console.log('Navigating to sales-entry...');
+        navigate('/sales-entry');
       }, 800);
 
     } catch (err) {
@@ -158,7 +153,7 @@ const ApiClient = {
         setMessageType("");
       }, 2000);
 
-    } catch (err) {
+    } catch (error) {
       setMessage("Phone number not found in our system.");
       setMessageType("error");
     } finally {

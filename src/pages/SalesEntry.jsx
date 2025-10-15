@@ -1,620 +1,524 @@
-import React, { useState } from "react";
-import { useNavigate } from 'react-router-dom';
-
-// --- Coffee Theme Colors ---
-const CoffeeColors = {
-  SCREEN_BG: '#FFF8F6',
-  LIGHT_BG: '#FEEFEA',
-  DARK_BROWN: '#4A3423',
-  BUTTON_BROWN: '#8B4513',
-  MEDIUM_BROWN: '#795548',
-  LIGHT_BROWN: '#BCAAA4',
-  WHITE: '#FFFFFF',
-  GRAY_TEXT: '#8D8D8D',
-  ERROR_RED: '#D32F2F',
-  SUCCESS_GREEN: '#4CAF50',
-};
+import { useState } from 'react';
+import { Menu, X, Home, DollarSign, ShoppingCart, Package, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 
 function SalesEntry() {
-  const navigate = useNavigate();
-  
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [formData, setFormData] = useState({
-    customerName: "",
-    batchId: "",
-    product: "",
-    item: "",
-    quantity: "",
-    rate: "",
-    amount: "",
-    dateOfPayment: "",
-    status: "",
-    balance: "",
-    methodOfPayment: "",
+    firstName: '', lastName: '', product: '', item: '', quantity: '', rate: '',
+    dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: ''
   });
-
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [touched, setTouched] = useState({});
 
-  const products = ["Coffee", "Banana", "Rice", "Wheat", "Cassava"];
-  const items = ["Dried", "Hulled"];
-  const statuses = ["Paid", "Pending", "Partial"];
-  const paymentMethods = ["Cash", "Mobile Money", "Bank Transfer", "Cheque"];
+  const products = ['Coffee', 'Banana', 'Rice', 'Wheat', 'Cassava'];
+  const items = ['Dried', 'Hulled'];
+  const statuses = ['Paid', 'Pending', 'Partial'];
+  const paymentMethods = ['Cash', 'Mobile Money', 'Bank Transfer', 'Cheque'];
 
-  // Format number as currency (UGX)
-  const formatCurrency = (value) => {
-    if (!value) return "";
-    const number = parseFloat(value);
-    if (isNaN(number)) return "";
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(number).replace('UGX', 'UGX ');
+  const navItems = [
+    { name: 'Dashboard', icon: Home },
+    { name: 'Sales', icon: ShoppingCart },
+    { name: 'Inventory', icon: Package },
+    { name: 'Staff', icon: Users },
+    { name: 'Wages', icon: DollarSign },
+  ];
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case 'firstName': case 'lastName':
+        return value.trim().length < 2 ? 'Must be at least 2 characters' : '';
+      case 'product': case 'item': case 'status': case 'methodOfPayment':
+        return !value ? 'This field is required' : '';
+      case 'quantity': case 'rate':
+        return !value || parseFloat(value) <= 0 ? 'Must be greater than 0' : '';
+      case 'dateOfPayment':
+        return !value ? 'Please select a date' : '';
+      default: return '';
+    }
   };
 
-  // Validate form
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.customerName.trim()) {
-      newErrors.customerName = "Customer name is required";
-    }
-
-    if (!formData.batchId.trim()) {
-      newErrors.batchId = "Batch ID is required";
-    }
-
-    if (!formData.product) {
-      newErrors.product = "Please select a product";
-    }
-
-    if (!formData.item) {
-      newErrors.item = "Please select item type";
-    }
-
-    if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
-      newErrors.quantity = "Quantity must be greater than 0";
-    }
-
-    if (!formData.rate || parseFloat(formData.rate) <= 0) {
-      newErrors.rate = "Rate must be greater than 0";
-    }
-
-    if (!formData.dateOfPayment) {
-      newErrors.dateOfPayment = "Please select a date";
-    }
-
-    if (!formData.status) {
-      newErrors.status = "Please select status";
-    }
-
-    if (!formData.methodOfPayment) {
-      newErrors.methodOfPayment = "Please select payment method";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const getBorderColor = (fieldName) => {
+    if (!touched[fieldName]) return '#C4A57B';
+    if (errors[fieldName]) return '#D32F2F';
+    if (formData[fieldName]) return '#388E3C'; // Green for valid
+    return '#C4A57B';
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
-    }
-    
-    if (successMessage) {
-      setSuccessMessage("");
-    }
-
     let updatedData = { ...formData, [name]: value };
 
-    // Auto-calculate amount when quantity or rate changes
-    if (name === "quantity" || name === "rate") {
-      const quantity = parseFloat(
-        name === "quantity" ? value : formData.quantity
-      );
-      const rate = parseFloat(
-        name === "rate" ? value : formData.rate
-      );
-      if (!isNaN(quantity) && !isNaN(rate)) {
-        updatedData.amount = (quantity * rate).toFixed(2);
-      } else {
-        updatedData.amount = "";
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+
+    if (name === 'quantity' || name === 'rate') {
+      const qty = parseFloat(name === 'quantity' ? value : formData.quantity);
+      const rte = parseFloat(name === 'rate' ? value : formData.rate);
+      if (!isNaN(qty) && !isNaN(rte)) {
+        updatedData.amount = (qty * rte).toFixed(2);
       }
     }
 
-    // Auto-calculate balance when amount or status changes
-    if (name === "amount" || name === "status") {
-      const amount = parseFloat(updatedData.amount || formData.amount);
-      const status = name === "status" ? value : formData.status;
-      
-      if (!isNaN(amount)) {
-        if (status === "Paid") {
-          updatedData.balance = "0";
-        } else if (status === "Pending") {
-          updatedData.balance = amount.toFixed(2);
-        }
-        // For "Partial", user can manually enter balance
+    if (name === 'status' || name === 'amount') {
+      const amt = parseFloat(updatedData.amount || formData.amount);
+      const sts = name === 'status' ? value : formData.status;
+      if (!isNaN(amt)) {
+        if (sts === 'Paid') updatedData.balance = '0';
+        else if (sts === 'Pending') updatedData.balance = amt.toFixed(2);
       }
     }
 
     setFormData(updatedData);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    setTouched(prev => ({ ...prev, [name]: true }));
+    const error = validateField(name, value);
+    setErrors(prev => ({ ...prev, [name]: error }));
+  };
 
-    setIsSubmitting(true);
-    setErrors({});
+  const handleSubmit = () => {
+    const newErrors = {};
+    Object.keys(formData).forEach(key => {
+      if (key !== 'balance' && key !== 'amount') {
+        const error = validateField(key, formData[key]);
+        if (error) newErrors[key] = error;
+      }
+    });
 
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      console.log("Form submitted:", formData);
-      
-      setSuccessMessage("Sale recorded successfully!");
-      
-      setTimeout(() => {
-        setFormData({
-          customerName: "",
-          batchId: "",
-          product: "",
-          item: "",
-          quantity: "",
-          rate: "",
-          amount: "",
-          dateOfPayment: "",
-          status: "",
-          balance: "",
-          methodOfPayment: "",
-        });
-        setSuccessMessage("");
-      }, 2000);
-      
-    } catch (error) {
-      console.error("Submission error:", error);
-      setErrors({ submit: "Failed to submit sale. Please try again." });
-    } finally {
-      setIsSubmitting(false);
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length === 0) {
+      console.log('Form submitted:', formData);
+      alert('Sale recorded successfully!');
     }
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: CoffeeColors.SCREEN_BG }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', display: 'flex' }}>
       {/* Sidebar */}
-      <div 
-        className={`${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 flex flex-col shadow-lg`}
-        style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
-      >
-        {/* Sidebar Header */}
-        <div className="p-4 flex items-center justify-between border-b border-white/20">
-          {sidebarOpen && (
-            <div className="flex items-center gap-2">
-              <span style={{ color: CoffeeColors.WHITE }} className="text-xl">✱</span>
-              <span style={{ color: CoffeeColors.WHITE }} className="font-bold text-sm">AgriManageDesktop</span>
-            </div>
-          )}
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="hover:bg-white/10 p-2 rounded"
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            {sidebarOpen ? '←' : '→'}
-          </button>
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" 
+          onClick={() => setSidebarOpen(false)} 
+        />
+      )}
+      
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        height: '100%',
+        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition: 'transform 0.3s',
+        width: sidebarCollapsed ? '60px' : '200px',
+        backgroundColor: '#6B2E0F',
+        zIndex: 50,
+        padding: '10px'
+      }} className="md:translate-x-0">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', padding: '0 5px' }}>
+          {!sidebarCollapsed && <span style={{ color: 'white', fontWeight: 'bold' }}>Menu</span>}
+          <div style={{ display: 'flex', gap: '5px' }}>
+            <button onClick={() => setSidebarOpen(false)} style={{ color: 'white' }} className="md:hidden">
+              <X size={16} />
+            </button>
+            <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ color: 'white' }} className="hidden md:block">
+              {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            </button>
+          </div>
         </div>
-
-        {/* Navigation Items */}
-        <nav className="flex-1 p-4">
-          <button 
-            onClick={() => navigate('/wages')}
-            className="w-full text-left hover:bg-white/10 p-3 rounded mb-2 flex items-center gap-3"
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">💰</span>
-            {sidebarOpen && <span>Wages</span>}
-          </button>
-          <button 
-            onClick={() => navigate('/wage-entry')}
-            className="w-full text-left hover:bg-white/10 p-3 rounded mb-2 flex items-center gap-3"
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">📝</span>
-            {sidebarOpen && <span>Wage Entry</span>}
-          </button>
-          <button 
-            onClick={() => navigate('/sales-entry')}
-            className="w-full text-left p-3 rounded mb-2 flex items-center gap-3 bg-white/20"
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">📈</span>
-            {sidebarOpen && <span>Sales Entry</span>}
-          </button>
-          <button 
-            onClick={() => navigate('/expense')}
-            className="w-full text-left hover:bg-white/10 p-3 rounded mb-2 flex items-center gap-3"
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">💸</span>
-            {sidebarOpen && <span>Expense</span>}
-          </button>
-          <button 
-            onClick={() => navigate('/expense-list')}
-            className="w-full text-left hover:bg-white/10 p-3 rounded mb-2 flex items-center gap-3"
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">📋</span>
-            {sidebarOpen && <span>Expense List</span>}
-          </button>
+        
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <a
+                key={item.name}
+                href="#"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  color: 'white',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  backgroundColor: item.name === 'Sales' ? '#8B4513' : 'transparent',
+                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                }}
+                onMouseEnter={(e) => {
+                  if (item.name !== 'Sales') e.target.style.backgroundColor = '#8B4513';
+                }}
+                onMouseLeave={(e) => {
+                  if (item.name !== 'Sales') e.target.style.backgroundColor = 'transparent';
+                }}
+              >
+                <Icon size={18} />
+                {!sidebarCollapsed && <span>{item.name}</span>}
+              </a>
+            );
+          })}
         </nav>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-10 overflow-y-auto">
-        <div className="w-full max-w-4xl p-8 rounded-lg shadow-lg" style={{ backgroundColor: CoffeeColors.LIGHT_BG }}>
-          <h1 className="text-3xl font-bold mb-8" style={{ color: CoffeeColors.DARK_BROWN }}>
-            Sales Entry Form
+      <div style={{ 
+        marginLeft: sidebarCollapsed ? '60px' : '200px', 
+        flex: 1, 
+        transition: 'margin-left 0.3s',
+        padding: '15px'
+      }} className="md:ml-0">
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          marginBottom: '20px',
+          padding: '10px 0'
+        }}>
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            style={{
+              padding: '6px',
+              borderRadius: '6px',
+              border: '1px solid #C4A57B',
+              backgroundColor: 'white'
+            }}
+            className="md:hidden"
+          >
+            <Menu size={16} />
+          </button>
+          <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#6B2E0F', margin: 0 }}>
+            Sales Entry
           </h1>
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* Success Message */}
-            {successMessage && (
-              <div className="mb-4 p-3 rounded border" style={{
-                backgroundColor: '#E6FFE6',
-                borderColor: CoffeeColors.SUCCESS_GREEN,
-                color: CoffeeColors.SUCCESS_GREEN
-              }}>
-                ✓ {successMessage}
-              </div>
-            )}
-
-            {/* General Error Message */}
-            {errors.submit && (
-              <div className="mb-4 p-3 rounded border" style={{
-                backgroundColor: '#FFE5E5',
-                borderColor: CoffeeColors.ERROR_RED,
-                color: CoffeeColors.ERROR_RED
-              }}>
-                ✕ {errors.submit}
-              </div>
-            )}
-
-            {/* Row 1: Customer Name and Batch ID */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
+        {/* Compact Form */}
+        <div style={{
+          backgroundColor: '#F5E6D3',
+          borderRadius: '10px',
+          padding: '20px',
+          border: '2px solid #D4A574',
+          maxWidth: '600px',
+          margin: '0 auto'
+        }}>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {/* Row 1 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Customer Name *
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  First Name *
                 </label>
                 <input
                   type="text"
-                  name="customerName"
-                  value={formData.customerName}
+                  name="firstName"
+                  value={formData.firstName}
                   onChange={handleChange}
-                  placeholder="Enter customer name"
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
+                  placeholder="John"
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.customerName ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('firstName')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 />
-                {errors.customerName && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.customerName}
-                  </p>
-                )}
+                {errors.firstName && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.firstName}</span>}
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Batch ID *
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  Last Name *
                 </label>
                 <input
                   type="text"
-                  name="batchId"
-                  value={formData.batchId}
+                  name="lastName"
+                  value={formData.lastName}
                   onChange={handleChange}
-                  placeholder="Enter batch ID"
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
+                  placeholder="Doe"
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.batchId ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('lastName')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 />
-                {errors.batchId && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.batchId}
-                  </p>
-                )}
+                {errors.lastName && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.lastName}</span>}
               </div>
             </div>
 
-            {/* Row 2: Product and Item */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Row 2 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
                   Product *
                 </label>
                 <select
                   name="product"
                   value={formData.product}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.product ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('product')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 >
-                  <option value="">Select a product</option>
-                  {products.map((p, index) => (
-                    <option key={index} value={p}>
-                      {p}
-                    </option>
-                  ))}
+                  <option value="">Select</option>
+                  {products.map(p => <option key={p} value={p}>{p}</option>)}
                 </select>
-                {errors.product && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.product}
-                  </p>
-                )}
+                {errors.product && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.product}</span>}
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
                   Item *
                 </label>
                 <select
                   name="item"
                   value={formData.item}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.item ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('item')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 >
-                  <option value="">Select item type</option>
-                  {items.map((item, index) => (
-                    <option key={index} value={item}>
-                      {item}
-                    </option>
-                  ))}
+                  <option value="">Select</option>
+                  {items.map(i => <option key={i} value={i}>{i}</option>)}
                 </select>
-                {errors.item && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.item}
-                  </p>
-                )}
+                {errors.item && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.item}</span>}
               </div>
             </div>
 
-            {/* Row 3: Quantity and Rate */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Row 3 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Quantity (kg) *
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  Qty (kg) *
                 </label>
                 <input
                   type="number"
                   name="quantity"
                   value={formData.quantity}
                   onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  placeholder="e.g. 100"
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
+                  placeholder="100"
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.quantity ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('quantity')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 />
-                {errors.quantity && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.quantity}
-                  </p>
-                )}
+                {errors.quantity && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.quantity}</span>}
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Rate (UGX per kg) *
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  Rate (UGX) *
                 </label>
                 <input
                   type="number"
                   name="rate"
                   value={formData.rate}
                   onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  placeholder="e.g. 5000"
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
+                  placeholder="5000"
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.rate ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('rate')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 />
-                {errors.rate && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.rate}
-                  </p>
-                )}
+                {errors.rate && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.rate}</span>}
               </div>
             </div>
 
-            {/* Row 4: Amount (Read-only) */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                Amount (UGX)
-              </label>
-              <input
-                type="text"
-                value={formData.amount ? formatCurrency(formData.amount) : 'UGX 0'}
-                readOnly
-                className="w-full px-4 py-2 rounded font-medium"
-                style={{
-                  backgroundColor: '#F5F5F5',
-                  borderWidth: '1px',
-                  borderColor: CoffeeColors.LIGHT_BROWN,
-                  color: CoffeeColors.DARK_BROWN
-                }}
-              />
-            </div>
-
-            {/* Row 5: Date of Payment and Status */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Row 4 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Date of Payment *
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  Payment Date *
                 </label>
                 <input
                   type="date"
                   name="dateOfPayment"
                   value={formData.dateOfPayment}
                   onChange={handleChange}
-                  max={new Date().toISOString().split('T')[0]}
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.dateOfPayment ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('dateOfPayment')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 />
-                {errors.dateOfPayment && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.dateOfPayment}
-                  </p>
-                )}
+                {errors.dateOfPayment && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.dateOfPayment}</span>}
               </div>
-
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
                   Status *
                 </label>
                 <select
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.status ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('status')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 >
-                  <option value="">Select status</option>
-                  {statuses.map((status, index) => (
-                    <option key={index} value={status}>
-                      {status}
-                    </option>
-                  ))}
+                  <option value="">Select</option>
+                  {statuses.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
-                {errors.status && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.status}
-                  </p>
-                )}
+                {errors.status && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.status}</span>}
               </div>
             </div>
 
-            {/* Row 6: Balance and Method of Payment */}
-            <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Row 5 */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Balance (UGX)
-                </label>
-                <input
-                  type="number"
-                  name="balance"
-                  value={formData.balance}
-                  onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  placeholder="Auto-calculated or enter manually"
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: formData.status === "Partial" ? CoffeeColors.WHITE : '#F5F5F5',
-                    borderWidth: '1px',
-                    borderColor: CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  readOnly={formData.status !== "Partial"}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Method of Payment *
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  Payment Method *
                 </label>
                 <select
                   name="methodOfPayment"
                   value={formData.methodOfPayment}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded focus:outline-none focus:ring-1`}
+                  onBlur={handleBlur}
                   style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.methodOfPayment ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('methodOfPayment')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
                   }}
-                  required
                 >
-                  <option value="">Select payment method</option>
-                  {paymentMethods.map((method, index) => (
-                    <option key={index} value={method}>
-                      {method}
-                    </option>
-                  ))}
+                  <option value="">Select</option>
+                  {paymentMethods.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
-                {errors.methodOfPayment && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.methodOfPayment}
-                  </p>
-                )}
+                {errors.methodOfPayment && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.methodOfPayment}</span>}
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  Batch ID
+                </label>
+                <input
+                  type="text"
+                  name="batchId"
+                  value={formData.batchId}
+                  onChange={handleChange}
+                  placeholder="BATCH-001"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: '2px solid #C4A57B',
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
+                  }}
+                />
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Auto-calculated */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '5px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  Total Amount
+                </label>
+                <input
+                  type="text"
+                  value={formData.amount ? `UGX ${parseFloat(formData.amount).toLocaleString()}` : 'UGX 0'}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: '2px solid #C4A57B',
+                    borderRadius: '6px',
+                    backgroundColor: '#E8E8E8',
+                    fontWeight: '600'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+                  Balance
+                </label>
+                <input
+                  type="text"
+                  value={formData.balance ? `UGX ${parseFloat(formData.balance).toLocaleString()}` : 'UGX 0'}
+                  readOnly
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: '2px solid #C4A57B',
+                    borderRadius: '6px',
+                    backgroundColor: '#E8E8E8',
+                    fontWeight: '600'
+                  }}
+                />
+              </div>
+            </div>
+
             <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`w-full py-3 rounded font-semibold transition-colors`}
+              onClick={handleSubmit}
               style={{
-                backgroundColor: isSubmitting ? CoffeeColors.GRAY_TEXT : CoffeeColors.BUTTON_BROWN,
-                color: CoffeeColors.WHITE,
-                cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                width: '100%',
+                padding: '10px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#FFFFFF',
+                backgroundColor: '#6B2E0F',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                marginTop: '10px'
               }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#5A260D'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#6B2E0F'}
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Sale'}
+              Record Sale
             </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>
