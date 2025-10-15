@@ -1,12 +1,16 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function SalesEntry() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    firstName: '', lastName: '', product: '', item: '', quantity: '', rate: '',
-    dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: ''
+    customerName: '', product: '', item: '', quantity: '', rate: '',
+    dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: '', amountPaid: ''
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
 
   const products = ['Coffee', 'Banana', 'Rice', 'Wheat', 'Cassava'];
   const items = ['Dried', 'Hulled'];
@@ -15,7 +19,7 @@ function SalesEntry() {
 
   const validateField = (name, value) => {
     switch (name) {
-      case 'firstName': case 'lastName':
+      case 'customerName':
         return value.trim().length < 2 ? 'Must be at least 2 characters' : '';
       case 'product': case 'item': case 'status': case 'methodOfPayment':
         return !value ? 'This field is required' : '';
@@ -69,7 +73,7 @@ function SalesEntry() {
     setErrors(prev => ({ ...prev, [name]: error }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors = {};
     Object.keys(formData).forEach(key => {
       if (key !== 'balance' && key !== 'amount') {
@@ -79,9 +83,58 @@ function SalesEntry() {
     });
 
     setErrors(newErrors);
-    if (Object.keys(newErrors).length === 0) {
-      console.log('Form submitted:', formData);
-      alert('Sale recorded successfully!');
+    if (Object.keys(newErrors).length > 0) return;
+
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const payload = {
+        customer_name: formData.customerName,
+        item: formData.item,
+        product: formData.product,
+        quantity: parseFloat(formData.quantity),
+        rate: parseFloat(formData.rate),
+        amount: parseFloat(formData.amount),
+        amount_paid: parseFloat(formData.amountPaid) || 0,
+        date_of_payment: formData.dateOfPayment,
+        status: formData.status,
+        balance: parseFloat(formData.balance),
+        batch_id: formData.batchId || null,
+        method_of_payment: formData.methodOfPayment
+      };
+
+      const response = await fetch('https://api-3181.onrender.com/api/sales/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setMessage('Sale recorded successfully!');
+        // Reset form
+        setFormData({
+          customerName: '', product: '', item: '', quantity: '', rate: '',
+          dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: '', amountPaid: ''
+        });
+        setErrors({});
+        setTouched({});
+        // Navigate to sales page to show the new record
+        setTimeout(() => {
+          navigate('/sales');
+        }, 1500);
+      } else {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        setMessage(`Failed to save sale: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+      setMessage('Network error. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,61 +154,36 @@ function SalesEntry() {
         margin: '0 auto'
       }}>
         <div style={{ display: 'grid', gap: '12px' }}>
-          {/* Row 1 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
-                First Name *
-              </label>
-              <input
-                type="text"
-                name="firstName"
-                value={formData.firstName}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="John"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  fontSize: '12px',
-                  border: `2px solid ${getBorderColor('firstName')}`,
-                  borderRadius: '6px',
-                  backgroundColor: '#FFFFFF',
-                  outline: 'none'
-                }}
-              />
-              {errors.firstName && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.firstName}</span>}
-            </div>
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
-                Last Name *
-              </label>
-              <input
-                type="text"
-                name="lastName"
-                value={formData.lastName}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="Doe"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  fontSize: '12px',
-                  border: `2px solid ${getBorderColor('lastName')}`,
-                  borderRadius: '6px',
-                  backgroundColor: '#FFFFFF',
-                  outline: 'none'
-                }}
-              />
-              {errors.lastName && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.lastName}</span>}
-            </div>
+          {/* Customer Name */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+              Customer Name *
+            </label>
+            <input
+              type="text"
+              name="customerName"
+              value={formData.customerName}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="John Doe"
+              style={{
+                width: '100%',
+                padding: '8px',
+                fontSize: '12px',
+                border: `2px solid ${getBorderColor('customerName')}`,
+                borderRadius: '6px',
+                backgroundColor: '#FFFFFF',
+                outline: 'none'
+              }}
+            />
+            {errors.customerName && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.customerName}</span>}
           </div>
 
           {/* Row 2 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
-                Product *
+                Item *
               </label>
               <select
                 name="product"
@@ -179,7 +207,7 @@ function SalesEntry() {
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
-                Item *
+                Product *
               </label>
               <select
                 name="item"
@@ -352,6 +380,31 @@ function SalesEntry() {
             </div>
           </div>
 
+          {/* Amount Paid */}
+          <div style={{ marginTop: '5px' }}>
+            <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
+              Amount Paid (UGX) *
+            </label>
+            <input
+              type="number"
+              name="amountPaid"
+              value={formData.amountPaid}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="0"
+              style={{
+                width: '100%',
+                padding: '8px',
+                fontSize: '12px',
+                border: `2px solid ${getBorderColor('amountPaid')}`,
+                borderRadius: '6px',
+                backgroundColor: '#FFFFFF',
+                outline: 'none'
+              }}
+            />
+            {errors.amountPaid && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.amountPaid}</span>}
+          </div>
+
           {/* Auto-calculated */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '5px' }}>
             <div>
@@ -394,24 +447,43 @@ function SalesEntry() {
             </div>
           </div>
 
+          {message && (
+            <div style={{
+              width: '100%',
+              padding: '10px',
+              borderRadius: '6px',
+              marginBottom: '10px',
+              backgroundColor: message.includes('successfully') ? '#E8F5E8' : '#FFEBEE',
+              border: `1px solid ${message.includes('successfully') ? '#4CAF50' : '#F44336'}`,
+              color: message.includes('successfully') ? '#2E7D32' : '#C62828',
+              fontSize: '12px',
+              fontWeight: '500',
+              textAlign: 'center'
+            }}>
+              {message}
+            </div>
+          )}
+
           <button
             onClick={handleSubmit}
+            disabled={loading}
             style={{
               width: '100%',
               padding: '10px',
               fontSize: '14px',
               fontWeight: '600',
               color: '#FFFFFF',
-              backgroundColor: '#6B2E0F',
+              backgroundColor: loading ? '#CCCCCC' : '#6B2E0F',
               border: 'none',
               borderRadius: '6px',
-              cursor: 'pointer',
-              marginTop: '10px'
+              cursor: loading ? 'not-allowed' : 'pointer',
+              marginTop: '10px',
+              opacity: loading ? 0.7 : 1
             }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#5A260D'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#6B2E0F'}
+            onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#5A260D')}
+            onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#6B2E0F')}
           >
-            Record Sale
+            {loading ? 'Submitting...' : 'Record Sale'}
           </button>
         </div>
       </div>

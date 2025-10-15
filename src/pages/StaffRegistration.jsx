@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import { Menu, X, Home, DollarSign, ShoppingCart, Package, Users, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+// API endpoint for staff registration
+const STAFF_API_ENDPOINT = 'https://api-3181.onrender.com/api/staff/';
 
 const CoffeeColors = {
   SCREEN_BG: '#FFF8F6',
@@ -15,10 +19,13 @@ const CoffeeColors = {
 };
 
 function StaffRegistration() {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -63,7 +70,8 @@ function StaffRegistration() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    
+    setMessage(''); // Clear any previous messages
+
     if (touched[name]) {
       const error = validateField(name, value);
       setErrors(prev => ({ ...prev, [name]: error }));
@@ -95,29 +103,66 @@ function StaffRegistration() {
     });
   };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      console.log('Form Submitted:', form);
-      setShowSuccess(true);
-      
-      // Clear form after success
-      setForm({
-        first_name: '',
-        last_name: '',
-        gender: '',
-        nin: '',
-        district: '',
-        subcounty: '',
-        parish: '',
-        village: '',
-        employment_status: '',
-        hire_date: '',
-      });
-      setTouched({});
-      setErrors({});
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
 
-      // Hide success message after 5 seconds
-      setTimeout(() => setShowSuccess(false), 5000);
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const payload = {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        gender: form.gender,
+        nin: form.nin,
+        district: form.district,
+        sub_county: form.subcounty,
+        parish: form.parish,
+        village: form.village,
+        employment_status: form.employment_status,
+        date_hired: form.hire_date,
+      };
+
+      const response = await fetch(STAFF_API_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setMessage('Staff member registered successfully!');
+        setShowSuccess(true);
+
+        // Clear form after success
+        setForm({
+          first_name: '',
+          last_name: '',
+          gender: '',
+          nin: '',
+          district: '',
+          subcounty: '',
+          parish: '',
+          village: '',
+          employment_status: '',
+          hire_date: '',
+        });
+        setTouched({});
+        setErrors({});
+
+        // Navigate to staff management page after a short delay
+        setTimeout(() => {
+          navigate('/staff-management');
+        }, 2000);
+      } else {
+        const errorData = await response.json();
+        console.error('API Error:', errorData);
+        setMessage(`Failed to register staff: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
+    } catch (err) {
+      console.error('Network error:', err);
+      setMessage('Network error. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -255,15 +300,13 @@ function StaffRegistration() {
           </div>
         )}
 
-        {/* FORM CONTAINER (Made Smaller) */}
-        <div className="pt-20 pb-12 px-4 sm:px-6 lg:px-8">
-          <div 
-            className="max-w-lg mx-auto p-6 rounded-2xl shadow-xl" // This is the size adjustment you liked
-            style={{ backgroundColor: '#F5E6D3', border: `2px solid ${CoffeeColors.LIGHT_BROWN}` }}
-          >
-            <h2 className="text-3xl font-bold mb-8 text-center" style={{ color: CoffeeColors.DARK_BROWN }}>
+        {/* FORM CONTAINER (Same size as WageEntry form) */}
+        <div className="min-h-screen pt-24 md:pt-32 pb-12 flex justify-center">
+          <div className="w-full max-w-3xl mt-12 p-6 sm:p-8 rounded-2xl shadow-2xl"
+               style={{ backgroundColor: '#F5EEDC', border: `1px solid #B8A072` }}>
+            <h1 className="text-2xl sm:text-3xl font-extrabold mb-6" style={{ color: '#702A0B' }}>
               Staff Registration Form
-            </h2>
+            </h1>
 
             <div className="space-y-6">
               {/* Employee Name */}
@@ -507,20 +550,35 @@ function StaffRegistration() {
               </div>
 
               {/* Submit Button */}
-              <div className="pt-6">
+              <div className="sm:col-span-2 mt-2">
+                {message && (
+                  <div style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    marginBottom: '10px',
+                    backgroundColor: message.includes('successfully') ? '#E8F5E8' : '#FFEBEE',
+                    border: `1px solid ${message.includes('successfully') ? '#4CAF50' : '#F44336'}`,
+                    color: message.includes('successfully') ? '#2E7D32' : '#C62828',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    textAlign: 'center'
+                  }}>
+                    {message}
+                  </div>
+                )}
                 <button
                   onClick={handleSubmit}
-                  disabled={!isFormValid()}
-                  className="w-full py-4 px-6 rounded-lg text-lg font-semibold transition-all hover:opacity-90"
+                  disabled={!isFormValid() || loading}
+                  className="w-full py-3 font-semibold"
                   style={{
-                    backgroundColor: CoffeeColors.BUTTON_BROWN,
-                    color: CoffeeColors.WHITE,
-                    opacity: !isFormValid() ? 0.6 : 1, // Reduced opacity for disabled state
-                    cursor: !isFormValid() ? 'not-allowed' : 'pointer',
-                    boxShadow: !isFormValid() ? 'none' : `0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06)`,
+                    backgroundColor: '#702A0B',
+                    color: '#FFFFFF',
+                    opacity: (!isFormValid() || loading) ? 0.7 : 1,
+                    cursor: (!isFormValid() || loading) ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  Register Staff
+                  {loading ? 'Registering...' : 'Register Staff'}
                 </button>
               </div>
             </div>

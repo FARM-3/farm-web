@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 
-// --- MOCK DATA ---
-const MOCK_TRANSACTIONS = [
-    { id: 1, type: 'Sale', description: 'Bulk Order #406', amount: 2100000, date: 'Oct 15', isExpense: false },
-    { id: 2, type: 'Sale', description: 'Receipt #405', amount: 800000, date: 'Oct 13', isExpense: false },
-    { id: 3, type: 'Sale', description: 'Receipt #404', amount: 450000, date: 'Oct 12', isExpense: false },
-    { id: 4, type: 'Sale', description: 'Small Batch #403', amount: 300000, date: 'Oct 10', isExpense: false },
-];
+// --- API ENDPOINT ---
+const SALES_API_ENDPOINT = 'https://api-3181.onrender.com/api/sales/';
 
 // --- UTILITIES ---
 
@@ -80,16 +75,44 @@ function Sales() {
     // Sorting state
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
 
-    // Mock data fetcher
-    const fetchSales = useCallback(async () => {
+    // Live data fetcher with retry logic
+    const fetchSales = useCallback(async (retries = 3) => {
         setLoading(true);
         setError(null);
 
-        // Simulate API call
-        setTimeout(() => {
-            setSales(MOCK_TRANSACTIONS.filter(tx => !tx.isExpense));
-            setLoading(false);
-        }, 1000);
+        for (let i = 0; i < retries; i++) {
+            try {
+                const response = await fetch(SALES_API_ENDPOINT);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // Normalize API response to always be an array (handles paginated objects with `results`)
+                const normalized = Array.isArray(data)
+                    ? data
+                    : Array.isArray(data?.results)
+                        ? data.results
+                        : [];
+
+                setSales(normalized);
+                setError(null);
+                setLoading(false);
+                return;
+
+            } catch (err) {
+                console.error(`Attempt ${i + 1} failed to fetch sales:`, err);
+                if (i === retries - 1) {
+                    const finalError = `Could not load sales records from ${SALES_API_ENDPOINT}. Failed reason: ${err.message}`;
+                    setError(finalError);
+                    setSales([]);
+                    setLoading(false);
+                    return;
+                }
+                // Exponential backoff delay
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+            }
+        }
     }, []);
 
     // Initial data fetch on component mount
@@ -152,7 +175,7 @@ function Sales() {
         if (loading) {
             return (
                 <tr className='h-24'>
-                    <td colSpan={4} className="text-center py-6 text-gray-600">
+                    <td colSpan={6} className="text-center py-6 text-gray-600">
                         <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: CoffeeColors.DARK_BROWN }} />
                         Loading sales records...
                     </td>
@@ -163,7 +186,7 @@ function Sales() {
         if (error) {
             return (
                 <tr className='h-24'>
-                    <td colSpan={4} className="text-center py-6 text-red-600 font-medium">
+                    <td colSpan={6} className="text-center py-6 text-red-600 font-medium">
                         {error}
                     </td>
                 </tr>
@@ -173,7 +196,7 @@ function Sales() {
         if (sortedSales.length === 0) {
             return (
                 <tr className='h-24'>
-                    <td colSpan={4} className="text-center py-6 text-gray-500 italic">
+                    <td colSpan={6} className="text-center py-6 text-gray-500 italic">
                         No sales records found. Click "Refresh" to try again.
                     </td>
                 </tr>
@@ -181,15 +204,18 @@ function Sales() {
         }
 
         return sortedSales.map((sale, index) => {
+            const customerName = sale.customer_name || 'N/A';
+            const itemInfo = `${sale.product || ''} ${sale.item || ''}`.trim() || 'N/A';
             const amountClass = 'text-green-600';
-            const IconComponent = ArrowUpRight;
 
             return (
                 <tr key={sale.id || index} className="border-b transition-colors duration-150 hover:bg-white/50">
-                    <td className="px-6 py-3 text-left font-medium text-gray-800">{sale.type || 'Sale'}</td>
-                    <td className="px-6 py-3 text-left text-gray-600">{sale.description || 'N/A'}</td>
-                    <td className="px-6 py-3 text-right text-green-600 font-bold">{formatUGX(sale.amount)}</td>
-                    <td className="px-6 py-3 text-right text-gray-500">{sale.date || 'N/A'}</td>
+                    <td className="px-6 py-3 text-left font-medium text-gray-800">{customerName}</td>
+                    <td className="px-6 py-3 text-left text-gray-600">{itemInfo}</td>
+                    <td className="px-6 py-3 text-center text-gray-700">{sale.quantity || 'N/A'}</td>
+                    <td className="px-6 py-3 text-right text-green-600 font-bold">{formatUGX(sale.amount || sale.amount)}</td>
+                    <td className="px-6 py-3 text-left text-gray-700">{sale.method_of_payment || 'N/A'}</td>
+                    <td className="px-6 py-3 text-right text-gray-500">{sale.date_of_payment || 'N/A'}</td>
                 </tr>
             );
         });
@@ -230,25 +256,36 @@ function Sales() {
                             <thead className="sticky top-0 z-10" style={{ backgroundColor: '#B8A072' }}>
                                 <tr>
                                     <th
-                                        key="type"
+                                        key="customer_name"
                                         className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
-                                        onClick={() => requestSort('type')}
+                                        onClick={() => requestSort('customer_name')}
                                         scope="col"
                                     >
                                         <div className="flex items-center justify-start">
-                                            Type
-                                            {getSortIcon('type')}
+                                            Customer Name
+                                            {getSortIcon('customer_name')}
                                         </div>
                                     </th>
                                     <th
-                                        key="description"
+                                        key="product"
                                         className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
-                                        onClick={() => requestSort('description')}
+                                        onClick={() => requestSort('product')}
                                         scope="col"
                                     >
                                         <div className="flex items-center justify-start">
-                                            Description
-                                            {getSortIcon('description')}
+                                            Item
+                                            {getSortIcon('item')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        key="quantity"
+                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
+                                        onClick={() => requestSort('quantity')}
+                                        scope="col"
+                                    >
+                                        <div className="flex items-center justify-center">
+                                            Quantity
+                                            {getSortIcon('quantity')}
                                         </div>
                                     </th>
                                     <th
@@ -257,20 +294,27 @@ function Sales() {
                                         onClick={() => requestSort('amount')}
                                         scope="col"
                                     >
-                                        <div className="flex items-center justify-end">
-                                            Amount
-                                            {getSortIcon('amount')}
+                                    </th>
+                                    <th
+                                        key="method_of_payment"
+                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
+                                        onClick={() => requestSort('method_of_payment')}
+                                        scope="col"
+                                    >
+                                        <div className="flex items-center justify-start">
+                                            Payment Method
+                                            {getSortIcon('method_of_payment')}
                                         </div>
                                     </th>
                                     <th
-                                        key="date"
+                                        key="date_of_payment"
                                         className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
-                                        onClick={() => requestSort('date')}
+                                        onClick={() => requestSort('date_of_payment')}
                                         scope="col"
                                     >
                                         <div className="flex items-center justify-end">
                                             Date
-                                            {getSortIcon('date')}
+                                            {getSortIcon('date_of_payment')}
                                         </div>
                                     </th>
                                 </tr>

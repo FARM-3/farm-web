@@ -4,6 +4,9 @@ import Button from '../components/Button.jsx';
 import Input from '../components/Input.jsx';
 import NavBar from '../components/NavBar.jsx';
 
+// API endpoint for wages
+const WAGES_API_ENDPOINT = 'https://api-3181.onrender.com/api/wages/';
+
 const CUSTOM_COLORS = {
     headerBg: '#702A0B',
     cardBg: '#F5EEDC',
@@ -27,10 +30,12 @@ function WageEntry() {
 
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
+        setMessage(''); // Clear any previous messages
     };
 
     const validate = () => {
@@ -49,8 +54,10 @@ function WageEntry() {
         setErrors(validation);
         if (Object.keys(validation).length > 0) return;
 
+        setSubmitting(true);
+        setMessage('');
+
         try {
-            setSubmitting(true);
             const payload = {
                 employee_name: form.employee_name,
                 date_of_payment: form.date_of_payment,
@@ -61,19 +68,37 @@ function WageEntry() {
                 noted_reason: form.noted_reason || '',
             };
 
-            const res = await fetch('https://api-3181.onrender.com/api/wages/', {
+            const response = await fetch(WAGES_API_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || `Request failed with ${res.status}`);
+
+            if (response.ok) {
+                setMessage('Wage record saved successfully!');
+                // Reset form
+                setForm({
+                    employee_name: '',
+                    date_of_payment: '',
+                    days_worked: '',
+                    monthly_pay: '',
+                    amount_paid: '',
+                    deduction: '',
+                    noted_reason: '',
+                });
+                setErrors({});
+                // Navigate to wages page after a short delay
+                setTimeout(() => {
+                    navigate('/wages');
+                }, 1500);
+            } else {
+                const errorData = await response.json();
+                console.error('API Error:', errorData);
+                setMessage(`Failed to save wage: ${response.status} - ${JSON.stringify(errorData)}`);
             }
-            navigate('/wages');
         } catch (err) {
-            console.error('Failed to save wage:', err);
-            setErrors(prev => ({ ...prev, submit: 'Failed to save. Please try again.' }));
+            console.error('Network error:', err);
+            setMessage('Network error. Please check your connection and try again.');
         } finally {
             setSubmitting(false);
         }
@@ -123,7 +148,22 @@ function WageEntry() {
                     </div>
 
                     <div className="sm:col-span-2 mt-2">
-                        {errors.submit && <p className="mb-2 text-sm text-red-600">{errors.submit}</p>}
+                        {message && (
+                            <div style={{
+                                width: '100%',
+                                padding: '10px',
+                                borderRadius: '6px',
+                                marginBottom: '10px',
+                                backgroundColor: message.includes('successfully') ? '#E8F5E8' : '#FFEBEE',
+                                border: `1px solid ${message.includes('successfully') ? '#4CAF50' : '#F44336'}`,
+                                color: message.includes('successfully') ? '#2E7D32' : '#C62828',
+                                fontSize: '12px',
+                                fontWeight: '500',
+                                textAlign: 'center'
+                            }}>
+                                {message}
+                            </div>
+                        )}
                         <Button type="submit" disabled={submitting} className="py-3 font-semibold" style={{ backgroundColor: CUSTOM_COLORS.actionBg, opacity: submitting ? 0.7 : 1 }}>
                             {submitting ? 'Saving...' : 'Submit Wage'}
                         </Button>

@@ -201,7 +201,7 @@ function Expenses() {
                 <td className="px-6 py-3 text-left font-medium text-gray-800">{expense.expense_name || 'N/A'}</td>
                 <td className="px-6 py-3 text-left text-gray-600">{expense.category || '-'}</td>
                 <td className="px-6 py-3 text-center text-gray-600">{expense.date || 'N/A'}</td>
-                <td className="px-6 py-3 text-right text-red-600 font-bold">{formatCurrency(expense.amount)}</td>
+                <td className="px-6 py-3 text-right text-red-600 font-bold">{(expense.amount)}</td>
                 <td className="px-6 py-3 text-left text-gray-700">{expense.supplier || '-'}</td>
                 <td className="px-6 py-3 text-left text-sm italic text-gray-500">{expense.location || '-'}</td>
             </tr>
