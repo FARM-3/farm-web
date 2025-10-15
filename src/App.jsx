@@ -8,6 +8,7 @@ import Expenses from './pages/Expenses.jsx';
 import ExpenseEntry from './pages/ExpenseEntry.jsx';
 import StaffRegistration from './pages/StaffRegistration.jsx';
 import StaffManagement from './pages/StaffManagement.jsx';
+import Dashboard from './pages/Dashboard.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
@@ -32,6 +33,7 @@ function App() {
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/staff-registration" element={<StaffRegistration />} />
           <Route path="/staff-management" element={<StaffManagement />} />
+          <Route path="/dashboard" element={<Dashboard />} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>

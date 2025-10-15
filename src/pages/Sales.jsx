@@ -1,647 +1,289 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import NavBar from '../components/NavBar.jsx';
 
-// --- Coffee Theme Colors ---
-const CoffeeColors = {
-  SCREEN_BG: '#FFF8F6',
-  LIGHT_BG: '#FEEFEA',
-  DARK_BROWN: '#4A3423',
-  BUTTON_BROWN: '#8B4513',
-  MEDIUM_BROWN: '#795548',
-  LIGHT_BROWN: '#BCAAA4',
-  WHITE: '#FFFFFF',
-  GRAY_TEXT: '#8D8D8D',
-  ERROR_RED: '#D32F2F',
-  SUCCESS_GREEN: '#4CAF50',
+// --- MOCK DATA ---
+const MOCK_TRANSACTIONS = [
+    { id: 1, type: 'Sale', description: 'Bulk Order #406', amount: 2100000, date: 'Oct 15', isExpense: false },
+    { id: 2, type: 'Sale', description: 'Receipt #405', amount: 800000, date: 'Oct 13', isExpense: false },
+    { id: 3, type: 'Sale', description: 'Receipt #404', amount: 450000, date: 'Oct 12', isExpense: false },
+    { id: 4, type: 'Sale', description: 'Small Batch #403', amount: 300000, date: 'Oct 10', isExpense: false },
+];
+
+// --- UTILITIES ---
+
+// Helper function for currency formatting (UGX)
+const formatUGX = (amount) => {
+    if (typeof amount !== 'number') return '';
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'UGX',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount).replace('UGX', 'UGX ');
 };
 
-function SalesEntry() {
-  const navigate = useNavigate();
-  
-  const [formData, setFormData] = useState({
-    customerName: "",
-    batchId: "",
-    product: "",
-    item: "",
-    quantity: "",
-    rate: "",
-    amount: "",
-    dateOfPayment: "",
-    status: "",
-    balance: "",
-    methodOfPayment: "",
-  });
+// --- CONFIGURATION ---
+// Coffee Theme Colors from Login.jsx
+const CoffeeColors = {
+    SCREEN_BG: '#FFF8F6',
+    LIGHT_BG: '#FEEFEA',
+    DARK_BROWN: '#4A3423',
+    BUTTON_BROWN: '#8B4513',
+    MEDIUM_BROWN: '#795548',
+    LIGHT_BROWN: '#BCAAA4',
+    WHITE: '#FFFFFF',
+    GRAY_TEXT: '#8D8D8D',
+    ERROR_RED: '#D32F2F',
+    SUCCESS_GREEN: '#4CAF50',
+};
 
-  const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  // Initial state for the sidebar is open
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const products = ["Coffee", "Banana", "Rice", "Wheat", "Cassava"];
-  const items = ["Dried", "Hulled"];
-  const statuses = ["Paid", "Pending", "Partial"];
-  const paymentMethods = ["Cash", "Mobile Money", "Bank Transfer", "Cheque"];
-
-  // Helper function for dynamic class on nav items.
-  // This must be defined outside the JSX return block.
-  const navItemClasses = (isActive) => 
-    `w-full hover:bg-white/10 p-3 rounded mb-2 flex items-center transition-colors 
-    ${sidebarOpen ? 'justify-start gap-3 text-left' : 'justify-center'} 
-    ${isActive ? 'bg-white/20' : ''}`;
-
-
-  // Format number as currency (UGX)
-  const formatCurrency = (value) => {
-    if (!value) return "";
-    const number = parseFloat(value);
-    if (isNaN(number)) return "";
-    return new Intl.NumberFormat('en-UG', {
-      style: 'currency',
-      currency: 'UGX',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(number).replace('UGX', 'UGX ');
-  };
-
-  // Validate form
-  const validateForm = () => {
-    const newErrors = {};
-
-    if (!formData.customerName.trim()) {
-      newErrors.customerName = "Customer name is required";
-    }
-
-    if (!formData.batchId.trim()) {
-      newErrors.batchId = "Batch ID is required";
-    }
-
-    if (!formData.product) {
-      newErrors.product = "Please select a product";
-    }
-
-    if (!formData.item) {
-      newErrors.item = "Please select item type";
-    }
-
-    if (!formData.quantity || parseFloat(formData.quantity) <= 0) {
-      newErrors.quantity = "Quantity must be greater than 0";
-    }
-
-    if (!formData.rate || parseFloat(formData.rate) <= 0) {
-      newErrors.rate = "Rate must be greater than 0";
-    }
-
-    if (!formData.dateOfPayment) {
-      newErrors.dateOfPayment = "Please select a date";
-    }
-
-    if (!formData.status) {
-      newErrors.status = "Please select status";
-    }
-
-    if (!formData.methodOfPayment) {
-      newErrors.methodOfPayment = "Please select payment method";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
-    }
-    
-    if (successMessage) {
-      setSuccessMessage("");
-    }
-
-    let updatedData = { ...formData, [name]: value };
-
-    // Auto-calculate amount when quantity or rate changes
-    if (name === "quantity" || name === "rate") {
-      const quantity = parseFloat(
-        name === "quantity" ? value : formData.quantity
-      );
-      const rate = parseFloat(
-        name === "rate" ? value : formData.rate
-      );
-      if (!isNaN(quantity) && !isNaN(rate)) {
-        updatedData.amount = (quantity * rate).toFixed(2);
-      } else {
-        updatedData.amount = "";
-      }
-    }
-
-    // Auto-calculate balance when amount or status changes
-    if (name === "amount" || name === "status") {
-      const amount = parseFloat(updatedData.amount || formData.amount);
-      const status = name === "status" ? value : formData.status;
-      
-      if (!isNaN(amount)) {
-        if (status === "Paid") {
-          updatedData.balance = "0";
-        } else if (status === "Pending") {
-          updatedData.balance = amount.toFixed(2);
+const customTailwindConfig = {
+    theme: {
+        extend: {
+            colors: {
+                'app-bg': CoffeeColors.SCREEN_BG,
+                'accent-header': CoffeeColors.LIGHT_BG,
+                'accent-btn': CoffeeColors.BUTTON_BROWN,
+                'text-default': CoffeeColors.DARK_BROWN,
+            },
+            fontFamily: {
+                sans: ['Inter', 'sans-serif'],
+            }
         }
-        // For "Partial", user can manually enter balance
-        // Note: For "Partial", we ensure balance is not wiped if they change another field.
-        if (status !== "Partial" && status !== formData.status) {
-            // Only overwrite if status changes away from Partial
-            setFormData(updatedData);
+    }
+};
+
+// Inject custom Tailwind config (Necessary for single-file environment)
+const styleScript = document.createElement('script');
+styleScript.innerHTML = `tailwind.config = ${JSON.stringify(customTailwindConfig)}`;
+document.head.appendChild(styleScript);
+
+const ActionButton = ({ children, onClick, className, style, disabled }) => (
+    <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`px-4 py-2 text-white rounded-lg shadow-md hover:shadow-lg transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+        style={{ ...style, backgroundColor: CoffeeColors.BUTTON_BROWN }}
+    >
+        {children}
+    </button>
+);
+
+function Sales() {
+    const [sales, setSales] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const navigate = useNavigate();
+
+    // Sorting state
+    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
+
+    // Mock data fetcher
+    const fetchSales = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+
+        // Simulate API call
+        setTimeout(() => {
+            setSales(MOCK_TRANSACTIONS.filter(tx => !tx.isExpense));
+            setLoading(false);
+        }, 1000);
+    }, []);
+
+    // Initial data fetch on component mount
+    useEffect(() => {
+        fetchSales();
+    }, [fetchSales]);
+
+    // Sorting logic
+    const sortedSales = React.useMemo(() => {
+        const base = Array.isArray(sales) ? sales : [];
+        let sortableItems = [...base];
+        if (sortConfig.key !== null) {
+            sortableItems.sort((a, b) => {
+                const aValue = a[sortConfig.key];
+                const bValue = b[sortConfig.key];
+
+                // Handle number sorting
+                if (typeof aValue === 'number' && typeof bValue === 'number') {
+                    if (aValue < bValue) {
+                        return sortConfig.direction === 'ascending' ? -1 : 1;
+                    }
+                    if (aValue > bValue) {
+                        return sortConfig.direction === 'ascending' ? 1 : -1;
+                    }
+                    return 0;
+                }
+
+                // Default string/date sorting
+                if (aValue < bValue) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
         }
-      }
-    }
+        return sortableItems;
+    }, [sales, sortConfig]);
 
-    setFormData(updatedData);
-  };
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
+    const getSortIcon = (key) => {
+        if (sortConfig.key !== key) {
+            return null;
+        }
+        if (sortConfig.direction === 'ascending') {
+            return <ArrowUp className="w-3 h-3 ml-1" />;
+        }
+        return <ArrowDown className="w-3 h-3 ml-1" />;
+    };
 
-    setIsSubmitting(true);
-    setErrors({});
+    const renderTableContent = () => {
+        if (loading) {
+            return (
+                <tr className='h-24'>
+                    <td colSpan={4} className="text-center py-6 text-gray-600">
+                        <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: CoffeeColors.DARK_BROWN }} />
+                        Loading sales records...
+                    </td>
+                </tr>
+            );
+        }
 
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      console.log("Form submitted:", formData);
-      
-      setSuccessMessage("Sale recorded successfully!");
-      
-      setTimeout(() => {
-        setFormData({
-          customerName: "",
-          batchId: "",
-          product: "",
-          item: "",
-          quantity: "",
-          rate: "",
-          amount: "",
-          dateOfPayment: "",
-          status: "",
-          balance: "",
-          methodOfPayment: "",
+        if (error) {
+            return (
+                <tr className='h-24'>
+                    <td colSpan={4} className="text-center py-6 text-red-600 font-medium">
+                        {error}
+                    </td>
+                </tr>
+            );
+        }
+
+        if (sortedSales.length === 0) {
+            return (
+                <tr className='h-24'>
+                    <td colSpan={4} className="text-center py-6 text-gray-500 italic">
+                        No sales records found. Click "Refresh" to try again.
+                    </td>
+                </tr>
+            );
+        }
+
+        return sortedSales.map((sale, index) => {
+            const amountClass = 'text-green-600';
+            const IconComponent = ArrowUpRight;
+
+            return (
+                <tr key={sale.id || index} className="border-b transition-colors duration-150 hover:bg-white/50">
+                    <td className="px-6 py-3 text-left font-medium text-gray-800">{sale.type || 'Sale'}</td>
+                    <td className="px-6 py-3 text-left text-gray-600">{sale.description || 'N/A'}</td>
+                    <td className="px-6 py-3 text-right text-green-600 font-bold">{formatUGX(sale.amount)}</td>
+                    <td className="px-6 py-3 text-right text-gray-500">{sale.date || 'N/A'}</td>
+                </tr>
+            );
         });
-        setSuccessMessage("");
-      }, 2000);
-      
-    } catch (error) {
-      console.error("Submission error:", error);
-      setErrors({ submit: "Failed to submit sale. Please try again." });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    };
 
-  return (
-    <div className="min-h-screen flex" style={{ backgroundColor: CoffeeColors.SCREEN_BG }}>
-      {/* Sidebar - Collapsible implementation */}
-      <div 
-        // Dynamic width and overflow hidden for smooth collapse
-        className={`${sidebarOpen ? 'w-64' : 'w-20'} transition-all duration-300 flex flex-col shadow-lg overflow-hidden shrink-0`}
-        style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
-      >
-        {/* Sidebar Header */}
-        <div className="p-4 flex items-center justify-between border-b border-white/20">
-          {/* Logo and App Name (visible when open) */}
-          {sidebarOpen && (
-            <div className="flex items-center gap-2 whitespace-nowrap">
-              <span style={{ color: CoffeeColors.WHITE }} className="text-xl">✱</span>
-              <span style={{ color: CoffeeColors.WHITE }} className="font-bold text-sm">AgriManageDesktop</span>
-            </div>
-          )}
-          {/* Toggle Button - Shifts position based on state */}
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`hover:bg-white/10 p-2 rounded ${!sidebarOpen ? 'w-full flex justify-center' : ''}`}
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            {/* Using an arrow emoji for navigation toggle */}
-            {sidebarOpen ? '←' : '→'}
-          </button>
-        </div>
+    return (
+        <>
+            <NavBar />
 
-        {/* Navigation Items */}
-        <nav className="flex-1 p-4">
-          
-          <button 
-            onClick={() => navigate('/wages')}
-            className={navItemClasses(false)}
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">💰</span>
-            {sidebarOpen && <span className="whitespace-nowrap">Wages</span>}
-          </button>
-          <button 
-            onClick={() => navigate('/wage-entry')}
-            className={navItemClasses(false)}
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">📝</span>
-            {sidebarOpen && <span className="whitespace-nowrap">Wage Entry</span>}
-          </button>
-          <button 
-            onClick={() => navigate('/sales-entry')}
-            className={navItemClasses(true)} // Currently active page
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">📈</span>
-            {sidebarOpen && <span className="whitespace-nowrap">Sales Entry</span>}
-          </button>
-          <button 
-            onClick={() => navigate('/expense')}
-            className={navItemClasses(false)}
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">💸</span>
-            {sidebarOpen && <span className="whitespace-nowrap">Expense</span>}
-          </button>
-          <button 
-            onClick={() => navigate('/expense-list')}
-            className={navItemClasses(false)}
-            style={{ color: CoffeeColors.WHITE }}
-          >
-            <span className="text-xl">📋</span>
-            {sidebarOpen && <span className="whitespace-nowrap">Expense List</span>}
-          </button>
-        </nav>
-      </div>
+            {/* Main Content Area */}
+            <div className="min-h-screen flex flex-col items-center pt-24 md:pt-32 pb-10 font-sans"
+                 style={{ backgroundColor: CoffeeColors.SCREEN_BG }}>
 
-      {/* Main Content (Adjusted for smaller size) */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 overflow-y-auto">
-        <div 
-          className="w-full max-w-2xl p-6 sm:p-8 rounded-xl shadow-2xl" 
-          style={{ backgroundColor: CoffeeColors.LIGHT_BG }}
-        >
-          <h1 className="text-3xl font-bold mb-8" style={{ color: CoffeeColors.DARK_BROWN }}>
-            Sales Entry Form
-          </h1>
+                {/* Header and Action Bar */}
+                <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 mb-6 flex justify-between items-center">
+                    <h1 className="text-4xl font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
+                        Sales Records Overview
+                    </h1>
+                    <div className="flex space-x-4">
+                        <ActionButton onClick={() => fetchSales()} disabled={loading} className="py-2 px-4 shadow-xl">
+                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh Data
+                        </ActionButton>
+                        <ActionButton onClick={() => navigate('/sales-entry')} className="py-2 px-4 shadow-xl">
+                            <Send className="w-4 h-4 mr-2" />
+                            Record New Sale
+                        </ActionButton>
+                    </div>
+                </div>
 
-          <form onSubmit={handleSubmit}>
-            {/* Success Message */}
-            {successMessage && (
-              <div className="mb-4 p-3 rounded border" style={{
-                backgroundColor: '#E6FFE6',
-                borderColor: CoffeeColors.SUCCESS_GREEN,
-                color: CoffeeColors.SUCCESS_GREEN
-              }}>
-                ✓ {successMessage}
-              </div>
-            )}
-
-            {/* General Error Message */}
-            {errors.submit && (
-              <div className="mb-4 p-3 rounded border" style={{
-                backgroundColor: '#FFE5E5',
-                borderColor: CoffeeColors.ERROR_RED,
-                color: CoffeeColors.ERROR_RED
-              }}>
-                ✕ {errors.submit}
-              </div>
-            )}
-
-            {/* Row 1: Customer Name and Batch ID */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Customer Name *
-                </label>
-                <input
-                  type="text"
-                  name="customerName"
-                  value={formData.customerName}
-                  onChange={handleChange}
-                  placeholder="Enter customer name"
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.customerName ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
-                />
-                {errors.customerName && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.customerName}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Batch ID *
-                </label>
-                <input
-                  type="text"
-                  name="batchId"
-                  value={formData.batchId}
-                  onChange={handleChange}
-                  placeholder="Enter batch ID"
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.batchId ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
-                />
-                {errors.batchId && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.batchId}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Row 2: Product and Item */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Product *
-                </label>
-                <select
-                  name="product"
-                  value={formData.product}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.product ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
+                {/* Sales Records Table Container */}
+                <div
+                    className="max-w-7xl w-full mx-4 p-4 sm:p-8 shadow-2xl rounded-2xl overflow-x-auto transition-all duration-300"
+                    style={{ backgroundColor: '#F5EEDC', border: '1px solid #B8A072' }}
                 >
-                  <option value="">Select a product</option>
-                  {products.map((p, index) => (
-                    <option key={index} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-                {errors.product && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.product}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Item *
-                </label>
-                <select
-                  name="item"
-                  value={formData.item}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.item ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
-                >
-                  <option value="">Select item type</option>
-                  {items.map((item, index) => (
-                    <option key={index} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-                {errors.item && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.item}
-                  </p>
-                )}
-              </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="sticky top-0 z-10" style={{ backgroundColor: '#B8A072' }}>
+                                <tr>
+                                    <th
+                                        key="type"
+                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
+                                        onClick={() => requestSort('type')}
+                                        scope="col"
+                                    >
+                                        <div className="flex items-center justify-start">
+                                            Type
+                                            {getSortIcon('type')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        key="description"
+                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
+                                        onClick={() => requestSort('description')}
+                                        scope="col"
+                                    >
+                                        <div className="flex items-center justify-start">
+                                            Description
+                                            {getSortIcon('description')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        key="amount"
+                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
+                                        onClick={() => requestSort('amount')}
+                                        scope="col"
+                                    >
+                                        <div className="flex items-center justify-end">
+                                            Amount
+                                            {getSortIcon('amount')}
+                                        </div>
+                                    </th>
+                                    <th
+                                        key="date"
+                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
+                                        onClick={() => requestSort('date')}
+                                        scope="col"
+                                    >
+                                        <div className="flex items-center justify-end">
+                                            Date
+                                            {getSortIcon('date')}
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white/70 divide-y divide-gray-200" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                {renderTableContent()}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-
-            {/* Row 3: Quantity and Rate */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Quantity (kg) *
-                </label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={formData.quantity}
-                  onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  placeholder="e.g. 100"
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.quantity ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
-                />
-                {errors.quantity && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.quantity}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Rate (UGX per kg) *
-                </label>
-                <input
-                  type="number"
-                  name="rate"
-                  value={formData.rate}
-                  onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  placeholder="e.g. 5000"
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.rate ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
-                />
-                {errors.rate && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.rate}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Row 4: Amount (Read-only) */}
-            <div className="mb-6">
-              <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                Amount (UGX)
-              </label>
-              <input
-                type="text"
-                value={formData.amount ? formatCurrency(formData.amount) : 'UGX 0'}
-                readOnly
-                className="w-full px-4 py-2 rounded-lg font-medium"
-                style={{
-                  backgroundColor: '#F5F5F5',
-                  borderWidth: '1px',
-                  borderColor: CoffeeColors.LIGHT_BROWN,
-                  color: CoffeeColors.DARK_BROWN
-                }}
-              />
-            </div>
-
-            {/* Row 5: Date of Payment and Status */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Date of Payment *
-                </label>
-                <input
-                  type="date"
-                  name="dateOfPayment"
-                  value={formData.dateOfPayment}
-                  onChange={handleChange}
-                  max={new Date().toISOString().split('T')[0]}
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.dateOfPayment ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
-                />
-                {errors.dateOfPayment && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.dateOfPayment}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Status *
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.status ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
-                >
-                  <option value="">Select status</option>
-                  {statuses.map((status, index) => (
-                    <option key={index} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-                {errors.status && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.status}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Row 6: Balance and Method of Payment */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Balance (UGX)
-                </label>
-                <input
-                  type="number"
-                  name="balance"
-                  value={formData.balance}
-                  onChange={handleChange}
-                  step="0.01"
-                  min="0"
-                  placeholder="Auto-calculated or enter manually"
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: formData.status === "Partial" ? CoffeeColors.WHITE : '#F5F5F5',
-                    borderWidth: '1px',
-                    borderColor: CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  readOnly={formData.status !== "Partial"}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                  Method of Payment *
-                </label>
-                <select
-                  name="methodOfPayment"
-                  value={formData.methodOfPayment}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-1`}
-                  style={{
-                    backgroundColor: CoffeeColors.WHITE,
-                    borderWidth: '1px',
-                    borderColor: errors.methodOfPayment ? CoffeeColors.ERROR_RED : CoffeeColors.LIGHT_BROWN,
-                    color: CoffeeColors.DARK_BROWN
-                  }}
-                  required
-                >
-                  <option value="">Select payment method</option>
-                  {paymentMethods.map((method, index) => (
-                    <option key={index} value={method}>
-                      {method}
-                    </option>
-                  ))}
-                </select>
-                {errors.methodOfPayment && (
-                  <p className="text-xs mt-1" style={{ color: CoffeeColors.ERROR_RED }}>
-                    {errors.methodOfPayment}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`w-full py-3 rounded-lg font-semibold transition-colors`}
-              style={{
-                backgroundColor: isSubmitting ? CoffeeColors.GRAY_TEXT : CoffeeColors.BUTTON_BROWN,
-                color: CoffeeColors.WHITE,
-                cursor: isSubmitting ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Sale'}
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
+        </>
+    );
 }
 
-export default SalesEntry;
+export default Sales;

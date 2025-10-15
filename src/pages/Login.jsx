@@ -112,8 +112,8 @@ const ApiClient = {
       setMessageType("success");
       
       setTimeout(() => {
-        console.log('Navigating to sales-entry...');
-        navigate('/sales-entry');
+        console.log('Navigating to dashboard...');
+        navigate('/dashboard');
       }, 800);
 
     } catch (err) {

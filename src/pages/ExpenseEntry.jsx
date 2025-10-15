@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { Truck, Tag, DollarSign, Calendar, MapPin, AlignLeft, Send, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button.jsx';
+import NavBar from '../components/NavBar.jsx';
 
 // --- Custom Styles (Reused from Wage and Login components) ---
 const CUSTOM_COLORS = {
     headerBg: '#702A0B', // Dark Brown
     cardBg: '#F5EEDC', // Pale Cream
-    inputBg: '#FFFFFF', 
+    inputBg: '#FFFFFF',
     inputBorder: '#B8A072', // Olive/Gold
     submitBg: '#702A0B',
     primaryText: '#702A0B',
@@ -16,38 +17,13 @@ const CUSTOM_COLORS = {
 };
 
 // IMPORTANT: This API endpoint is mock and should match your backend setup
-const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/'; 
+const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/';
 
 // Mock list of common expense categories
 const CATEGORIES = [
-    'General Supplies', 'Fuel/Energy', 'Equipment Maintenance', 
+    'General Supplies', 'Fuel/Energy', 'Equipment Maintenance',
     'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
 ];
-
-// --- Helper Components ---
-
-const NavBar = () => {
-    const navigate = useNavigate();
-    const handleLogout = () => {
-        localStorage.removeItem('isLoggedIn');
-        navigate('/');
-    };
-    return (
-        <nav className="fixed top-0 left-0 w-full p-4 shadow-xl z-10 font-sans" style={{ backgroundColor: CUSTOM_COLORS.headerBg }}>
-            <div className="flex justify-between items-center max-w-7xl mx-auto">
-                <div className="text-white text-xl font-bold flex items-center">
-                    <span className="mr-2">💰</span>  Rugyeyo Financial Management 
-                </div>
-                <div>
-                    <a href="/wages" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Wage Records</a> 
-                    {/* // -- <a href="/wage-entry" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Wage Entry</a> -- // */}
-                    {/* <a href="/expense-entry" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity font-bold">Expense Entry</a> */}
-                    <button onClick={handleLogout} className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Logout</button>
-                </div>
-            </div>
-        </nav>
-    );
-};
 
 function ExpenseEntry() {
     const [formData, setFormData] = useState({
@@ -78,7 +54,7 @@ function ExpenseEntry() {
         }
         setMessage(null);
     };
-    
+
     const formatCurrency = (amount) => {
         const value = parseFloat(amount);
         if (isNaN(value)) return '0.00';
@@ -135,7 +111,7 @@ function ExpenseEntry() {
     return (
         <>
             <NavBar />
-            
+
             <div className="min-h-screen flex items-start justify-center pt-24 pb-10 font-sans" style={{ backgroundColor: '#FAF7F1' }}>
                 <div className="w-full max-w-3xl mx-4 p-6 sm:p-8 md:p-10 shadow-2xl rounded-2xl" 
                      style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }}>
@@ -276,7 +252,7 @@ const InputField = ({ label, name, value, onChange, placeholder, required, Icon,
             {required && <span className="ml-1 text-red-500">*</span>}
         </label>
         {isTextArea ? (
-             <textarea
+              <textarea
                 id={name}
                 name={name}
                 value={value}

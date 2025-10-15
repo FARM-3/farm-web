@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown } from 'lucide-react'; 
+import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import NavBar from '../components/NavBar.jsx';
 
 // --- Custom Styles (Consistent with other files) ---
 const CUSTOM_COLORS = {
@@ -13,32 +14,7 @@ const CUSTOM_COLORS = {
 };
 
 // IMPORTANT: Updated to the live API endpoint
-const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/'; 
-
-// --- Helper Components ---
-const NavBar = () => {
-    const navigate = useNavigate();
-    const handleLogout = () => {
-        localStorage.removeItem('isLoggedIn');
-        navigate('/');
-    };
-    return (
-        <nav className="fixed top-0 left-0 w-full p-4 shadow-xl z-10 font-sans" style={{ backgroundColor: CUSTOM_COLORS.headerBg }}>
-            <div className="flex justify-between items-center max-w-7xl mx-auto">
-                <div className="text-white text-xl font-bold flex items-center">
-                    <span className="mr-2">💰</span> Rugyeyo Financial Management
-                </div>
-                <div>
-                    <a href="/wages" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Wage Records</a> 
-                    {/* <a href="/wage-entry" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Wage Entry</a> */}
-                    {/* <a href="/expenses" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity font-bold">Expense Records</a>  */}
-                    {/* <a href="/expense-entry" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Expense Entry</a> */}
-                    <button onClick={handleLogout} className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Logout</button>
-                </div>
-            </div>
-        </nav>
-    );
-};
+const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/';
 
 const ActionButton = ({ children, onClick, className, style, disabled }) => (
     <button
@@ -55,7 +31,7 @@ const ActionButton = ({ children, onClick, className, style, disabled }) => (
 const formatCurrency = (amount) => {
     const value = parseFloat(amount);
     if (isNaN(value)) return '$0.00';
-    
+
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',
@@ -75,9 +51,9 @@ const TABLE_HEADERS = [
 ];
 
 
-function Expenses() { 
+function Expenses() {
     const [expenses, setExpenses] = useState([]);
-    const [loading, setLoading] = useState(true); 
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
@@ -88,9 +64,9 @@ function Expenses() {
     const fetchExpenses = useCallback(async (retries = 3) => {
         setLoading(true);
         setError(null);
-        
+
         console.log('--- Expense Fetch Started from Live API ---');
-        
+
         for (let i = 0; i < retries; i++) {
             try {
                 const response = await fetch(EXPENSE_API_ENDPOINT);
@@ -107,10 +83,10 @@ function Expenses() {
 
                 setExpenses(normalized);
                 setError(null);
-                setLoading(false); 
-                
+                setLoading(false);
+
                 console.log('Expense Data fetched successfully. Total records:', data.length);
-                return; 
+                return;
 
             } catch (err) {
                 console.error(`Attempt ${i + 1} failed to fetch expenses:`, err);
@@ -118,7 +94,7 @@ function Expenses() {
                     const finalError = `Could not load records from ${EXPENSE_API_ENDPOINT}. Failed reason: ${err.message}`;
                     setError(finalError);
                     setExpenses([]);
-                    setLoading(false); 
+                    setLoading(false);
                     return;
                 }
                 // Exponential backoff delay
@@ -156,7 +132,7 @@ function Expenses() {
                     }
                     return 0;
                 }
-                
+
                 // Default string/date sorting
                 if (aValue < bValue) {
                     return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -237,9 +213,9 @@ function Expenses() {
             <NavBar />
 
             {/* Main Content Area */}
-            <div className="min-h-screen flex flex-col items-center pt-24 md:pt-32 pb-10 font-sans" 
+            <div className="min-h-screen flex flex-col items-center pt-24 md:pt-32 pb-10 font-sans"
                  style={{ backgroundColor: '#FAF7F1' }}>
-                
+
                 {/* Header and Action Bar */}
                 <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 mb-6 flex justify-between items-center">
                     <h1 className="text-4xl font-extrabold" style={{ color: CUSTOM_COLORS.primaryText }}>
@@ -258,19 +234,19 @@ function Expenses() {
                 </div>
 
                 {/* Expense Records Table Container */}
-                <div 
-                    className="max-w-7xl w-full mx-4 p-4 sm:p-8 shadow-2xl rounded-2xl overflow-x-auto transition-all duration-300" 
-                    style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }} 
+                <div
+                    className="max-w-7xl w-full mx-4 p-4 sm:p-8 shadow-2xl rounded-2xl overflow-x-auto transition-all duration-300"
+                    style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }}
                 >
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="sticky top-0 z-10" style={{ backgroundColor: CUSTOM_COLORS.tableHeaderBg }}>
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
-                                        <th 
-                                            key={header.key} 
+                                        <th
+                                            key={header.key}
                                             className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
-                                            onClick={() => requestSort(header.key)} 
+                                            onClick={() => requestSort(header.key)}
                                             scope="col"
                                         >
                                             <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
