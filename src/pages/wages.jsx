@@ -32,19 +32,6 @@ const Button = ({ children, onClick, className, style, disabled }) => (
 
 // --- Component Logic ---
 
-// Helper function to format currency
-const formatCurrency = (amount) => {
-    // Check if amount is a valid number, otherwise default to 0.00
-    const value = parseFloat(amount);
-    if (isNaN(value)) return '$0.00';
-    
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(value);
-};
 
 // Data Structure for Table Headers (used for sorting)
 const TABLE_HEADERS = [

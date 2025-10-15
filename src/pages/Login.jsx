@@ -1,126 +1,531 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
-import Button from '../components/Button.jsx'; 
-import Input from '../components/Input.jsx'; 
-import { CloudUpload } from 'lucide-react'; // Example icon import
 
-// Define custom colors (or ensure they are imported if defined elsewhere)
-const CUSTOM_COLORS = {
-    cardBg: '#FFFFFF',
-    actionBg: '#702A0B', 
-    inputBg: '#F5F5F5',
+// --- Coffee Theme Colors ---
+const CoffeeColors = {
+  SCREEN_BG: '#FFF8F6',
+  LIGHT_BG: '#FEEFEA',
+  DARK_BROWN: '#4A3423',
+  BUTTON_BROWN: '#8B4513',
+  MEDIUM_BROWN: '#795548',
+  LIGHT_BROWN: '#BCAAA4',
+  WHITE: '#FFFFFF',
+  GRAY_TEXT: '#8D8D8D',
+  ERROR_RED: '#D32F2F',
+  SUCCESS_GREEN: '#4CAF50',
 };
 
+// --- Mock API Client ---
+const ApiClient = {
+  post: async (url, data) => {
+    console.log('API Called:', url, 'Data:', data);
+    await new Promise((r) => setTimeout(r, 800));
 
-function Login() {
-    const navigate = useNavigate(); 
-    
-    // *** ENSURE THESE STATE VARIABLES ARE DEFINED ***
-    const [pin, setPin] = useState(['', '', '', '']);
-    const isPinComplete = pin.every(digit => digit.length === 1); 
+    if (url === "login/") {
+      console.log('Login attempt - Phone:', data.phone_number, 'PIN:', data.pin);
+      if (data.phone_number.length === 10 && data.pin.length === 4) {
+        console.log('Login SUCCESS');
+        return { status: 200, data: { success: true, token: "mock-token" } };
+      } else {
+        console.log('Login FAILED - Invalid format');
+        throw new Error("Invalid credentials");
+      }
+    }
 
-    // Define the rest of your handler functions (like handleChange for pins)
-    // ...
+    if (url === "reset-pin/") {
+      if (data.phone_number.length === 10) {
+        return { status: 200, data: { success: true, message: "Phone verified" } };
+      } else {
+        throw new Error("Phone number not found");
+      }
+    }
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    return { status: 500, data: { success: false, message: "Internal Server Error" } };
+  },
+};
 
-        const isLoginSuccessful = true;
-        if (isLoginSuccessful) {
-            navigate('/wages');
-        }else {
-            alert('Login failed. Please try again.');
-        } 
-        
-        if (isPinComplete) {
-            const fullPin = pin.join('');
-            
-            // Redirect logic (This looks correct)
-            if (fullPin === "1234") { 
-                navigate('/wages'); 
-            } else {
-                // DO NOT USE alert(), it breaks the iFrame experience. Use a custom message state.
-                console.error('Incorrect PIN.');
-                setPin(['', '', '', '']); 
-                document.getElementById('pin-0').focus(); 
-            }
-            
-        } else {
-             // DO NOT USE alert()
-             console.warn('Please enter the complete 4-digit PIN.');
-        }
-    };
-    
-    // *** ENSURE THIS RETURN BLOCK IS COMPLETE ***
+ function Login() {
+  const navigate = useNavigate();
+
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [pin, setPin] = useState(["", "", "", ""]);
+  const pinRefs = useRef([]);
+
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
+  const [focusedField, setFocusedField] = useState({ row: null, idx: null });
+
+
+  const handlePinChange = (value, index) => {
+    setMessage("");
+    setMessageType("");
+
+    const newVal = value.replace(/[^0-9]/g, "").slice(-1);
+    const updated = [...pin];
+    updated[index] = newVal;
+    setPin(updated);
+
+    setFocusedField({ row: 'pin', idx: index });
+
+    if (newVal && index < 3) pinRefs.current[index + 1]?.focus();
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace' && !pin[index] && index > 0) {
+      pinRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setMessageType("");
+    const fullPin = pin.join("");
+
+    console.log('=== LOGIN ATTEMPT ===');
+    console.log('Phone:', phoneNumber);
+    console.log('PIN:', fullPin);
+
+    if (!/^\d{10}$/.test(phoneNumber)) {
+      setMessage("Phone number must be exactly 10 digits.");
+      setMessageType("error");
+      return;
+    }
+    if (fullPin.length !== 4) {
+      setMessage("PIN must be 4 digits.");
+      setMessageType("error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('Calling API...');
+      const response = await ApiClient.post("login/", {
+        phone_number: phoneNumber,
+        pin: fullPin,
+      });
+      console.log('API Response:', response);
+
+      setMessage("Login successful! Redirecting...");
+      setMessageType("success");
+      
+      setTimeout(() => {
+        console.log('Navigating to sales-entry...');
+        navigate('/sales-entry');
+      }, 800);
+
+    } catch (err) {
+      console.log('Login Error:', err.message);
+      setMessage("Invalid credentials. Please check your phone number and PIN.");
+      setMessageType("error");
+      setPin(["", "", "", ""]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPin = async (e) => {
+    e.preventDefault();
+    setMessage("");
+    setMessageType("");
+
+    if (!/^\d{10}$/.test(phoneNumber)) {
+      setMessage("Phone number must be exactly 10 digits.");
+      setMessageType("error");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await ApiClient.post("reset-pin/", {
+        phone_number: phoneNumber,
+      });
+
+      setMessage("Phone number verified! Check your SMS for security question.");
+      setMessageType("success");
+      
+      setTimeout(() => {
+        setIsResetMode(false);
+        setPhoneNumber("");
+        setMessage("");
+        setMessageType("");
+      }, 2000);
+
+    } catch (error) {
+      setMessage("Phone number not found in our system.");
+      setMessageType("error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getPinBoxBorderColor = (idx) => {
+    const isFocused = focusedField.row === 'pin' && focusedField.idx === idx;
+    const isError = messageType === 'error' && pin.join('').length === 4;
+
+    if (isFocused) return CoffeeColors.BUTTON_BROWN;
+    if (isError) return CoffeeColors.ERROR_RED;
+    return CoffeeColors.LIGHT_BROWN;
+  };
+
+  const renderPinInput = () => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', marginTop: '2px', width: '100%', paddingLeft: '10px', paddingRight: '10px' }}>
+      {pin.map((digit, index) => (
+        <input
+          key={index}
+          ref={(el) => (pinRefs.current[index] = el)}
+          type="password"
+          value={digit}
+          onChange={(e) => handlePinChange(e.target.value, index)}
+          onKeyDown={(e) => handleKeyDown(e, index)}
+          maxLength={1}
+          disabled={loading}
+          onFocus={() => setFocusedField({ row: 'pin', idx: index })}
+          onBlur={() => setFocusedField({ row: null, idx: null })}
+          style={{
+            width: '55px',
+            height: '65px',
+            backgroundColor: CoffeeColors.WHITE,
+            borderRadius: '12px',
+            border: `2px solid ${getPinBoxBorderColor(index)}`,
+            fontSize: '26px',
+            fontWeight: 'bold',
+            color: CoffeeColors.DARK_BROWN,
+            textAlign: 'center',
+            outline: 'none',
+          }}
+        />
+      ))}
+    </div>
+  );
+
+  if (isResetMode) {
     return (
-        <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FAF7F1' }}>
-            <div 
-                className="w-full max-w-sm p-8 shadow-xl rounded-2xl text-center"
-                style={{ backgroundColor: CUSTOM_COLORS.cardBg }}
-            >
-                <CloudUpload className="mx-auto h-12 w-12" style={{ color: CUSTOM_COLORS.actionBg }} />
-                <h2 className="mt-4 text-3xl font-extrabold text-gray-900">
-                    Welcome Back
-                </h2>
-                <p className="mt-2 text-sm text-gray-500">
-                    Enter your PIN to securely access your farm data.
-                </p>
+      <div style={{ 
+        minHeight: '100vh', 
+        backgroundColor: CoffeeColors.SCREEN_BG, 
+        padding: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{ width: '95%', maxWidth: '400px', textAlign: 'center' }}>
+          <div style={{
+            backgroundColor: CoffeeColors.LIGHT_BG,
+            borderRadius: '50px',
+            width: '65px',
+            height: '65px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            margin: '0 auto 25px',
+            border: `1px solid ${CoffeeColors.LIGHT_BROWN}`,
+            opacity: 0.85,
+          }}>
+            <span style={{ fontSize: '32px' }}>🔑</span>
+          </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    <label className="block text-lg font-medium text-gray-700 uppercase">
-                        Enter Pin
-                    </label>
-                    <div className="flex justify-center space-x-3">
-                        {/* PIN Inputs (Ensure these are rendered correctly) */}
-                        {pin.map((digit, index) => (
-                            <input
-                                key={index}
-                                id={`pin-${index}`}
-                                type="password" // Use password type to hide PIN
-                                maxLength="1"
-                                value={digit}
-                                onChange={(e) => {
-                                    const newPin = [...pin];
-                                    newPin[index] = e.target.value;
-                                    setPin(newPin);
-                                    
-                                    // Auto-focus next input
-                                    if (e.target.value && index < 3) {
-                                        document.getElementById(`pin-${index + 1}`)?.focus();
-                                    }
-                                }}
-                                className="w-12 h-12 text-center text-xl font-bold rounded-lg border-2"
-                                style={{ borderColor: CUSTOM_COLORS.actionBg, backgroundColor: CUSTOM_COLORS.inputBg }}
-                            />
-                        ))}
-                    </div>
-                    
-                    <Button
-                        type="submit"
-                        disabled={!isPinComplete}
-                        className="py-3 font-semibold"
-                        style={{ backgroundColor: CUSTOM_COLORS.actionBg, opacity: isPinComplete ? 1 : 0.6 }}
-                    >
-                        Unlock
-                    </Button>
-                </form>
+          <h2 style={{
+            fontSize: '26px',
+            fontWeight: '900',
+            color: CoffeeColors.DARK_BROWN,
+            marginBottom: '6px',
+          }}>Reset PIN</h2>
 
-                {/* Reset Pin Link */}
-                <div className="mt-4">
-                    <button 
-                        className="text-sm font-medium hover:text-gray-700" 
-                        style={{ color: CUSTOM_COLORS.actionBg }}
-                        onClick={() => {
-                            setPin(['', '', '', '']);
-                            document.getElementById('pin-0').focus();
-                        }}
-                    >
-                        ↻ Reset Pin
-                    </button>
+          <div style={{
+            width: '100%',
+            padding: '20px',
+            backgroundColor: CoffeeColors.WHITE,
+            borderRadius: '20px',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+          }}>
+            <p style={{
+              fontSize: '14px',
+              color: CoffeeColors.GRAY_TEXT,
+              textAlign: 'center',
+              marginBottom: '25px',
+              lineHeight: '20px',
+              maxWidth: '300px',
+              margin: '0 auto 25px',
+            }}>
+              Enter your phone number to retrieve your security question.
+            </p>
+
+            <form onSubmit={handleResetPin}>
+              <label style={{
+                fontSize: '15px',
+                color: CoffeeColors.DARK_BROWN,
+                marginBottom: '10px',
+                fontWeight: '600',
+                display: 'block',
+                textAlign: 'left',
+                marginTop: '15px',
+              }}>Phone Number</label>
+              
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => {
+                  const cleanText = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                  setPhoneNumber(cleanText);
+                  setMessage("");
+                }}
+                placeholder="Enter phone number"
+                maxLength={10}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  height: '50px',
+                  backgroundColor: CoffeeColors.WHITE,
+                  borderRadius: '12px',
+                  border: `1px solid ${CoffeeColors.LIGHT_BROWN}`,
+                  padding: '0 15px',
+                  fontSize: '16px',
+                  color: CoffeeColors.DARK_BROWN,
+                  marginBottom: '10px',
+                  outline: 'none',
+                }}
+              />
+
+              {message && (
+                <div style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  marginBottom: '15px',
+                  minHeight: '40px',
+                  border: '1px solid',
+                  backgroundColor: messageType === 'error' ? '#FFE5E5' : '#E6FFE6',
+                  borderColor: messageType === 'error' ? CoffeeColors.ERROR_RED : CoffeeColors.SUCCESS_GREEN,
+                  color: messageType === 'error' ? CoffeeColors.ERROR_RED : CoffeeColors.SUCCESS_GREEN,
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  textAlign: 'center',
+                }}>
+                  {message}
                 </div>
-            </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || phoneNumber.length !== 10}
+                style={{
+                  backgroundColor: CoffeeColors.BUTTON_BROWN,
+                  width: '100%',
+                  padding: '18px',
+                  borderRadius: '15px',
+                  border: 'none',
+                  color: CoffeeColors.WHITE,
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  letterSpacing: '0.5px',
+                  cursor: loading || phoneNumber.length !== 10 ? 'not-allowed' : 'pointer',
+                  opacity: loading || phoneNumber.length !== 10 ? 0.7 : 1,
+                  marginBottom: '18px',
+                }}
+              >
+                {loading ? 'Processing...' : 'Continue'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsResetMode(false);
+                  setPhoneNumber("");
+                  setMessage("");
+                  setMessageType("");
+                }}
+                disabled={loading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: CoffeeColors.DARK_BROWN,
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  marginTop: '6px',
+                }}
+              >
+                Back to Login
+              </button>
+            </form>
+          </div>
         </div>
+      </div>
     );
+  }
+
+  return (
+    <div style={{ 
+      minHeight: '100vh', 
+      backgroundColor: CoffeeColors.SCREEN_BG, 
+      padding: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
+      <div style={{ width: '95%', maxWidth: '400px', textAlign: 'center' }}>
+        <div style={{
+          backgroundColor: CoffeeColors.LIGHT_BG,
+          borderRadius: '50px',
+          width: '65px',
+          height: '65px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          margin: '0 auto 25px',
+          border: `1px solid ${CoffeeColors.LIGHT_BROWN}`,
+          opacity: 0.85,
+        }}>
+          <span style={{ fontSize: '32px' }}>🔒</span>
+        </div>
+
+        <h2 style={{
+          fontSize: '26px',
+          fontWeight: '900',
+          color: CoffeeColors.DARK_BROWN,
+          marginBottom: '6px',
+        }}>Welcome Back</h2>
+
+        <div style={{
+          width: '100%',
+          padding: '20px',
+          backgroundColor: CoffeeColors.WHITE,
+          borderRadius: '20px',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+        }}>
+          <p style={{
+            fontSize: '14px',
+            color: CoffeeColors.GRAY_TEXT,
+            textAlign: 'center',
+            marginBottom: '25px',
+            lineHeight: '20px',
+            maxWidth: '300px',
+            margin: '0 auto 25px',
+          }}>
+            Enter your phone number and PIN to securely access your data.
+          </p>
+
+          <form onSubmit={handleLogin}>
+            <label style={{
+              fontSize: '15px',
+              color: CoffeeColors.DARK_BROWN,
+              marginBottom: '10px',
+              fontWeight: '600',
+              display: 'block',
+              textAlign: 'left',
+              marginTop: '15px',
+            }}>Phone Number</label>
+            
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => {
+                const cleanText = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                setPhoneNumber(cleanText);
+                setMessage("");
+              }}
+              placeholder="Enter phone number"
+              maxLength={10}
+              disabled={loading}
+              onFocus={() => setFocusedField({ row: 'phone', idx: -1 })}
+              onBlur={() => setFocusedField({ row: null, idx: null })}
+              style={{
+                width: '100%',
+                height: '50px',
+                backgroundColor: CoffeeColors.WHITE,
+                borderRadius: '12px',
+                border: `1px solid ${focusedField.row === 'phone' ? CoffeeColors.BUTTON_BROWN : CoffeeColors.LIGHT_BROWN}`,
+                padding: '0 15px',
+                fontSize: '16px',
+                color: CoffeeColors.DARK_BROWN,
+                marginBottom: '10px',
+                outline: 'none',
+              }}
+            />
+
+            <label style={{
+              fontSize: '15px',
+              color: CoffeeColors.DARK_BROWN,
+              marginBottom: '10px',
+              fontWeight: '600',
+              display: 'block',
+              textAlign: 'left',
+              marginTop: '15px',
+            }}>PIN</label>
+            
+            {renderPinInput()}
+
+            {message && (
+              <div style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                marginBottom: '15px',
+                minHeight: '40px',
+                border: '1px solid',
+                backgroundColor: messageType === 'error' ? '#FFE5E5' : '#E6FFE6',
+                borderColor: messageType === 'error' ? CoffeeColors.ERROR_RED : CoffeeColors.SUCCESS_GREEN,
+                color: messageType === 'error' ? CoffeeColors.ERROR_RED : CoffeeColors.SUCCESS_GREEN,
+                fontSize: '14px',
+                fontWeight: '500',
+                textAlign: 'center',
+              }}>
+                {message}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || pin.join("").length !== 4 || phoneNumber.length !== 10}
+              style={{
+                backgroundColor: CoffeeColors.BUTTON_BROWN,
+                width: '100%',
+                padding: '18px',
+                borderRadius: '15px',
+                border: 'none',
+                color: CoffeeColors.WHITE,
+                fontSize: '18px',
+                fontWeight: 'bold',
+                letterSpacing: '0.5px',
+                cursor: loading || pin.join("").length !== 4 || phoneNumber.length !== 10 ? 'not-allowed' : 'pointer',
+                opacity: loading || pin.join("").length !== 4 || phoneNumber.length !== 10 ? 0.7 : 1,
+                marginBottom: '18px',
+              }}
+            >
+              {loading ? 'Processing...' : 'Continue'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsResetMode(true);
+                setMessage("");
+                setMessageType("");
+                setPin(["", "", "", ""]);
+                setPhoneNumber("");
+              }}
+              disabled={loading}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: CoffeeColors.BUTTON_BROWN,
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                marginTop: '6px',
+              }}
+            >
+              Reset PIN
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
 }
 
+// Export statement at the bottom
 export default Login;
