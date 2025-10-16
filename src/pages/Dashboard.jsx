@@ -248,45 +248,45 @@ const FinancialChart = () => {
 
 // --- COMPONENT: TransactionsTable ---
 const TransactionsTable = () => {
-    return (
-        <div className="bg-white p-6 rounded-2xl shadow-lg">
-            <h3 className="text-lg font-semibold mb-4 border-b pb-2">Recent Transactions</h3>
-            <div className="overflow-x-auto max-h-96">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0 z-10">
-                        <tr>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                            <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                            <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200 text-sm">
-                        {MOCK_TRANSACTIONS.map(tx => {
-                            const amountClass = tx.isExpense ? 'text-red-600' : 'text-green-600';
-                            const IconComponent = tx.isExpense ? ArrowDownLeft : ArrowUpRight;
-                            
-                            return (
-                                <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-3 py-3 whitespace-nowrap">
-                                        <IconComponent className={`w-4 h-4 ${amountClass} inline-block mr-2`} strokeWidth={2.2} />
-                                        <span className="md:hidden">{tx.type.charAt(0)}</span>
-                                        <span className="hidden md:inline">{tx.type}</span>
-                                    </td>
-                                    <td className="px-3 py-3 font-medium truncate max-w-[150px]">{tx.description}</td>
-                                    <td className={`px-3 py-3 text-right font-bold ${amountClass}`}>{formatUGX(tx.amount)}</td>
-                                    <td className="px-3 py-3 text-right text-gray-500">{tx.date}</td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-            <div className="text-center mt-4">
-                <a href="#" className="text-sm font-medium text-accent-btn hover:text-accent-btn/80">View All Transactions</a>
-            </div>
-        </div>
-    );
+    return (
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg">
+            <h3 className="text-base sm:text-lg font-semibold mb-4 border-b pb-2">Recent Transactions</h3>
+            <div className="overflow-x-auto max-h-64 sm:max-h-96">
+                <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                        <tr>
+                            <th className="px-2 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-2 sm:px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th className="px-2 sm:px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                            <th className="px-2 sm:px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200 text-xs sm:text-sm">
+                        {MOCK_TRANSACTIONS.map(tx => {
+                            const amountClass = tx.isExpense ? 'text-red-600' : 'text-green-600';
+                            const IconComponent = tx.isExpense ? ArrowDownLeft : ArrowUpRight;
+
+                            return (
+                                <tr key={tx.id} className="hover:bg-gray-50 transition-colors">
+                                    <td className="px-2 sm:px-3 py-3 whitespace-nowrap">
+                                        <IconComponent className={`w-3 h-3 sm:w-4 sm:h-4 ${amountClass} inline-block mr-2`} strokeWidth={2.2} />
+                                        <span className="md:hidden">{tx.type.charAt(0)}</span>
+                                        <span className="hidden md:inline">{tx.type}</span>
+                                    </td>
+                                    <td className="px-2 sm:px-3 py-3 font-medium truncate max-w-[120px] sm:max-w-[150px]">{tx.description}</td>
+                                    <td className={`px-2 sm:px-3 py-3 text-right font-bold ${amountClass}`}>{formatUGX(tx.amount)}</td>
+                                    <td className="px-2 sm:px-3 py-3 text-right text-gray-500">{tx.date}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+            <div className="text-center mt-4">
+                <a href="#" className="text-xs sm:text-sm font-medium text-accent-btn hover:text-accent-btn/80">View All Transactions</a>
+            </div>
+        </div>
+    );
 };
 
 
@@ -374,20 +374,26 @@ const App = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // --- RENDERING CLASSES ---
-    // Desktop: w-64 (open) or w-16 (collapsed)
-    // Mobile: w-64 but uses translate-x (always wide to hold text)
-    const sidebarWidthClass = 'w-64'; 
-    const desktopCollapseClass = isSidebarOpen ? 'md:w-64' : 'md:w-16';
+// --- RENDERING CLASSES ---
+// Desktop: w-64 (open) or w-16 (collapsed)
+// Mobile: w-64 but uses translate-x (always wide to hold text)
+const sidebarWidthClass = 'w-64';
+const desktopCollapseClass = isSidebarOpen ? 'md:w-64' : 'md:w-16';
 
-    // Main content margin adjusts based on desktop state. Mobile has no margin.
-    const mainMarginClass = isSidebarOpen ? 'md:ml-64' : 'md:ml-16';
-    
-    // Check if the sidebar should hide its text (only on desktop collapsed mode)
-    const isTextHidden = !isSidebarOpen && !isMobile;
-    
-    // Main layout class for mobile overlay effect
-    const layoutClass = isSidebarOpen && isMobile ? 'overflow-hidden h-screen' : 'overflow-auto';
+// Main content margin adjusts based on desktop state. Mobile has no margin.
+const mainMarginClass = isSidebarOpen ? 'md:ml-64' : 'md:ml-16';
+
+// Check if the sidebar should hide its text (only on desktop collapsed mode)
+const isTextHidden = !isSidebarOpen && !isMobile;
+
+// Main layout class for mobile overlay effect
+const layoutClass = isSidebarOpen && isMobile ? 'overflow-hidden h-screen' : 'overflow-auto';
+
+// Mobile responsive adjustments
+const mobilePadding = 'p-2 sm:p-4 md:p-8';
+const mobileTextSize = 'text-lg sm:text-xl md:text-2xl';
+const mobileGridCols = 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
+const mobileChartGrid = 'grid-cols-1 lg:grid-cols-3';
     
 
     // --- COMPONENTS FOR RETURN ---
@@ -403,114 +409,114 @@ onClick={toggleSidebar}
 )}
 
 <aside
-className={`bg-sidebar-bg shadow-xl h-full fixed top-0 left-0 z-50 p-4 flex flex-col
-transition-all duration-300 ${sidebarWidthClass} ${desktopCollapseClass}
-${isMobile && !isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
-`}
+    className={`bg-sidebar-bg shadow-xl h-full fixed top-0 left-0 z-50 p-2 sm:p-4 flex flex-col
+        transition-all duration-300 ${sidebarWidthClass} ${desktopCollapseClass}
+        ${isMobile && !isSidebarOpen ? '-translate-x-full' : 'translate-x-0'}
+    `}
 >
-                {/* App Logo/Title and Toggle */}
-                <div className="h-16 flex items-center justify-between px-2 mb-6">
-<h1 className={`text-2xl font-extrabold text-black whitespace-nowrap
-    transition-opacity duration-200 ${isTextHidden ? 'opacity-0 hidden' : 'opacity-100 block'}`}>
-    Rugyeyo Farm
-</h1>
-                    {/* Toggle button: always visible in sidebar, but only acts as the close button on mobile, or primary toggle on desktop */}
-                    <button 
-                        className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${isTextHidden ? 'mx-auto' : ''}`} 
-                        onClick={toggleSidebar}
-                    >
-{/* Show X on mobile (to close) OR when sidebar is open on desktop (to collapse) */}
-{isSidebarOpen ? (
-    <XIcon className="w-6 h-6 text-black" strokeWidth={2.2} />
-) : (
-    <MenuIcon className="w-6 h-6 text-black" strokeWidth={2.2} />
-)}
-                    </button>
-                </div>
+{/* App Logo/Title and Toggle */}
+<div className="h-12 sm:h-16 flex items-center justify-between px-2 mb-4 sm:mb-6">
+    <h1 className={`text-xl sm:text-2xl font-extrabold text-black whitespace-nowrap
+        transition-opacity duration-200 ${isTextHidden ? 'opacity-0 hidden' : 'opacity-100 block'}`}>
+        Rugyeyo Farm
+    </h1>
+    {/* Toggle button: always visible in sidebar, but only acts as the close button on mobile, or primary toggle on desktop */}
+    <button
+        className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${isTextHidden ? 'mx-auto' : ''}`}
+        onClick={toggleSidebar}
+    >
+        {/* Show X on mobile (to close) OR when sidebar is open on desktop (to collapse) */}
+        {isSidebarOpen ? (
+            <XIcon className="w-5 h-5 sm:w-6 sm:h-6 text-black" strokeWidth={2.2} />
+        ) : (
+            <MenuIcon className="w-5 h-5 sm:w-6 sm:h-6 text-black" strokeWidth={2.2} />
+        )}
+    </button>
+</div>
 
-                {/* Navigation Menu */}
-                <nav className="flex-1 space-y-2">
-                    {/* Note: SidebarLink uses bg-accent-btn for active state, which is now the brown color */}
-<SidebarLink icon={DashboardIcon} title="Menu" isActive={true} isCollapsed={isTextHidden} textColor="text-black"/>
-                    <SidebarLink icon={TrendingUpIcon} title="Sales" href="/sales" isActive={false} isCollapsed={isTextHidden} />
-                    <SidebarLink icon={CreditCardIcon} title="Expenses" href="/expenses" isActive={false} isCollapsed={isTextHidden} />
-                    <SidebarLink icon={ReceiptIcon} title="Receipts Management" isActive={false} isCollapsed={isTextHidden} />
-                    <SidebarLink icon={UserCogIcon} title="Staff Registration" isActive={false} isCollapsed={isTextHidden} />
-                    <SidebarLink icon={WalletIcon} title="Wages" href="/wages" isActive={false} isCollapsed={isTextHidden} />
-                </nav>
+{/* Navigation Menu */}
+<nav className="flex-1 space-y-1 sm:space-y-2">
+    {/* Note: SidebarLink uses bg-accent-btn for active state, which is now the brown color */}
+    <SidebarLink icon={DashboardIcon} title="Menu" isActive={true} isCollapsed={isTextHidden} textColor="text-black"/>
+    <SidebarLink icon={TrendingUpIcon} title="Sales" href="/sales" isActive={false} isCollapsed={isTextHidden} />
+    <SidebarLink icon={CreditCardIcon} title="Expenses" href="/expenses" isActive={false} isCollapsed={isTextHidden} />
+    <SidebarLink icon={ReceiptIcon} title="Receipts Management" isActive={false} isCollapsed={isTextHidden} />
+    <SidebarLink icon={UserCogIcon} title="Staff Registration" isActive={false} isCollapsed={isTextHidden} />
+    <SidebarLink icon={WalletIcon} title="Wages" href="/wages" isActive={false} isCollapsed={isTextHidden} />
+</nav>
 
-                {/* Footer/User Info */}
-                <div className="mt-auto pt-4 border-t border-white/20">
-                    <div className={`text-xs text-white/80 truncate transition-opacity duration-200 ${isTextHidden ? 'opacity-0 hidden' : 'opacity-100 block'}`}>
-                        User ID: {userId || 'Authenticating...'}
-                    </div>
-                    <a href="#" className={`flex items-center p-3 rounded-xl text-sm text-white hover:bg-white/10 mt-2
-                        ${isTextHidden ? 'justify-center w-10 h-10 p-0' : 'justify-start'}`}>
-                        <LogOutIcon className={`w-4 h-4 ${isTextHidden ? '' : 'mr-3'}`} />
-                        <span className={`whitespace-nowrap transition-opacity duration-200 ${isTextHidden ? 'opacity-0 hidden' : 'opacity-100 block'}`}>Logout</span>
-                    </a>
-                </div>
+{/* Footer/User Info */}
+<div className="mt-auto pt-2 sm:pt-4 border-t border-white/20">
+    <div className={`text-xs text-white/80 truncate transition-opacity duration-200 ${isTextHidden ? 'opacity-0 hidden' : 'opacity-100 block'}`}>
+        User ID: {userId || 'Authenticating...'}
+    </div>
+    <a href="#" className={`flex items-center p-2 sm:p-3 rounded-xl text-xs sm:text-sm text-white hover:bg-white/10 mt-2
+        ${isTextHidden ? 'justify-center w-10 h-10 p-0' : 'justify-start'}`}>
+        <LogOutIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${isTextHidden ? '' : 'mr-2 sm:mr-3'}`} />
+        <span className={`whitespace-nowrap transition-opacity duration-200 ${isTextHidden ? 'opacity-0 hidden' : 'opacity-100 block'}`}>Logout</span>
+    </a>
+</div>
             </aside>
         </>
     );
 
 const MainHeader = () => (
-<header className="bg-sidebar-bg rounded-xl p-4 flex items-center justify-between shadow-md mb-8 z-30 relative">
+<header className="bg-sidebar-bg rounded-xl p-2 sm:p-4 flex items-center justify-between shadow-md mb-4 sm:mb-8 z-30 relative">
 <div className="flex items-center">
 {/* Mobile Menu Button (always visible on mobile to open sidebar) */}
 <button
-className="p-2 mr-3 rounded-full md:hidden hover:bg-sidebar-bg/50"
+className="p-2 mr-2 sm:mr-3 rounded-full md:hidden hover:bg-sidebar-bg/50"
 onClick={toggleSidebar}
 >
-<MenuIcon className="w-6 h-6 text-white" strokeWidth={2.2} />
+<MenuIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2.2} />
 </button>
 
 {/* Desktop Collapse Button (only visible on desktop when sidebar is w-16) - Now handled in MainSidebar for better placement */}
-<h2 className="text-xl md:text-2xl font-bold text-black">Financial Dashboard</h2>
+<h2 className="text-lg sm:text-xl md:text-2xl font-bold text-black">Financial Dashboard</h2>
 </div>
 
-<div className="flex items-center space-x-4">
+<div className="flex items-center space-x-2 sm:space-x-4">
 <button className="p-2 rounded-full hover:bg-sidebar-bg/50">
-<BellIcon className="w-6 h-6 text-white" strokeWidth={2.2} />
+<BellIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2.2} />
 </button>
-<div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-sm font-bold text-white">
+<div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 flex items-center justify-center text-xs sm:text-sm font-bold text-white">
 JP
 </div>
 </div>
 </header>
 );
 
-    const KPISection = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+const KPISection = () => (
+    <div className={`grid ${mobileGridCols} gap-4 sm:gap-6 mb-6 sm:mb-8`}>
 
-            <div className="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-accent-btn">
-                <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-500">Total Sales (MTD)</p>
-                    <LineChartIcon className="w-6 h-6 text-accent-btn" strokeWidth={2.2} />
-                </div>
-                <p className="mt-1 text-3xl font-extrabold text-gray-900">{formatUGX(12500000)}</p>
-                <p className="text-xs text-accent-btn mt-2">+12% vs last month</p>
-            </div>
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border-t-4 border-accent-btn">
+            <div className="flex items-center justify-between">
+                <p className="text-xs sm:text-sm font-medium text-gray-500">Total Sales (MTD)</p>
+                <LineChartIcon className="w-5 h-5 sm:w-6 sm:h-6 text-accent-btn" strokeWidth={2.2} />
+            </div>
+            <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-gray-900">{formatUGX(12500000)}</p>
+            <p className="text-xs text-accent-btn mt-2">+12% vs last month</p>
+        </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-accent-btn">
-                <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-500">Total Expenses (MTD)</p>
-                    <MinusCircleIcon className="w-6 h-6 text-accent-btn" strokeWidth={2.2} />
-                </div>
-                <p className="mt-1 text-3xl font-extrabold text-gray-900">{formatUGX(3100000)}</p>
-                <p className="text-xs text-accent-btn mt-2">-5% vs last month</p>
-            </div>
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border-t-4 border-accent-btn">
+            <div className="flex items-center justify-between">
+                <p className="text-xs sm:text-sm font-medium text-gray-500">Total Expenses (MTD)</p>
+                <MinusCircleIcon className="w-5 h-5 sm:w-6 sm:h-6 text-accent-btn" strokeWidth={2.2} />
+            </div>
+            <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-gray-900">{formatUGX(3100000)}</p>
+            <p className="text-xs text-accent-btn mt-2">-5% vs last month</p>
+        </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-accent-btn">
-                <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-500">Active Staff</p>
-                    <UsersIcon className="w-6 h-6 text-accent-btn" strokeWidth={2.2} />
-                </div>
-                <p className="mt-1 text-3xl font-extrabold text-gray-900">35</p>
-                <p className="text-xs text-gray-500 mt-2">Total registered employees</p>
-            </div>
-        </div>
-    );
+        <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-lg border-t-4 border-accent-btn">
+            <div className="flex items-center justify-between">
+                <p className="text-xs sm:text-sm font-medium text-gray-500">Active Staff</p>
+                <UsersIcon className="w-5 h-5 sm:w-6 sm:h-6 text-accent-btn" strokeWidth={2.2} />
+            </div>
+            <p className="mt-1 text-2xl sm:text-3xl font-extrabold text-gray-900">35</p>
+            <p className="text-xs text-gray-500 mt-2">Total registered employees</p>
+        </div>
+    </div>
+);
 
 
     return (
@@ -518,22 +524,22 @@ JP
             
             <MainSidebar />
 
-            <main className={`p-4 md:p-8 transition-all duration-300 ${mainMarginClass} pt-0`}>
+<main className={`${mobilePadding} transition-all duration-300 ${mainMarginClass} pt-0`}>
                 <MainHeader />
                 <KPISection />
                 
-                {/* Charts and Recent Activity Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    
-                    {/* Left Column: Primary Chart */}
-                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg">
-                        <h3 className="text-lg font-semibold mb-4 border-b pb-2">Sales vs Expenses (Last 6 Months)</h3>
-                        <FinancialChart />
-                    </div>
+{/* Charts and Recent Activity Section */}
+<div className={`grid ${mobileChartGrid} gap-4 sm:gap-6`}>
 
-                    {/* Right Column: Recent Transactions Table */}
-                    <TransactionsTable />
-                </div>
+    {/* Left Column: Primary Chart */}
+    <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl shadow-lg">
+        <h3 className="text-base sm:text-lg font-semibold mb-4 border-b pb-2">Sales vs Expenses (Last 6 Months)</h3>
+        <FinancialChart />
+    </div>
+
+    {/* Right Column: Recent Transactions Table */}
+    <TransactionsTable />
+</div>
             </main>
         </div>
     );
