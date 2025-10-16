@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import SideNav from '../components/SideNav.jsx';
 
 function SalesEntry() {
   const navigate = useNavigate();
@@ -15,7 +16,10 @@ function SalesEntry() {
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState(null);
 
-  const items = ['Coffee', 'Banana', 'Rice', 'Wheat', 'Cassava', 'Dried', 'Hulled'];
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const items = ['Coffee', 'Banana', 'Rice'];
 
   // Check if we're editing an existing sale
   useEffect(() => {
@@ -168,20 +172,21 @@ function SalesEntry() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', padding: '20px' }}>
-      <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#6B2E0F', marginBottom: '20px', textAlign: 'center' }}>
-        {isEditing ? 'Edit Sale' : 'Sales Entry Form'}
-      </h1>
+    <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', padding: '20px' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#6B2E0F', marginBottom: '20px', textAlign: 'center' }}>
+          {isEditing ? 'Edit Sale' : 'Sales Entry Form'}
+        </h1>
 
-      {/* Compact Form */}
-      <div style={{
-        backgroundColor: '#F5E6D3',
-        borderRadius: '10px',
-        padding: '20px',
-        border: '2px solid #D4A574',
-        maxWidth: '600px',
-        margin: '0 auto'
-      }}>
+        {/* Compact Form */}
+        <div style={{
+          backgroundColor: '#F5E6D3',
+          borderRadius: '10px',
+          padding: '20px',
+          border: '2px solid #D4A574',
+          maxWidth: '600px',
+          margin: '0 auto'
+        }}>
         <div style={{ display: 'grid', gap: '12px' }}>
 
           {/* Row 2: Customer Name and Item in one row */}
@@ -492,6 +497,7 @@ function SalesEntry() {
         </div>
       </div>
     </div>
+    </SideNav>
   );
 }
 

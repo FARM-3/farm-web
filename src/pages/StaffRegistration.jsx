@@ -208,7 +208,7 @@ function StaffRegistration() {
     { name: 'Dashboard', icon: Home, href: '/' },
     { name: 'Wages', icon: DollarSign, href: '/wages' },
     { name: 'Sales', icon: ShoppingCart, href: '/sales' },
-    { name: 'Inventory', icon: Package, href: '/inventory' },
+    { name: 'Expenses', icon: Package, href: '/expenses' },
     { name: 'Staff', icon: Users, href: '/staff' },
   ];
 

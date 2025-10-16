@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Truck, Tag, DollarSign, Calendar, MapPin, AlignLeft, Send, Loader2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/Button.jsx';
-import NavBar from '../components/NavBar.jsx';
+import SideNav from '../components/SideNav.jsx';
 
 // --- Custom Styles (Reused from Wage and Login components) ---
 const CUSTOM_COLORS = {
@@ -42,6 +42,9 @@ function ExpenseEntry() {
     const [message, setMessage] = useState(null); // { type: 'success' | 'error', text: '...' }
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
+
+    // Sidebar state
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Check if we're editing an existing expense
     useEffect(() => {
@@ -152,9 +155,7 @@ function ExpenseEntry() {
     };
 
     return (
-        <>
-            <NavBar />
-
+        <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
             <div className="min-h-screen flex items-start justify-center pt-24 pb-10 font-sans" style={{ backgroundColor: '#FAF7F1' }}>
                 <div className="w-full max-w-3xl mx-4 p-6 sm:p-8 md:p-10 shadow-2xl rounded-2xl" 
                      style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }}>
@@ -282,7 +283,7 @@ function ExpenseEntry() {
                     </form>
                 </div>
             </div>
-        </>
+        </SideNav>
     );
 }
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import Input from '../components/Input.jsx';
-import NavBar from '../components/NavBar.jsx';
+import SideNav from '../components/SideNav.jsx';
 
 // API endpoint for wages
 const WAGES_API_ENDPOINT = 'https://api-3181.onrender.com/api/wages/';
@@ -31,6 +31,9 @@ function WageEntry() {
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState('');
+
+    // Sidebar state
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -105,8 +108,7 @@ function WageEntry() {
     };
 
     return (
-        <>
-        <NavBar />
+        <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
         <div className="min-h-screen pt-24 md:pt-32 pb-12 flex justify-center" style={{ backgroundColor: '#FAF7F1' }}>
             <div className="w-full max-w-3xl mt-12 p-6 sm:p-8 rounded-2xl shadow-2xl" style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }}>
                 <h1 className="text-2xl sm:text-3xl font-extrabold mb-6" style={{ color: CUSTOM_COLORS.headerBg }}>
@@ -171,7 +173,7 @@ function WageEntry() {
                 </form>
             </div>
         </div>
-        </>
+        </SideNav>
     );
 }
 

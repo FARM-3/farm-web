@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown, Edit, Trash2 } from 'lucide-react';
-import NavBar from '../components/NavBar.jsx';
+import SideNav from '../components/SideNav.jsx';
 
 // --- Custom Styles (Consistent with other files) ---
 const CUSTOM_COLORS = {
@@ -59,6 +59,9 @@ function Expenses() {
 
     // Sorting state
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
+
+    // Sidebar state
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Delete confirmation modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -266,12 +269,10 @@ function Expenses() {
     };
 
     return (
-        <>
-            <NavBar />
-
+        <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
             {/* Main Content Area */}
             <div className="min-h-screen flex flex-col items-center pt-24 md:pt-32 pb-10 font-sans"
-                 style={{ backgroundColor: '#FAF7F1' }}>
+                  style={{ backgroundColor: '#FAF7F1' }}>
 
                 {/* Header and Action Bar */}
                 <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 mb-6 flex justify-between items-center">
@@ -366,7 +367,7 @@ function Expenses() {
                     </div>
                 </div>
             )}
-        </>
+        </SideNav>
     );
 }
 

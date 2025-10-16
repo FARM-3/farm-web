@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus } from 'lucide-react'; 
-import NavBar from '../components/NavBar.jsx';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus } from 'lucide-react';
+import SideNav from '../components/SideNav.jsx';
 
 // --- Custom Styles (Copied from WageEntry.jsx) ---
 const CUSTOM_COLORS = {
@@ -51,6 +51,9 @@ function WageDisplay() {
 
     // Sorting state
     const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'descending' });
+
+    // Sidebar state
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Function to fetch data from the API with exponential backoff
     const fetchWages = useCallback(async (retries = 3) => {
@@ -196,13 +199,11 @@ function WageDisplay() {
     };
 
     return (
-        <>
-            <NavBar />
-
+        <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
             {/* Main Content Area */}
-            <div className="min-h-screen flex flex-col items-center pt-24 md:pt-32 pb-10 font-sans" 
-                 style={{ backgroundColor: '#FAF7F1' }}>
-                
+            <div className="min-h-screen flex flex-col items-center pt-24 md:pt-32 pb-10 font-sans"
+                  style={{ backgroundColor: '#FAF7F1' }}>
+
                 {/* Header and Action Bar */}
                 <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 mb-6 flex justify-between items-center">
                     <h1 className="text-4xl font-extrabold" style={{ color: CUSTOM_COLORS.primaryText }}>
@@ -221,17 +222,17 @@ function WageDisplay() {
                 </div>
 
                 {/* Wage Records Table Container */}
-                <div 
-                    className="max-w-7xl w-full mx-4 p-4 sm:p-8 shadow-2xl rounded-2xl overflow-x-auto transition-all duration-300" 
-                    style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }} 
+                <div
+                    className="max-w-7xl w-full mx-4 p-4 sm:p-8 shadow-2xl rounded-2xl overflow-x-auto transition-all duration-300"
+                    style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }}
                 >
                     <div className="overflow-x-auto px-2 sm:px-4">
                         <table className="min-w-full divide-y divide-gray-200 mt-2">
                             <thead className="sticky top-0 z-10" style={{ backgroundColor: CUSTOM_COLORS.tableHeaderBg }}>
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
-                                        <th 
-                                            key={header.key} 
+                                        <th
+                                            key={header.key}
                                             className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
                                             onClick={() => header.icon !== null && requestSort(header.key)} // Only allow sorting on specific columns
                                             scope="col"
@@ -252,7 +253,7 @@ function WageDisplay() {
                     </div>
                 </div>
             </div>
-        </>
+        </SideNav>
     );
 }
 

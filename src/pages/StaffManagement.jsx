@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, Users, UserPlus, Loader2, ArrowUp, ArrowDown, Search } from 'lucide-react';
-import NavBar from '../components/NavBar.jsx';
+import SideNav from '../components/SideNav.jsx';
 
 // API endpoint for staff
 const STAFF_API_ENDPOINT = 'https://api-3181.onrender.com/api/staff/';
@@ -63,6 +63,9 @@ function StaffManagement() {
 
     // Search state
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Sidebar state
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
 
     // Live data fetcher with retry logic
@@ -207,9 +210,7 @@ function StaffManagement() {
     };
 
     return (
-        <>
-            <NavBar />
-
+        <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
             {/* Main Content Area */}
             <div className="min-h-screen flex flex-col items-center pt-24 md:pt-32 pb-10 font-sans"
                   style={{ backgroundColor: CoffeeColors.SCREEN_BG }}>
@@ -326,8 +327,7 @@ function StaffManagement() {
                     </div>
                 </div>
             </div>
-
-        </>
+        </SideNav>
     );
 }
 

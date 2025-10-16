@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import SideNav from '../components/SideNav.jsx';
 // Firebase Imports (Assumed available in the environment)
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'; 
-import { setLogLevel } from 'firebase/firestore';   
+import { getFirestore } from 'firebase/firestore';
+import { setLogLevel } from 'firebase/firestore';
 // --- MOCK DATA ---
 const MOCK_TRANSACTIONS = [
     { id: 1, type: 'Sale', description: 'Bulk Order #406', amount: 2100000, date: 'Oct 15', isExpense: false },
@@ -292,10 +293,13 @@ const TransactionsTable = () => {
 
 // --- MAIN APP COMPONENT ---
 const App = () => {
-    // State for sidebar visibility (defaults open on desktop, closed on mobile via logic)
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [userId, setUserId] = useState(null);
-    const [isMobile, setIsMobile] = useState(false);
+    // State for sidebar visibility (defaults open on desktop, closed on mobile via logic)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [userId, setUserId] = useState(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    // State for SideNav component
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
 
     // --- FIREBASE INITIALIZATION & AUTH ---
@@ -519,30 +523,30 @@ const KPISection = () => (
 );
 
 
-    return (
-        <div className={`min-h-screen bg-app-bg ${layoutClass}`}>
-            
-            <MainSidebar />
+return (
+    <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
+        <div className={`min-h-screen bg-app-bg ${layoutClass}`}>
 
-<main className={`${mobilePadding} transition-all duration-300 ${mainMarginClass} pt-0`}>
-                <MainHeader />
-                <KPISection />
-                
-{/* Charts and Recent Activity Section */}
-<div className={`grid ${mobileChartGrid} gap-4 sm:gap-6`}>
+            <main className={`${mobilePadding} transition-all duration-300 ${mainMarginClass} pt-0`}>
+                <MainHeader />
+                <KPISection />
 
-    {/* Left Column: Primary Chart */}
-    <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl shadow-lg">
-        <h3 className="text-base sm:text-lg font-semibold mb-4 border-b pb-2">Sales vs Expenses (Last 6 Months)</h3>
-        <FinancialChart />
-    </div>
+                {/* Charts and Recent Activity Section */}
+                <div className={`grid ${mobileChartGrid} gap-4 sm:gap-6`}>
 
-    {/* Right Column: Recent Transactions Table */}
-    <TransactionsTable />
-</div>
-            </main>
-        </div>
-    );
+                    {/* Left Column: Primary Chart */}
+                    <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl shadow-lg">
+                        <h3 className="text-base sm:text-lg font-semibold mb-4 border-b pb-2">Sales vs Expenses (Last 6 Months)</h3>
+                        <FinancialChart />
+                    </div>
+
+                    {/* Right Column: Recent Transactions Table */}
+                    <TransactionsTable />
+                </div>
+            </main>
+        </div>
+    </SideNav>
+);
 };
 
 export default App;
