@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, X, Home, DollarSign, ShoppingCart, Package, Users, CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // API endpoint for staff registration
 const STAFF_API_ENDPOINT = 'https://api-3181.onrender.com/api/staff/';
@@ -20,12 +20,15 @@ const CoffeeColors = {
 
 function StaffRegistration() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -38,6 +41,28 @@ function StaffRegistration() {
     employment_status: '',
     hire_date: '',
   });
+
+  // Check if we're editing an existing staff member
+  useEffect(() => {
+    const editStaff = location.state?.editStaff;
+    console.log('Edit staff data:', editStaff);
+    if (editStaff) {
+      setIsEditing(true);
+      setEditId(editStaff.id);
+      setForm({
+        first_name: editStaff.first_name || '',
+        last_name: editStaff.last_name || '',
+        gender: editStaff.gender || '',
+        nin: editStaff.nin || '',
+        district: editStaff.district || '',
+        subcounty: editStaff.sub_county || '',
+        parish: editStaff.parish || '',
+        village: editStaff.village || '',
+        employment_status: editStaff.employment_status || '',
+        hire_date: editStaff.date_hired || '',
+      });
+    }
+  }, [location.state]);
 
   // Validation logic remains unchanged as requested
   const validateField = (name, value) => {
@@ -114,7 +139,7 @@ function StaffRegistration() {
         first_name: form.first_name,
         last_name: form.last_name,
         gender: form.gender,
-        nin: form.nin,
+        nin: form.nin.toUpperCase(),
         district: form.district,
         sub_county: form.subcounty,
         parish: form.parish,
@@ -123,14 +148,20 @@ function StaffRegistration() {
         date_hired: form.hire_date,
       };
 
-      const response = await fetch(STAFF_API_ENDPOINT, {
-        method: 'POST',
+      console.log('Sending payload:', payload);
+
+      const url = isEditing
+        ? `${STAFF_API_ENDPOINT}${editId}/`
+        : STAFF_API_ENDPOINT;
+
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        setMessage('Staff member registered successfully!');
+        setMessage(isEditing ? 'Staff member updated successfully!' : 'Staff member registered successfully!');
         setShowSuccess(true);
 
         // Clear form after success
@@ -148,6 +179,8 @@ function StaffRegistration() {
         });
         setTouched({});
         setErrors({});
+        setIsEditing(false);
+        setEditId(null);
 
         // Navigate to staff management page after a short delay
         setTimeout(() => {
@@ -156,7 +189,7 @@ function StaffRegistration() {
       } else {
         const errorData = await response.json();
         console.error('API Error:', errorData);
-        setMessage(`Failed to register staff: ${response.status} - ${JSON.stringify(errorData)}`);
+        setMessage(`Failed to ${isEditing ? 'update' : 'register'} staff: ${response.status} - ${JSON.stringify(errorData)}`);
       }
     } catch (err) {
       console.error('Network error:', err);
@@ -305,7 +338,7 @@ function StaffRegistration() {
           <div className="w-full max-w-3xl mt-12 p-6 sm:p-8 rounded-2xl shadow-2xl"
                style={{ backgroundColor: '#F5EEDC', border: `1px solid #B8A072` }}>
             <h1 className="text-2xl sm:text-3xl font-extrabold mb-6" style={{ color: '#702A0B' }}>
-              Staff Registration Form
+              {isEditing ? 'Edit Staff Member' : 'Staff Registration Form'}
             </h1>
 
             <div className="space-y-6">
@@ -578,7 +611,7 @@ function StaffRegistration() {
                     cursor: (!isFormValid() || loading) ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {loading ? 'Registering...' : 'Register Staff'}
+                  {loading ? (isEditing ? 'Updating...' : 'Registering...') : (isEditing ? 'Update Staff' : 'Register Staff')}
                 </button>
               </div>
             </div>

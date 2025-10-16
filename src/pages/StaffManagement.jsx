@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Users, UserPlus, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { RefreshCw, Users, UserPlus, Loader2, ArrowUp, ArrowDown, Search } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 
 // API endpoint for staff
@@ -60,6 +60,10 @@ function StaffManagement() {
 
     // Sorting state
     const [sortConfig, setSortConfig] = useState({ key: 'first_name', direction: 'ascending' });
+
+    // Search state
+    const [searchTerm, setSearchTerm] = useState('');
+
 
     // Live data fetcher with retry logic
     const fetchStaff = useCallback(async (retries = 3) => {
@@ -156,6 +160,7 @@ function StaffManagement() {
         return <ArrowDown className="w-3 h-3 ml-1" />;
     };
 
+
     const renderTableContent = () => {
         if (loading) {
             return (
@@ -190,13 +195,12 @@ function StaffManagement() {
 
         return sortedStaff.map((member, index) => (
             <tr key={member.id || index} className="border-b transition-colors duration-150 hover:bg-white/50">
-                <td className="px-6 py-3 text-left font-medium text-gray-800">{member.id || 'N/A'}</td>
+                <td className="px-6 py-3 text-left font-medium text-gray-800">{member.staff_id || member.id || 'N/A'}</td>
                 <td className="px-6 py-3 text-left font-medium text-gray-800">{member.first_name || 'N/A'}</td>
                 <td className="px-6 py-3 text-left text-gray-600">{member.last_name || 'N/A'}</td>
                 <td className="px-6 py-3 text-center text-gray-700">{member.gender || 'N/A'}</td>
                 <td className="px-6 py-3 text-left text-gray-700">{member.nin || 'N/A'}</td>
                 <td className="px-6 py-3 text-left text-gray-700">{member.district || 'N/A'}</td>
-                <td className="px-6 py-3 text-left text-gray-700">{member.employment_status || 'N/A'}</td>
                 <td className="px-6 py-3 text-right text-gray-500">{member.date_hired || 'N/A'}</td>
             </tr>
         ));
@@ -303,17 +307,6 @@ function StaffManagement() {
                                         </div>
                                     </th>
                                     <th
-                                        key="employment_status"
-                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
-                                        onClick={() => requestSort('employment_status')}
-                                        scope="col"
-                                    >
-                                        <div className="flex items-center justify-start">
-                                            Status
-                                            {getSortIcon('employment_status')}
-                                        </div>
-                                    </th>
-                                    <th
                                         key="date_hired"
                                         className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
                                         onClick={() => requestSort('date_hired')}
@@ -333,6 +326,7 @@ function StaffManagement() {
                     </div>
                 </div>
             </div>
+
         </>
     );
 }

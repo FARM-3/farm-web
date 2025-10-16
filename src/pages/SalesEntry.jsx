@@ -1,19 +1,43 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 function SalesEntry() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({
-    customerName: '', product: '', item: '', quantity: '', rate: '',
+    customerName: '', item: '', quantity: '', rate: '',
     dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: '', amountPaid: ''
   });
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editId, setEditId] = useState(null);
 
-  const products = ['Coffee', 'Banana', 'Rice', 'Wheat', 'Cassava'];
-  const items = ['Dried', 'Hulled'];
+  const items = ['Coffee', 'Banana', 'Rice', 'Wheat', 'Cassava', 'Dried', 'Hulled'];
+
+  // Check if we're editing an existing sale
+  useEffect(() => {
+    const editSale = location.state?.editSale;
+    if (editSale) {
+      setIsEditing(true);
+      setEditId(editSale.id);
+      setFormData({
+        customerName: editSale.customer_name || '',
+        item: editSale.item || '',
+        quantity: editSale.quantity?.toString() || '',
+        rate: editSale.rate?.toString() || '',
+        dateOfPayment: editSale.date_of_payment || '',
+        status: editSale.status || '',
+        balance: editSale.balance?.toString() || '',
+        batchId: editSale.batch_id || '',
+        methodOfPayment: editSale.method_of_payment || '',
+        amount: editSale.amount?.toString() || '',
+        amountPaid: editSale.amount_paid?.toString() || ''
+      });
+    }
+  }, [location.state]);
   const statuses = ['Paid', 'Pending', 'Partial'];
   const paymentMethods = ['Cash', 'Mobile Money', 'Bank Transfer', 'Cheque'];
 
@@ -21,7 +45,7 @@ function SalesEntry() {
     switch (name) {
       case 'customerName':
         return value.trim().length < 2 ? 'Must be at least 2 characters' : '';
-      case 'product': case 'item': case 'status': case 'methodOfPayment':
+      case 'item': case 'status': case 'methodOfPayment':
         return !value ? 'This field is required' : '';
       case 'quantity': case 'rate':
         return !value || parseFloat(value) <= 0 ? 'Must be greater than 0' : '';
@@ -92,7 +116,6 @@ function SalesEntry() {
       const payload = {
         customer_name: formData.customerName,
         item: formData.item,
-        product: formData.product,
         quantity: parseFloat(formData.quantity),
         rate: parseFloat(formData.rate),
         amount: parseFloat(formData.amount),
@@ -104,8 +127,12 @@ function SalesEntry() {
         method_of_payment: formData.methodOfPayment
       };
 
-      const response = await fetch('https://api-3181.onrender.com/api/sales/', {
-        method: 'POST',
+      const url = isEditing
+        ? `https://api-3181.onrender.com/api/sales/${editId}/`
+        : 'https://api-3181.onrender.com/api/sales/';
+
+      const response = await fetch(url, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -113,22 +140,24 @@ function SalesEntry() {
       });
 
       if (response.ok) {
-        setMessage('Sale recorded successfully!');
+        setMessage(isEditing ? 'Sale updated successfully!' : 'Sale recorded successfully!');
         // Reset form
         setFormData({
-          customerName: '', product: '', item: '', quantity: '', rate: '',
+          customerName: '', item: '', quantity: '', rate: '',
           dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: '', amountPaid: ''
         });
         setErrors({});
         setTouched({});
-        // Navigate to sales page to show the new record
+        setIsEditing(false);
+        setEditId(null);
+        // Navigate to sales page to show the updated record
         setTimeout(() => {
           navigate('/sales');
         }, 1500);
       } else {
         const errorData = await response.json();
         console.error('API Error:', errorData);
-        setMessage(`Failed to save sale: ${response.status} - ${JSON.stringify(errorData)}`);
+        setMessage(`Failed to ${isEditing ? 'update' : 'save'} sale: ${response.status} - ${JSON.stringify(errorData)}`);
       }
     } catch (error) {
       console.error('Network error:', error);
@@ -141,7 +170,7 @@ function SalesEntry() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', padding: '20px' }}>
       <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#6B2E0F', marginBottom: '20px', textAlign: 'center' }}>
-        Sales Entry Form
+        {isEditing ? 'Edit Sale' : 'Sales Entry Form'}
       </h1>
 
       {/* Compact Form */}
@@ -154,60 +183,35 @@ function SalesEntry() {
         margin: '0 auto'
       }}>
         <div style={{ display: 'grid', gap: '12px' }}>
-          {/* Customer Name */}
-          <div>
-            <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
-              Customer Name *
-            </label>
-            <input
-              type="text"
-              name="customerName"
-              value={formData.customerName}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="John Doe"
-              style={{
-                width: '100%',
-                padding: '8px',
-                fontSize: '12px',
-                border: `2px solid ${getBorderColor('customerName')}`,
-                borderRadius: '6px',
-                backgroundColor: '#FFFFFF',
-                outline: 'none'
-              }}
-            />
-            {errors.customerName && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.customerName}</span>}
-          </div>
 
-          {/* Row 2 */}
+          {/* Row 2: Customer Name and Item in one row */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
               <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
-                Item *
+                Customer Name *
               </label>
-              <select
-                name="product"
-                value={formData.product}
+              <input
+                type="text"
+                name="customerName"
+                value={formData.customerName}
                 onChange={handleChange}
                 onBlur={handleBlur}
+                placeholder="John Doe"
                 style={{
                   width: '100%',
                   padding: '8px',
                   fontSize: '12px',
-                  border: `2px solid ${getBorderColor('product')}`,
+                  border: `2px solid ${getBorderColor('customerName')}`,
                   borderRadius: '6px',
                   backgroundColor: '#FFFFFF',
                   outline: 'none'
                 }}
-              >
-                <option value="">Select</option>
-                {products.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-              {errors.product && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.product}</span>}
+              />
+              {errors.customerName && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.customerName}</span>}
             </div>
             <div>
               <label style={{ fontSize: '12px', fontWeight: '600', color: '#6B2E0F', display: 'block', marginBottom: '4px' }}>
-                Product *
+                Item *
               </label>
               <select
                 name="item"
@@ -483,7 +487,7 @@ function SalesEntry() {
             onMouseEnter={(e) => !loading && (e.target.style.backgroundColor = '#5A260D')}
             onMouseLeave={(e) => !loading && (e.target.style.backgroundColor = '#6B2E0F')}
           >
-            {loading ? 'Submitting...' : 'Record Sale'}
+            {loading ? (isEditing ? 'Updating...' : 'Submitting...') : (isEditing ? 'Update Sale' : 'Record Sale')}
           </button>
         </div>
       </div>

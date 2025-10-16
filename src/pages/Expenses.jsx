@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown } from 'lucide-react';
+import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown, Edit, Trash2 } from 'lucide-react';
 import NavBar from '../components/NavBar.jsx';
 
 // --- Custom Styles (Consistent with other files) ---
@@ -59,6 +59,11 @@ function Expenses() {
 
     // Sorting state
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
+
+    // Delete confirmation modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [expenseToDelete, setExpenseToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     // Live Data Fetcher with retry logic
     const fetchExpenses = useCallback(async (retries = 3) => {
@@ -164,11 +169,42 @@ function Expenses() {
         return <ArrowDown className="w-3 h-3 ml-1" />;
     };
 
+    // Handle delete expense
+    const handleDeleteExpense = async () => {
+        if (!expenseToDelete) return;
+
+        setDeleting(true);
+        try {
+            const response = await fetch(`${EXPENSE_API_ENDPOINT}${expenseToDelete.id}/`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                // Remove the expense from the local state
+                setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== expenseToDelete.id));
+                setShowDeleteModal(false);
+                setExpenseToDelete(null);
+            } else {
+                console.error('Failed to delete expense');
+            }
+        } catch (error) {
+            console.error('Error deleting expense:', error);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    // Handle edit expense
+    const handleEditExpense = (expense) => {
+        // Navigate to expense entry with expense data
+        navigate('/expense-entry', { state: { editExpense: expense } });
+    };
+
     const renderTableContent = () => {
         if (loading) {
             return (
                 <tr className='h-24'>
-                    <td colSpan={TABLE_HEADERS.length} className="text-center py-6 text-gray-600">
+                    <td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-600">
                         <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: CUSTOM_COLORS.primaryText }} />
                         Loading expense records...
                     </td>
@@ -179,7 +215,7 @@ function Expenses() {
         if (error) {
             return (
                 <tr className='h-24'>
-                    <td colSpan={TABLE_HEADERS.length} className="text-center py-6 text-red-600 font-medium">
+                    <td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-red-600 font-medium">
                         {error}
                     </td>
                 </tr>
@@ -189,7 +225,7 @@ function Expenses() {
         if (sortedExpenses.length === 0) {
             return (
                 <tr className='h-24'>
-                    <td colSpan={TABLE_HEADERS.length} className="text-center py-6 text-gray-500 italic">
+                    <td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-500 italic">
                         No expense records found. Click "Refresh" or "Record New Expense".
                     </td>
                 </tr>
@@ -197,13 +233,34 @@ function Expenses() {
         }
 
         return sortedExpenses.map((expense, index) => (
-            <tr key={index} className="border-b transition-colors duration-150 hover:bg-white/50">
+            <tr key={expense.id || index} className="border-b transition-colors duration-150 hover:bg-white/50">
                 <td className="px-6 py-3 text-left font-medium text-gray-800">{expense.expense_name || 'N/A'}</td>
                 <td className="px-6 py-3 text-left text-gray-600">{expense.category || '-'}</td>
                 <td className="px-6 py-3 text-center text-gray-600">{expense.date || 'N/A'}</td>
                 <td className="px-6 py-3 text-right text-red-600 font-bold">{(expense.amount)}</td>
                 <td className="px-6 py-3 text-left text-gray-700">{expense.supplier || '-'}</td>
                 <td className="px-6 py-3 text-left text-sm italic text-gray-500">{expense.location || '-'}</td>
+                <td className="px-6 py-3 text-center">
+                    <div className="flex items-center justify-center space-x-2">
+                        <button
+                            onClick={() => handleEditExpense(expense)}
+                            className="p-1 rounded hover:bg-gray-200 transition-colors"
+                            title="Edit expense"
+                        >
+                            <Edit className="w-4 h-4 text-blue-600" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                setExpenseToDelete(expense);
+                                setShowDeleteModal(true);
+                            }}
+                            className="p-1 rounded hover:bg-gray-200 transition-colors"
+                            title="Delete expense"
+                        >
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                        </button>
+                    </div>
+                </td>
             </tr>
         ));
     };
@@ -256,6 +313,9 @@ function Expenses() {
                                             </div>
                                         </th>
                                     ))}
+                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-white">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white/70 divide-y divide-gray-200" style={{ color: CUSTOM_COLORS.primaryText }}>
@@ -265,6 +325,47 @@ function Expenses() {
                     </div>
                 </div>
             </div>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && expenseToDelete && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+                        <h3 className="text-lg font-semibold mb-4" style={{ color: CUSTOM_COLORS.primaryText }}>
+                            Confirm Delete
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to delete this expense for "{expenseToDelete.expense_name}"?
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setExpenseToDelete(null);
+                                }}
+                                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                disabled={deleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteExpense}
+                                disabled={deleting}
+                                className="px-4 py-2 text-white rounded-lg transition-colors flex items-center"
+                                style={{ backgroundColor: '#D32F2F' }}
+                            >
+                                {deleting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

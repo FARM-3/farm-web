@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Truck, Tag, DollarSign, Calendar, MapPin, AlignLeft, Send, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import NavBar from '../components/NavBar.jsx';
 
@@ -26,6 +26,8 @@ const CATEGORIES = [
 ];
 
 function ExpenseEntry() {
+    const navigate = useNavigate();
+    const location = useLocation();
     const [formData, setFormData] = useState({
         expense_name: '',
         category: CATEGORIES[0],
@@ -38,6 +40,27 @@ function ExpenseEntry() {
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState(null); // { type: 'success' | 'error', text: '...' }
+    const [isEditing, setIsEditing] = useState(false);
+    const [editId, setEditId] = useState(null);
+
+    // Check if we're editing an existing expense
+    useEffect(() => {
+        const editExpense = location.state?.editExpense;
+        if (editExpense) {
+            setIsEditing(true);
+            setEditId(editExpense.id);
+            setFormData({
+                expense_name: editExpense.expense_name || '',
+                category: editExpense.category || CATEGORIES[0],
+                item: editExpense.item || '',
+                supplier: editExpense.supplier || '',
+                description: editExpense.description || '',
+                amount: editExpense.amount?.toString() || '',
+                date: editExpense.date || new Date().toISOString().substring(0, 10),
+                location: editExpense.location || '',
+            });
+        }
+    }, [location.state]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -61,7 +84,7 @@ function ExpenseEntry() {
         return value.toFixed(2);
     };
 
-    const navigate = useNavigate();
+    // const navigate = useNavigate(); // Already declared above
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -82,9 +105,12 @@ function ExpenseEntry() {
         };
 
         try {
-            // Mock API call (Replace with actual fetch to your Django API)
-            const response = await fetch(EXPENSE_API_ENDPOINT, {
-                method: 'POST',
+            const url = isEditing
+                ? `${EXPENSE_API_ENDPOINT}${editId}/`
+                : EXPENSE_API_ENDPOINT;
+
+            const response = await fetch(url, {
+                method: isEditing ? 'PUT' : 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     // Add Authorization header if needed (e.g., 'Bearer token')
@@ -94,11 +120,28 @@ function ExpenseEntry() {
 
             if (response.ok) {
                 // Assuming 201 Created or 200 OK for successful submission
-                navigate('/expenses');
+                setMessage({ type: 'success', text: isEditing ? 'Expense updated successfully!' : 'Expense recorded successfully!' });
+                // Reset form
+                setFormData({
+                    expense_name: '',
+                    category: CATEGORIES[0],
+                    item: '',
+                    supplier: '',
+                    description: '',
+                    amount: '',
+                    date: new Date().toISOString().substring(0, 10),
+                    location: '',
+                });
+                setIsEditing(false);
+                setEditId(null);
+                // Navigate to expenses page to show the updated record
+                setTimeout(() => {
+                    navigate('/expenses');
+                }, 1500);
             } else {
                 const errorData = await response.json();
                 console.error("API Error:", errorData);
-                setMessage({ type: 'error', text: `Failed to save expense. Status: ${response.status}. Details: ${JSON.stringify(errorData)}` });
+                setMessage({ type: 'error', text: `Failed to ${isEditing ? 'update' : 'save'} expense. Status: ${response.status}. Details: ${JSON.stringify(errorData)}` });
             }
         } catch (error) {
             console.error("Network or Submission Error:", error);
@@ -117,7 +160,7 @@ function ExpenseEntry() {
                      style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }}>
                     
                     <h1 className="text-3xl font-extrabold text-center mb-2" style={{ color: CUSTOM_COLORS.primaryText }}>
-                        Expense Entry Form
+                        {isEditing ? 'Edit Expense' : 'Expense Entry Form'}
                     </h1>
                     <p className="text-center mb-8 text-sm" style={{ color: CUSTOM_COLORS.primaryText }}>
                         Financial Management - Expenses
@@ -234,7 +277,7 @@ function ExpenseEntry() {
                             ) : (
                                 <Send className="w-5 h-5 mr-2" />
                             )}
-                            {loading ? 'Submitting...' : 'Submit Expense Record'}
+                            {loading ? (isEditing ? 'Updating...' : 'Submitting...') : (isEditing ? 'Update Expense' : 'Submit Expense Record')}
                         </button>
                     </form>
                 </div>
