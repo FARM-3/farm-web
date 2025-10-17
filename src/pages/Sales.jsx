@@ -83,15 +83,48 @@ function Sales() {
     const [saleToDelete, setSaleToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const itemsPerPage = 7;
+
     // Live data fetcher with retry logic
-    const fetchSales = useCallback(async (retries = 3) => {
+    const fetchSales = useCallback(async (page = 1, retries = 3) => {
         setLoading(true);
         setError(null);
 
         for (let i = 0; i < retries; i++) {
             try {
-                const response = await fetch(SALES_API_ENDPOINT);
+                const url = `${SALES_API_ENDPOINT}?page=${page}&page_size=${itemsPerPage}`;
+                const response = await fetch(url);
                 if (!response.ok) {
+                    // If pagination is not supported, fall back to fetching all data
+                    if (response.status === 404 || response.status === 400) {
+                        const fallbackResponse = await fetch(SALES_API_ENDPOINT);
+                        if (!fallbackResponse.ok) {
+                            throw new Error(`HTTP error! status: ${fallbackResponse.status}`);
+                        }
+                        const fallbackData = await fallbackResponse.json();
+                        const normalized = Array.isArray(fallbackData)
+                            ? fallbackData
+                            : Array.isArray(fallbackData?.results)
+                                ? fallbackData.results
+                                : [];
+
+                        // Sort by date descending (latest first)
+                        const sortedData = normalized.sort((a, b) => new Date(b.date_of_payment || b.date) - new Date(a.date_of_payment || a.date));
+
+                        // Paginate client-side
+                        const startIndex = (page - 1) * itemsPerPage;
+                        const endIndex = startIndex + itemsPerPage;
+                        const paginatedData = sortedData.slice(startIndex, endIndex);
+
+                        setSales(paginatedData);
+                        setTotalPages(Math.ceil(sortedData.length / itemsPerPage));
+                        setError(null);
+                        setLoading(false);
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
@@ -104,6 +137,7 @@ function Sales() {
                         : [];
 
                 setSales(normalized);
+                setTotalPages(Math.ceil((data.count || normalized.length) / itemsPerPage));
                 setError(null);
                 setLoading(false);
                 return;
@@ -121,12 +155,12 @@ function Sales() {
                 await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
             }
         }
-    }, []);
+    }, [itemsPerPage]);
 
     // Initial data fetch on component mount
     useEffect(() => {
-        fetchSales();
-    }, [fetchSales]);
+        fetchSales(currentPage);
+    }, [fetchSales, currentPage]);
 
     // Sorting logic
     const sortedSales = React.useMemo(() => {
@@ -177,6 +211,10 @@ function Sales() {
             return <ArrowUp className="w-3 h-3 ml-1" />;
         }
         return <ArrowDown className="w-3 h-3 ml-1" />;
+    };
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
     };
 
     // Handle delete sale
@@ -385,6 +423,31 @@ function Sales() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+                            <div className="flex items-center text-sm text-gray-700">
+                                <span>Page {currentPage} of {totalPages}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <ActionButton
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1 || loading}
+                                    className="px-3 py-1 text-sm"
+                                >
+                                    Previous
+                                </ActionButton>
+                                <ActionButton
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages || loading}
+                                    className="px-3 py-1 text-sm"
+                                >
+                                    Next
+                                </ActionButton>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

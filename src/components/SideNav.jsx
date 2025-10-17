@@ -46,9 +46,17 @@ const SideNav = ({ sidebarOpen, setSidebarOpen, children }) => {
         style={{ backgroundColor: CoffeeColors.DARK_BROWN }}
       >
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: CoffeeColors.MEDIUM_BROWN }}>
-          <h2 className="text-xl font-bold" style={{ color: CoffeeColors.WHITE }}>
-            Rugyeyo Farm
-          </h2>
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.jpg"
+              alt="Rugyeyo Farm Logo"
+              className="w-10 h-10 rounded-full object-cover border-2"
+              style={{ borderColor: CoffeeColors.WHITE }}
+            />
+            <h2 className="text-xl font-bold" style={{ color: CoffeeColors.WHITE }}>
+              Rugyeyo Farm
+            </h2>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
             className="md:hidden hover:opacity-75 transition-opacity p-1 rounded-lg"
