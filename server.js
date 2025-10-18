@@ -14,10 +14,17 @@ const buildPath = path.join(__dirname, 'dist'); // Path to your built files (Vit
 // 1. Serve static files from the 'dist' directory
 app.use(express.static(buildPath));
 
-// 2. Fallback for Client-Side Routing (The 404 Fix!)
-// For any GET request that doesn't match a static file, serve index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(buildPath, 'index.html'));
+// 2. Fallback for Client-Side Routing (THE FIX!)
+// Use '/*' instead of '*' to avoid the PathError. This correctly catches all routes.
+app.get('/*', (req, res) => {
+  // Check if the request path looks like a file (e.g., /assets/style.css)
+  // We only want to serve index.html for unknown HTML routes, not for missing assets.
+  if (req.accepts('html')) {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  } else {
+    // For non-HTML requests (like missing CSS or JS files), let Express send the 404
+    res.status(404).end();
+  }
 });
 
 // Start the server
@@ -27,4 +34,3 @@ app.listen(port, () => {
 });
 
 // IMPORTANT: This file must be named server.js and placed in the root of your project.
-// We are using 'import' syntax so ensure 'type': 'module' is in package.json
