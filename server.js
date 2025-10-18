@@ -14,15 +14,15 @@ const buildPath = path.join(__dirname, 'dist'); // Path to your built files (Vit
 // 1. Serve static files from the 'dist' directory
 app.use(express.static(buildPath));
 
-// 2. Fallback for Client-Side Routing (THE FIX!)
-// Use '/*' instead of '*' to avoid the PathError. This correctly catches all routes.
-app.get('/*', (req, res) => {
-  // Check if the request path looks like a file (e.g., /assets/style.css)
-  // We only want to serve index.html for unknown HTML routes, not for missing assets.
+// 2. Fallback for Client-Side Routing (THE FINAL FIX!)
+// Use app.use() without a path to guarantee it runs last for ANY request not handled above.
+app.use((req, res) => {
+  // We only send index.html if the client is expecting an HTML page.
+  // This prevents infinite redirects or serving HTML for missing CSS/JS assets.
   if (req.accepts('html')) {
     res.sendFile(path.join(buildPath, 'index.html'));
   } else {
-    // For non-HTML requests (like missing CSS or JS files), let Express send the 404
+    // For non-HTML requests (like missing assets), let Express send the 404
     res.status(404).end();
   }
 });
