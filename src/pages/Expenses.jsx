@@ -1,53 +1,95 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { RefreshCw, DollarSign, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown, Edit, Trash2 } from 'lucide-react';
-import SideNav from '../components/SideNav.jsx';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+    Home, DollarSign, ShoppingBag, Users, Settings, LogOut, Menu, X, Bell, UserCircle,
+    RefreshCw, Calendar, Tag, MapPin, Truck, Send, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, ChevronsDown
+} from 'lucide-react';
+import { SideNav } from '../components/SideNav';
 
-// --- Custom Styles (Consistent with other files) ---
-const CUSTOM_COLORS = {
-    headerBg: '#702A0B', // Dark Brown
-    cardBg: '#F5EEDC', // Pale Cream
-    inputBorder: '#B8A072',
-    actionBg: '#702A0B',
-    primaryText: '#702A0B',
-    tableHeaderBg: '#B8A072',
+// --- Global Styles & Constants (Modern & Light Theme from Image) ---
+
+const ACCENT_COLORS = {
+    NAV_BG: '#FFFFFF', // White
+    MAIN_BG: '#F8F8F8', // Light Gray background
+    PRIMARY_TEXT: '#333333',
+    ACCENT_GREEN: '#4CAF50', // Export to Excel
+    ACCENT_BROWN: '#9F4A2F', // Record New Expense
+    TABLE_HEADER_BG: '#F4F4F4', // Light header
+    ACTIVE_NAV_BG: '#FFF7F4', // Very light peach for active link
+    ACTIVE_NAV_TEXT: '#9F4A2F',
+    INACTIVE_NAV_TEXT: '#6B7280',
 };
 
 // IMPORTANT: Updated to the live API endpoint
 const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/';
 
+
+// --- Helper Components ---
+
+const NavLink = ({ to, icon: Icon, children, currentPath }) => {
+    const isActive = currentPath === to;
+    return (
+        <a
+            href={to}
+            className={`flex items-center p-3 rounded-xl transition-all duration-200 cursor-pointer ${
+                isActive
+                    ? 'font-semibold shadow-inner'
+                    : 'hover:bg-gray-100'
+            }`}
+            style={{
+                backgroundColor: isActive ? ACCENT_COLORS.ACTIVE_NAV_BG : 'transparent',
+                color: isActive ? ACCENT_COLORS.ACTIVE_NAV_TEXT : ACCENT_COLORS.INACTIVE_NAV_TEXT
+            }}
+        >
+            <Icon className="w-5 h-5 mr-3" />
+            <span className="text-sm">{children}</span>
+        </a>
+    );
+};
+
+const MenuButton = ({ onClick, isOpen }) => (
+    <button
+        onClick={onClick}
+        className="p-2 rounded-full md:hidden transition-all duration-300"
+        style={{ color: ACCENT_COLORS.ACCENT_BROWN, backgroundColor: ACCENT_COLORS.ACTIVE_NAV_BG }}
+    >
+        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+    </button>
+);
+
+
+
+
+// Helper function to format currency (UGX style)
+const formatCurrency = (amount) => {
+    const value = parseFloat(amount);
+    if (isNaN(value)) return 'UGX 0';
+
+    return `UGX ${new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(Math.round(value))}`;
+};
+
 const ActionButton = ({ children, onClick, className, style, disabled }) => (
     <button
         onClick={onClick}
         disabled={disabled}
-        className={`px-4 py-2 text-white rounded-lg shadow-md hover:shadow-lg transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
-        style={{ ...style, backgroundColor: CUSTOM_COLORS.actionBg }}
+        className={`px-4 py-2 text-white rounded-lg shadow-md hover:shadow-lg transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm ${className}`}
+        style={style} // Styles are passed directly
     >
         {children}
     </button>
 );
 
-// Helper function to format currency
-const formatCurrency = (amount) => {
-    const value = parseFloat(amount);
-    if (isNaN(value)) return '$0.00';
-
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    }).format(value);
-};
-
 // Data Structure for Table Headers (used for sorting)
 const TABLE_HEADERS = [
-    { key: 'expense_name', label: 'Name', icon: Truck, type: 'string' },
-    { key: 'category', label: 'Category', icon: Tag, type: 'string' },
-    { key: 'date', label: 'Date', icon: Calendar, type: 'date' },
-    { key: 'amount', label: 'Amount', icon: DollarSign, type: 'number' },
-    { key: 'supplier', label: 'Supplier', icon: Truck, type: 'string' },
-    { key: 'location', label: 'Location', icon: MapPin, type: 'string' },
+    { key: 'expense_name', label: 'Name', type: 'string' },
+    { key: 'category', label: 'Category', type: 'string' },
+    { key: 'date', label: 'Date', type: 'date' },
+    { key: 'amount', label: 'Amount', type: 'number' },
+    { key: 'supplier', label: 'Supplier', type: 'string' },
+    { key: 'location', label: 'Location', type: 'string' },
 ];
 
 
@@ -55,13 +97,12 @@ function Expenses() {
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
     const navigate = useNavigate();
 
     // Sorting state
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
-
-    // Sidebar state
-    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     // Delete confirmation modal state
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -82,7 +123,6 @@ function Expenses() {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
-                // Normalize API response to always be an array (handles paginated objects with `results`)
                 const normalized = Array.isArray(data)
                     ? data
                     : Array.isArray(data?.results)
@@ -93,7 +133,7 @@ function Expenses() {
                 setError(null);
                 setLoading(false);
 
-                console.log('Expense Data fetched successfully. Total records:', data.length);
+                console.log('Expense Data fetched successfully. Total records:', normalized.length);
                 return;
 
             } catch (err) {
@@ -117,9 +157,28 @@ function Expenses() {
         fetchExpenses();
     }, [fetchExpenses]);
 
+    // Filtering logic
+    const filteredExpenses = React.useMemo(() => {
+        let filtered = expenses;
+
+        if (searchTerm) {
+            filtered = filtered.filter(e =>
+                e.expense_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                e.supplier?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        if (filterCategory) {
+            filtered = filtered.filter(e => e.category === filterCategory);
+        }
+
+        return filtered;
+    }, [expenses, searchTerm, filterCategory]);
+
+
     // Sorting logic (same as wages.jsx)
     const sortedExpenses = React.useMemo(() => {
-        const base = Array.isArray(expenses) ? expenses : [];
+        const base = Array.isArray(filteredExpenses) ? filteredExpenses : [];
         let sortableItems = [...base];
         if (sortConfig.key !== null) {
             sortableItems.sort((a, b) => {
@@ -152,7 +211,7 @@ function Expenses() {
             });
         }
         return sortableItems;
-    }, [expenses, sortConfig]);
+    }, [filteredExpenses, sortConfig]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -171,6 +230,13 @@ function Expenses() {
         }
         return <ArrowDown className="w-3 h-3 ml-1" />;
     };
+
+    // Extract unique categories for the filter dropdown
+    const uniqueCategories = React.useMemo(() => {
+        const categories = expenses.map(e => e.category).filter(Boolean);
+        return [...new Set(categories)].sort();
+    }, [expenses]);
+
 
     // Handle delete expense
     const handleDeleteExpense = async () => {
@@ -199,7 +265,7 @@ function Expenses() {
 
     // Handle edit expense
     const handleEditExpense = (expense) => {
-        // Navigate to expense entry with expense data
+        // Navigate to expense entry with expense data (assuming an expense-entry route exists)
         navigate('/expense-entry', { state: { editExpense: expense } });
     };
 
@@ -208,7 +274,7 @@ function Expenses() {
             return (
                 <tr className='h-24'>
                     <td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-600">
-                        <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: CUSTOM_COLORS.primaryText }} />
+                        <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: ACCENT_COLORS.ACCENT_BROWN }} />
                         Loading expense records...
                     </td>
                 </tr>
@@ -229,18 +295,20 @@ function Expenses() {
             return (
                 <tr className='h-24'>
                     <td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-500 italic">
-                        No expense records found. Click "Refresh" or "Record New Expense".
+                        No expense records found matching your criteria.
                     </td>
                 </tr>
             );
         }
 
         return sortedExpenses.map((expense, index) => (
-            <tr key={expense.id || index} className="border-b transition-colors duration-150 hover:bg-white/50">
+            <tr key={expense.id || index} className="border-b transition-colors duration-150 hover:bg-gray-50">
                 <td className="px-6 py-3 text-left font-medium text-gray-800">{expense.expense_name || 'N/A'}</td>
                 <td className="px-6 py-3 text-left text-gray-600">{expense.category || '-'}</td>
                 <td className="px-6 py-3 text-center text-gray-600">{expense.date || 'N/A'}</td>
-                <td className="px-6 py-3 text-right text-red-600 font-bold">{(expense.amount)}</td>
+                <td className="px-6 py-3 text-right font-bold" style={{ color: ACCENT_COLORS.ACCENT_BROWN }}>
+                    {formatCurrency(expense.amount)}
+                </td>
                 <td className="px-6 py-3 text-left text-gray-700">{expense.supplier || '-'}</td>
                 <td className="px-6 py-3 text-left text-sm italic text-gray-500">{expense.location || '-'}</td>
                 <td className="px-6 py-3 text-center">
@@ -269,73 +337,115 @@ function Expenses() {
     };
 
     return (
-        <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
-            {/* Main Content Area */}
-            <div className="min-h-screen flex flex-col items-center pt-24 md:pt-32 pb-10 font-sans"
-                  style={{ backgroundColor: '#FAF7F1' }}>
+        <SideNav>
+            <div className="flex flex-col space-y-6">
 
-                {/* Header and Action Bar */}
-                <div className="max-w-7xl w-full px-4 sm:px-6 lg:px-8 mb-6 flex justify-between items-center">
-                    <h1 className="text-4xl font-extrabold" style={{ color: CUSTOM_COLORS.primaryText }}>
+                {/* Top Action Bar */}
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+                    <h1 className="text-2xl md:text-3xl font-extrabold" style={{ color: ACCENT_COLORS.PRIMARY_TEXT }}>
                         Expense Records Overview
                     </h1>
-                    <div className="flex space-x-4">
-                        <ActionButton onClick={() => fetchExpenses()} disabled={loading} className="py-2 px-4 shadow-xl" style={{ backgroundColor: CUSTOM_COLORS.headerBg }}>
-                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                            Refresh Data
-                        </ActionButton>
-                        <ActionButton onClick={() => navigate('/expense-entry')} className="py-2 px-4 shadow-xl">
+                    <div className="flex space-x-3 mt-4 md:mt-0">
+                        <ActionButton 
+                            onClick={() => navigate('/expense-entry')}
+                            style={{ backgroundColor: ACCENT_COLORS.ACCENT_BROWN }}
+                            className="shadow-xl"
+                        >
                             <Send className="w-4 h-4 mr-2" />
                             Record New Expense
                         </ActionButton>
+                        <ActionButton 
+                            onClick={() => alert('Exporting to Excel is not yet implemented.')}
+                            style={{ backgroundColor: ACCENT_COLORS.ACCENT_GREEN }}
+                            className="shadow-xl"
+                        >
+                            Export to Excel
+                        </ActionButton>
                     </div>
+                </div>
+
+                {/* Search, Filter, Refresh Bar */}
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 items-stretch sm:items-center p-4 rounded-lg bg-white shadow-md">
+                    
+                    {/* Search Input */}
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search by expense/supplier name..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition"
+                        />
+                    </div>
+
+                    {/* Filter Dropdown */}
+                    <div className="relative w-full sm:w-48">
+                        <select
+                            value={filterCategory}
+                            onChange={(e) => setFilterCategory(e.target.value)}
+                            className="appearance-none w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition"
+                        >
+                            <option value="">Filter by Category</option>
+                            {uniqueCategories.map(category => (
+                                <option key={category} value={category}>{category}</option>
+                            ))}
+                        </select>
+                        <ChevronsDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    </div>
+
+                    {/* Refresh Button */}
+                    <ActionButton 
+                        onClick={() => fetchExpenses()}
+                        disabled={loading}
+                        className="py-2 px-6 shadow-sm"
+                        style={{ backgroundColor: '#D4C3A3', color: ACCENT_COLORS.PRIMARY_TEXT }} // Light brown/beige
+                    >
+                        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh Data
+                    </ActionButton>
                 </div>
 
                 {/* Expense Records Table Container */}
-                <div
-                    className="max-w-7xl w-full mx-4 p-4 sm:p-8 shadow-2xl rounded-2xl overflow-x-auto transition-all duration-300"
-                    style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }}
-                >
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="sticky top-0 z-10" style={{ backgroundColor: CUSTOM_COLORS.tableHeaderBg }}>
-                                <tr>
-                                    {TABLE_HEADERS.map((header) => (
-                                        <th
-                                            key={header.key}
-                                            className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors duration-150 text-white hover:bg-opacity-80"
-                                            onClick={() => requestSort(header.key)}
-                                            scope="col"
-                                        >
-                                            <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
-                                                {header.icon && <header.icon className="w-4 h-4 mr-1" />}
-                                                {header.label}
-                                                {(header.icon !== null || header.key === sortConfig.key) && getSortIcon(header.key)}
-                                            </div>
-                                        </th>
-                                    ))}
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-white">
-                                        Actions
+                <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead style={{ backgroundColor: ACCENT_COLORS.TABLE_HEADER_BG }}>
+                            <tr>
+                                {TABLE_HEADERS.map((header) => (
+                                    <th
+                                        key={header.key}
+                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150"
+                                        onClick={() => requestSort(header.key)}
+                                        scope="col"
+                                    >
+                                        <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
+                                            {header.label}
+                                            {getSortIcon(header.key)}
+                                        </div>
                                     </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white/70 divide-y divide-gray-200" style={{ color: CUSTOM_COLORS.primaryText }}>
-                                {renderTableContent()}
-                            </tbody>
-                        </table>
-                    </div>
+                                ))}
+                                <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center text-gray-700">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {renderTableContent()}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
+
             {/* Delete Confirmation Modal */}
             {showDeleteModal && expenseToDelete && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold mb-4" style={{ color: CUSTOM_COLORS.primaryText }}>
-                            Confirm Delete
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full mx-4">
+                        <h3 className="text-xl font-bold mb-4" style={{ color: ACCENT_COLORS.ACCENT_BROWN }}>
+                            Confirm Deletion
                         </h3>
                         <p className="text-gray-600 mb-6">
-                            Are you sure you want to delete this expense for "{expenseToDelete.expense_name}"?
+                            Are you sure you want to delete the expense: **{expenseToDelete.expense_name}**? This action cannot be undone.
                         </p>
                         <div className="flex justify-end space-x-3">
                             <button
@@ -343,7 +453,7 @@ function Expenses() {
                                     setShowDeleteModal(false);
                                     setExpenseToDelete(null);
                                 }}
-                                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-sm"
                                 disabled={deleting}
                             >
                                 Cancel
@@ -351,7 +461,7 @@ function Expenses() {
                             <button
                                 onClick={handleDeleteExpense}
                                 disabled={deleting}
-                                className="px-4 py-2 text-white rounded-lg transition-colors flex items-center"
+                                className="px-4 py-2 text-white rounded-lg transition-colors flex items-center shadow-md"
                                 style={{ backgroundColor: '#D32F2F' }}
                             >
                                 {deleting ? (
@@ -360,7 +470,7 @@ function Expenses() {
                                         Deleting...
                                     </>
                                 ) : (
-                                    'Delete'
+                                    'Delete Permanently'
                                 )}
                             </button>
                         </div>
