@@ -348,7 +348,11 @@ function Expenses() {
                         Expense Records Overview
                     </h1>
                     <div className="flex space-x-3 mt-4 md:mt-0">
-                        <Button onClick={() => navigate('/expense-entry')} className="shadow-xl">
+                        <Button
+                            type="secondary"
+                            onClick={() => navigate('/expense-entry')}
+                            className="shadow-xl"
+                        >
                             Record New Expense
                         </Button>
                         <Button

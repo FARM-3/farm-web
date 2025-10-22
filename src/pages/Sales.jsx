@@ -41,9 +41,9 @@ const Button = ({ children, onClick, className, disabled, type = 'primary' }) =>
     );
 };
 
-// =========================================================
-// --- SalesPage Component (UPDATED TO MATCH IMAGE) ---
-// =========================================================
+
+// --- SalesPage Component  ---
+
 
 const TABLE_HEADERS = [
     { key: 'customer_name', label: 'Customer Name', type: 'string', align: 'left' },
@@ -295,13 +295,17 @@ function SalesPage() {
                     </div>
                     
                     <div className="flex gap-3 order-1 sm:order-2">
-                        <Button onClick={() => navigate('/sales-entry')} className="py-2 px-4 shadow-xl bg-accent-btn">
+                        <Button
+                            type="secondary"
+                            onClick={() => window.location.href = '/sales-entry'}
+                            className="py-2 px-4 shadow-xl"
+                        >
                             Record New Sale
                         </Button>
-                        <Button 
-                            type="secondary" 
-                            onClick={() => console.log('Export to Excel')} 
-                            className="py-2 px-4 shadow-xl"
+                        <Button
+                            type="secondary"
+                            onClick={() => console.log('Export to Excel')}
+                            className="py-2 px-4 shadow-xl text-text-default"
                         >
                             Export to Excel
                         </Button>

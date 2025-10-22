@@ -134,9 +134,11 @@ export const SideNav = ({ children }) => {
                 {/* Logo and Title Section */}
                 <div className="flex items-center justify-between p-4 h-20 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
                     <div className="flex items-center gap-2">
-                         <span role="img" aria-label="Rugyeyo Farm Logo" style={{ fontSize: '1.2rem', color: CoffeeColors.DARK_BROWN }}>
-                            ☕
-                         </span>
+                        <img
+                            src="/logo.jpg"
+                            alt="Rugyeyo Farm Logo"
+                            className="w-8 h-8 rounded-full object-cover"
+                        />
                         <h2 className="text-xl font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Rugyeyo Farm
                         </h2>
