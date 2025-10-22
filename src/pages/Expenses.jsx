@@ -8,16 +8,8 @@ import { SideNav } from '../components/SideNav';
 
 // --- Global Styles & Constants (Modern & Light Theme from Image) ---
 
-const ACCENT_COLORS = {
-    NAV_BG: '#FFFFFF', // White
-    MAIN_BG: '#F8F8F8', // Light Gray background
-    PRIMARY_TEXT: '#333333',
-    ACCENT_GREEN: '#4CAF50', // Export to Excel
-    ACCENT_BROWN: '#9F4A2F', // Record New Expense
-    TABLE_HEADER_BG: '#F4F4F4', // Light header
-    ACTIVE_NAV_BG: '#FFF7F4', // Very light peach for active link
-    ACTIVE_NAV_TEXT: '#9F4A2F',
-    INACTIVE_NAV_TEXT: '#6B7280',
+const CoffeeColors = {
+    SCREEN_BG: '#FFF8F6', ACTIVE_LINK_BG: '#efebe9', ACTIVE_LINK_TEXT: '#783A1E', DARK_BROWN: '#4A3423', MEDIUM_BROWN: '#795548', BUTTON_BROWN: '#795548', GRAY_TEXT: '#8D8D8D', SUCCESS_GREEN: '#34A853', ERROR_RED: '#EA4335',
 };
 
 // IMPORTANT: Updated to the live API endpoint
@@ -71,16 +63,26 @@ const formatCurrency = (amount) => {
     }).format(Math.round(value))}`;
 };
 
-const ActionButton = ({ children, onClick, className, style, disabled }) => (
-    <button
-        onClick={onClick}
-        disabled={disabled}
-        className={`px-4 py-2 text-white rounded-lg shadow-md hover:shadow-lg transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm ${className}`}
-        style={style} // Styles are passed directly
-    >
-        {children}
-    </button>
-);
+const Button = ({ children, onClick, className, disabled, type = 'primary' }) => {
+    const baseClasses = `px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm`;
+
+    let colorClasses;
+    if (type === 'secondary') {
+        colorClasses = `bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80`;
+    } else {
+        colorClasses = `bg-accent-btn text-white hover:bg-accent-btn/90`;
+    }
+
+    return (
+        <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`${baseClasses} ${colorClasses} ${className}`}
+        >
+            {children}
+        </button>
+    );
+};
 
 // Data Structure for Table Headers (used for sorting)
 const TABLE_HEADERS = [
@@ -274,7 +276,7 @@ function Expenses() {
             return (
                 <tr className='h-24'>
                     <td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-600">
-                        <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: ACCENT_COLORS.ACCENT_BROWN }} />
+                        <Loader2 className="w-6 h-6 animate-spin inline-block mr-2 text-accent-btn" />
                         Loading expense records...
                     </td>
                 </tr>
@@ -306,7 +308,7 @@ function Expenses() {
                 <td className="px-6 py-3 text-left font-medium text-gray-800">{expense.expense_name || 'N/A'}</td>
                 <td className="px-6 py-3 text-left text-gray-600">{expense.category || '-'}</td>
                 <td className="px-6 py-3 text-center text-gray-600">{expense.date || 'N/A'}</td>
-                <td className="px-6 py-3 text-right font-bold" style={{ color: ACCENT_COLORS.ACCENT_BROWN }}>
+                <td className="px-6 py-3 text-right font-bold text-text-default">
                     {formatCurrency(expense.amount)}
                 </td>
                 <td className="px-6 py-3 text-left text-gray-700">{expense.supplier || '-'}</td>
@@ -338,29 +340,24 @@ function Expenses() {
 
     return (
         <SideNav>
-            <div className="flex flex-col space-y-6">
+            <main className="p-4 sm:p-6 md:p-8 pt-0">
 
                 {/* Top Action Bar */}
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center">
-                    <h1 className="text-2xl md:text-3xl font-extrabold" style={{ color: ACCENT_COLORS.PRIMARY_TEXT }}>
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
+                    <h1 className="text-2xl md:text-3xl font-extrabold text-text-default mb-4 md:mb-0">
                         Expense Records Overview
                     </h1>
                     <div className="flex space-x-3 mt-4 md:mt-0">
-                        <ActionButton 
-                            onClick={() => navigate('/expense-entry')}
-                            style={{ backgroundColor: ACCENT_COLORS.ACCENT_BROWN }}
-                            className="shadow-xl"
-                        >
-                            <Send className="w-4 h-4 mr-2" />
+                        <Button onClick={() => navigate('/expense-entry')} className="shadow-xl">
                             Record New Expense
-                        </ActionButton>
-                        <ActionButton 
+                        </Button>
+                        <Button
+                            type="secondary"
                             onClick={() => alert('Exporting to Excel is not yet implemented.')}
-                            style={{ backgroundColor: ACCENT_COLORS.ACCENT_GREEN }}
                             className="shadow-xl"
                         >
                             Export to Excel
-                        </ActionButton>
+                        </Button>
                     </div>
                 </div>
 
@@ -395,53 +392,54 @@ function Expenses() {
                     </div>
 
                     {/* Refresh Button */}
-                    <ActionButton 
+                    <Button
+                        type="secondary"
                         onClick={() => fetchExpenses()}
                         disabled={loading}
-                        className="py-2 px-6 shadow-sm"
-                        style={{ backgroundColor: '#D4C3A3', color: ACCENT_COLORS.PRIMARY_TEXT }} // Light brown/beige
+                        className="py-2 px-6 shadow-lg"
                     >
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         Refresh Data
-                    </ActionButton>
+                    </Button>
                 </div>
 
                 {/* Expense Records Table Container */}
-                <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead style={{ backgroundColor: ACCENT_COLORS.TABLE_HEADER_BG }}>
-                            <tr>
-                                {TABLE_HEADERS.map((header) => (
-                                    <th
-                                        key={header.key}
-                                        className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150"
-                                        onClick={() => requestSort(header.key)}
-                                        scope="col"
-                                    >
-                                        <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
-                                            {header.label}
-                                            {getSortIcon(header.key)}
-                                        </div>
+                <div className="mt-8">
+                    <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-light-coffee-brown text-text-default">
+                                <tr>
+                                    {TABLE_HEADERS.map((header) => (
+                                        <th
+                                            key={header.key}
+                                            className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150"
+                                            onClick={() => requestSort(header.key)}
+                                            scope="col"
+                                        >
+                                            <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
+                                                {header.label}
+                                                {getSortIcon(header.key)}
+                                            </div>
+                                        </th>
+                                    ))}
+                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center text-gray-700">
+                                        Actions
                                     </th>
-                                ))}
-                                <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center text-gray-700">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {renderTableContent()}
-                        </tbody>
-                    </table>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {renderTableContent()}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-
+            </main>
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && expenseToDelete && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full mx-4">
-                        <h3 className="text-xl font-bold mb-4" style={{ color: ACCENT_COLORS.ACCENT_BROWN }}>
+                        <h3 className="text-xl font-bold mb-4 text-text-default">
                             Confirm Deletion
                         </h3>
                         <p className="text-gray-600 mb-6">

@@ -17,6 +17,7 @@ const formatUGX = (amount) => {
 
 const SALES_API_ENDPOINT = 'https://api-3181.onrender.com/api/sales/';
 
+
 // --- SHARED COMPONENTS ---
 
 const Button = ({ children, onClick, className, disabled, type = 'primary' }) => {

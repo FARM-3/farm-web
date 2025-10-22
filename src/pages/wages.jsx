@@ -9,20 +9,6 @@ const CoffeeColors = {
     SCREEN_BG: '#FFF8F6', ACTIVE_LINK_BG: '#efebe9', ACTIVE_LINK_TEXT: '#783A1E', DARK_BROWN: '#4A3423', MEDIUM_BROWN: '#795548', GRAY_TEXT: '#8D8D8D', SUCCESS_GREEN: '#34A853', ERROR_RED: '#EA4335',
 };
 
-const customTailwindConfig = {
-    theme: {
-        extend: {
-            colors: {
-                'app-bg': CoffeeColors.SCREEN_BG, 'accent-btn': CoffeeColors.MEDIUM_BROWN, 'text-default': CoffeeColors.DARK_BROWN, 'sidebar-bg': '#FFFFFF', 'active-link-bg': CoffeeColors.ACTIVE_LINK_BG, 'active-link-text': CoffeeColors.ACTIVE_LINK_TEXT, 'success': CoffeeColors.SUCCESS_GREEN, 'error': CoffeeColors.ERROR_RED, 'light-coffee-brown': CoffeeColors.ACTIVE_LINK_BG,
-            },
-            fontFamily: { sans: ['Inter', 'sans-serif'], }
-        }
-    }
-};
-
-const styleScript = document.createElement('script');
-styleScript.innerHTML = `tailwind.config = ${JSON.stringify(customTailwindConfig)}`;
-document.head.appendChild(styleScript);
 
 const formatUGX = (amount) => {
     if (typeof amount !== 'number') return amount || '0';
@@ -35,7 +21,7 @@ const Wage_API_Endpoint = 'https://api-3181.onrender.com/api/wages/';
 
 const Button = ({ children, onClick, className, disabled, type = 'primary' }) => {
     const baseClasses = `px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm`;
-    
+
     let colorClasses;
     if (type === 'secondary') {
         colorClasses = `bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80`;
@@ -53,6 +39,8 @@ const Button = ({ children, onClick, className, disabled, type = 'primary' }) =>
         </button>
     );
 };
+
+// Add the same Tailwind config as Sales page
 
 // =========================================================
 // --- WageDisplayPage Component (CLEANED AND STYLED TO IMAGE) ---
