@@ -18,30 +18,6 @@ const formatUGX = (amount) => {
 const SALES_API_ENDPOINT = 'https://api-3181.onrender.com/api/sales/';
 
 
-// --- SHARED COMPONENTS ---
-
-const Button = ({ children, onClick, className, disabled, type = 'primary' }) => {
-    const baseClasses = `px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm`;
-    
-    let colorClasses;
-    if (type === 'secondary') {
-        colorClasses = `bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80`;
-    } else {
-        colorClasses = `bg-accent-btn text-white hover:bg-accent-btn/90`;
-    }
-
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`${baseClasses} ${colorClasses} ${className}`}
-        >
-            {children}
-        </button>
-    );
-};
-
-
 // --- SalesPage Component  ---
 
 
@@ -283,15 +259,15 @@ function SalesPage() {
                                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                             </div>
                         </div>
-                        <Button 
-                            type="secondary" 
-                            onClick={() => fetchSales(currentPage)} 
-                            disabled={loading} 
-                            className="py-2 px-4 shadow-lg flex-shrink-0"
+                        <button
+                            onClick={() => fetchSales(currentPage)}
+                            disabled={loading}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
                             Refresh Data
-                        </Button>
+                        </button>
                     </div>
                     
                     <div className="flex gap-3 order-1 sm:order-2">
@@ -302,13 +278,13 @@ function SalesPage() {
                         >
                             Record New Sale
                         </button>
-                        <Button
-                            type="secondary"
+                        <button
                             onClick={() => console.log('Export to Excel')}
-                            className="py-2 px-4 shadow-xl text-text-default"
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
@@ -350,22 +326,22 @@ function SalesPage() {
                                 <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Button
+                                <button
                                     onClick={() => handlePageChange(currentPage - 1)}
                                     disabled={currentPage === 1 || loading}
-                                    className="px-4 py-1.5 text-xs bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80 rounded-lg shadow-sm"
-                                    type="secondary" 
+                                    className="px-4 py-1.5 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: '#efebe9', color: '#783A1E' }}
                                 >
                                     Previous
-                                </Button>
-                                <Button
+                                </button>
+                                <button
                                     onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage === totalPages || loading}
-                                    className="px-4 py-1.5 text-xs bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80 rounded-lg shadow-sm"
-                                    type="secondary"
+                                    className="px-4 py-1.5 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: '#efebe9', color: '#783A1E' }}
                                 >
                                     Next
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     )}

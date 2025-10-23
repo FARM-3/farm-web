@@ -5,7 +5,6 @@ import {
     RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, Plus, ChevronsDown, Loader2
 } from 'lucide-react'; // Added Plus icon for 'Record New Staff'
 import { SideNav } from '../components/SideNav';
-import { Button } from '../components/Button';
 
 // --- Global Styles & Constants (Consistent with other pages) ---
 const CoffeeColors = {
@@ -306,13 +305,13 @@ function StaffPage() {
                         >
                             Record New Staff
                         </button>
-                        <Button
-                            type="secondary"
+                        <button
                             onClick={() => alert('Exporting to Excel is not yet implemented.')}
-                            className="shadow-xl"
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
@@ -346,15 +345,15 @@ function StaffPage() {
                     </div>
 
                     {/* Refresh Button */}
-                    <Button
-                        type="secondary"
+                    <button
                         onClick={() => fetchStaff()}
                         disabled={loading}
-                        className="py-2 px-6 shadow-lg"
+                        className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                     >
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         Refresh Data
-                    </Button>
+                    </button>
                 </div>
 
                 {/* Staff Records Table Container */}

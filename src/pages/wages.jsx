@@ -17,31 +17,6 @@ const formatUGX = (amount) => {
 
 const Wage_API_Endpoint = 'https://api-3181.onrender.com/api/wages/';
 
-// --- SHARED COMPONENTS ---
-
-const Button = ({ children, onClick, className, disabled, type = 'primary' }) => {
-    const baseClasses = `px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm`;
-
-    let colorClasses;
-    if (type === 'secondary') {
-        colorClasses = `bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80`;
-    } else {
-        colorClasses = `bg-accent-btn text-white hover:bg-accent-btn/90`;
-    }
-
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`${baseClasses} ${colorClasses} ${className}`}
-        >
-            {children}
-        </button>
-    );
-};
-
-// Add the same Tailwind config as Sales page
-
 // =========================================================
 // --- WageDisplayPage Component (CLEANED AND STYLED TO IMAGE) ---
 // =========================================================
@@ -274,19 +249,24 @@ function WageDisplayPage() {
                             <Plus className="w-4 h-4 mr-2" />
                             Record New Wage
                         </button>
-                        <Button 
-                            type="secondary" 
-                            onClick={() => alert('Exporting data...')} 
-                            className="py-2 px-4 shadow-xl"
+                        <button
+                            onClick={() => alert('Exporting data...')}
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
-                        </Button>
+                        </button>
                     </div>
                     <div className="flex gap-3 items-center">
-                        <Button type="secondary" onClick={() => fetchWages(currentPage)} disabled={loading} className="py-2 px-4 shadow-xl">
+                        <button
+                            onClick={() => fetchWages(currentPage)}
+                            disabled={loading}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
+                        >
                             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                             Refresh Data
-                        </Button>
+                        </button>
                         {/* Filter by Dropdown */}
                         <div className="relative inline-block text-left">
                             <select 
@@ -344,22 +324,22 @@ function WageDisplayPage() {
                                 <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Button
+                                <button
                                     onClick={() => handlePageChange(currentPage - 1)}
                                     disabled={currentPage === 1 || loading}
-                                    className="px-4 py-1.5 text-xs bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80 rounded-lg shadow-sm"
-                                    type="secondary" 
+                                    className="px-4 py-1.5 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: '#efebe9', color: '#783A1E' }}
                                 >
                                     Previous
-                                </Button>
-                                <Button
+                                </button>
+                                <button
                                     onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage === totalPages || loading}
-                                    className="px-4 py-1.5 text-xs bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80 rounded-lg shadow-sm"
-                                    type="secondary"
+                                    className="px-4 py-1.5 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: '#efebe9', color: '#783A1E' }}
                                 >
                                     Next
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     )}

@@ -63,27 +63,6 @@ const formatCurrency = (amount) => {
     }).format(Math.round(value))}`;
 };
 
-const Button = ({ children, onClick, className, disabled, type = 'primary' }) => {
-    const baseClasses = `px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm`;
-
-    let colorClasses;
-    if (type === 'secondary') {
-        colorClasses = `bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80`;
-    } else {
-        colorClasses = `bg-accent-btn text-white hover:bg-accent-btn/90`;
-    }
-
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`${baseClasses} ${colorClasses} ${className}`}
-        >
-            {children}
-        </button>
-    );
-};
-
 // Data Structure for Table Headers (used for sorting)
 const TABLE_HEADERS = [
     { key: 'expense_name', label: 'Name', type: 'string' },
@@ -355,13 +334,13 @@ function Expenses() {
                         >
                             Record New Expense
                         </button>
-                        <Button
-                            type="secondary"
+                        <button
                             onClick={() => alert('Exporting to Excel is not yet implemented.')}
-                            className="shadow-xl"
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
@@ -396,15 +375,15 @@ function Expenses() {
                     </div>
 
                     {/* Refresh Button */}
-                    <Button
-                        type="secondary"
+                    <button
                         onClick={() => fetchExpenses()}
                         disabled={loading}
-                        className="py-2 px-6 shadow-lg"
+                        className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                     >
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         Refresh Data
-                    </Button>
+                    </button>
                 </div>
 
                 {/* Expense Records Table Container */}
