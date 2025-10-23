@@ -268,7 +268,7 @@ function Login() {
 
           {/* Welcome Text */}
           <h1 style={{
-            fontSize: 'clamp(32px, 8vw, 64px)',
+            fontSize: 'clamp(26px, 8vw, 58px)',
             fontWeight: '800',
             color: 'white',
             marginBottom: '20px',
@@ -280,7 +280,7 @@ function Login() {
           </h1>
 
           <p style={{
-            fontSize: 'clamp(16px, 3vw, 22px)',
+            fontSize: 'clamp(10px, 3vw, 16px)',
             color: 'rgba(255, 255, 255, 0.95)',
             marginBottom: '50px',
             maxWidth: '600px',
