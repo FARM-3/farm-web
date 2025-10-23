@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { 
-    Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings, 
+import { Link } from 'react-router-dom';
+import {
+    Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings,
     BarChart3, TreePine, User as ProfileIcon, TrendingUp, TrendingDown, ClipboardCheck
 } from 'lucide-react';
 
@@ -22,7 +23,7 @@ const navItems = [
     { key: 'wages', name: 'Wages', icon: DollarSign, href: '/wages' },
     { key: 'sales', name: 'Sales', icon: ShoppingCart, href: '/sales' },
     { key: 'expenses', name: 'Expenses', icon: Package, href: '/expenses' },
-    { key: 'staff', name: 'Staff', icon: Users, href: '/staff-management' },
+    { key: 'staff', name: 'Staff', icon: Users, href: '/staff' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
 ];
@@ -60,10 +61,10 @@ const SidebarLink = ({ item, currentPage, CoffeeColors }) => {
     const hoverBg = CoffeeColors.LIGHT_HOVER;
 
     return (
-        <a
+        <Link
             key={item.name}
-            href={item.href}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium 
+            to={item.href}
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium
                         hover:scale-[1.01]
                         ${isActive ? 'shadow-sm' : ''}`}
             style={{
@@ -81,12 +82,12 @@ const SidebarLink = ({ item, currentPage, CoffeeColors }) => {
                 }
             }}
         >
-            <item.icon 
-                size={20} 
+            <item.icon
+                size={20}
                 style={{ color: iconColor }}
             />
             <span className="text-base">{item.name}</span>
-        </a>
+        </Link>
     );
 };
 
@@ -133,9 +134,11 @@ export const SideNav = ({ children }) => {
                 {/* Logo and Title Section */}
                 <div className="flex items-center justify-between p-4 h-20 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
                     <div className="flex items-center gap-2">
-                         <span role="img" aria-label="Rugyeyo Farm Logo" style={{ fontSize: '1.2rem', color: CoffeeColors.DARK_BROWN }}>
-                         </span>
-                         <img src="/logo.png" alt="Rugyeyo Farm Logo" className="h-8 w-8 object-contain" />
+                        <img
+                            src="/logo.jpg"
+                            alt="Rugyeyo Farm Logo"
+                            className="w-8 h-8 rounded-full object-cover"
+                        />
                         <h2 className="text-xl font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Rugyeyo Farm
                         </h2>

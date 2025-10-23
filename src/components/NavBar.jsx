@@ -15,7 +15,7 @@ const NavBar = () => {
         <nav className="fixed top-0 left-0 w-full p-4 shadow-xl z-10 font-sans" style={{ backgroundColor: CUSTOM_COLORS.headerBg }}>
             <div className="flex justify-between items-center max-w-7xl mx-auto">
                 <div className="text-white text-xl font-bold flex items-center">
-                    <span className="mr-2">💰</span> Rugyeyo Financial Management
+                    <span className="mr-2">💰</span> Rugyeyo Farm Management
                 </div>
                 <div>
                     <a href="/wages" className="text-white opacity-80 hover:opacity-100 mx-3 transition-opacity">Wage Records</a>
