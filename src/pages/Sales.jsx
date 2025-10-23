@@ -122,6 +122,39 @@ function SalesPage() {
 
     // --- Component Rendering ---
 
+    // Calculate KPI metrics from real-time data
+    const calculateKPIs = () => {
+        if (!sales || sales.length === 0) {
+            return {
+                totalSales: 0,
+                averageOrderValue: 0,
+                totalOrders: 0,
+                uniqueCustomers: 0
+            };
+        }
+
+        // Calculate total sales amount
+        const totalSales = sales.reduce((sum, sale) => {
+            const amount = parseFloat(sale.total_amount || sale.amount || 0);
+            return sum + amount;
+        }, 0);
+
+        // Calculate average order value
+        const averageOrderValue = sales.length > 0 ? totalSales / sales.length : 0;
+
+        // Count unique customers
+        const uniqueCustomers = new Set(sales.map(sale => sale.customer_name).filter(Boolean)).size;
+
+        return {
+            totalSales,
+            averageOrderValue,
+            totalOrders: sales.length,
+            uniqueCustomers
+        };
+    };
+
+    const kpis = calculateKPIs();
+
     const KPICards = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* Card 1: Total Sales */}
@@ -133,10 +166,19 @@ function SalesPage() {
                     </p>
                     <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(2500000)}</p>
-                <p className="text-xs text-success mt-2 font-medium" style={{ color: CoffeeColors.SUCCESS_GREEN }}>+20.1% from last month</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalSales)}</p>
+                        <p className="text-xs text-success mt-2 font-medium text-gray-500">Total orders: {kpis.totalOrders}</p>
+                    </>
+                )}
             </div>
-            
+
             {/* Card 2: Average Order Value */}
             <div className="bg-white p-6 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
@@ -146,21 +188,39 @@ function SalesPage() {
                     </p>
                     <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(50000)}</p>
-                <p className="text-xs mt-2 font-medium" style={{ color: CoffeeColors.SUCCESS_GREEN }}>+5.2% from last month</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.averageOrderValue)}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Per transaction</p>
+                    </>
+                )}
             </div>
 
-            {/* Card 3: New Customers */}
+            {/* Card 3: Unique Customers */}
             <div className="bg-white p-6 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-500 flex items-center">
                         <User className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                        New Customers
+                        Unique Customers
                     </p>
                     <User className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">150</p>
-                <p className="text-xs mt-2 font-medium" style={{ color: CoffeeColors.SUCCESS_GREEN }}>+10.5% from last month</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.uniqueCustomers}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Registered customers</p>
+                    </>
+                )}
             </div>
         </div>
     );

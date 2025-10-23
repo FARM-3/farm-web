@@ -123,6 +123,45 @@ function WageDisplayPage() {
 
     // --- Component Rendering ---
 
+    // Calculate KPI metrics from real-time data
+    const calculateKPIs = () => {
+        if (!wages || wages.length === 0) {
+            return {
+                totalWagesPaid: 0,
+                averageWage: 0,
+                totalEmployees: 0,
+                totalDeductions: 0
+            };
+        }
+
+        // Calculate total wages paid
+        const totalWagesPaid = wages.reduce((sum, wage) => {
+            const amount = parseFloat(wage.amount_paid || 0);
+            return sum + amount;
+        }, 0);
+
+        // Calculate total deductions
+        const totalDeductions = wages.reduce((sum, wage) => {
+            const deduction = parseFloat(wage.deduction || 0);
+            return sum + deduction;
+        }, 0);
+
+        // Calculate average wage per employee
+        const averageWage = wages.length > 0 ? totalWagesPaid / wages.length : 0;
+
+        // Count unique employees
+        const uniqueEmployees = new Set(wages.map(wage => wage.employee_name).filter(Boolean)).size;
+
+        return {
+            totalWagesPaid,
+            averageWage,
+            totalEmployees: uniqueEmployees,
+            totalDeductions
+        };
+    };
+
+    const kpis = calculateKPIs();
+
     const KPICards = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* Card 1: Total Wages Paid */}
@@ -134,10 +173,19 @@ function WageDisplayPage() {
                     </p>
                     <TrendingUpIcon className="w-4 h-4" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(12500000)}</p>
-                <p className="text-xs text-success mt-2 font-medium">+15.3% vs last month</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalWagesPaid)}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Deductions: UGX {formatUGX(kpis.totalDeductions)}</p>
+                    </>
+                )}
             </div>
-            
+
             {/* Card 2: Avg. Wage/Employee */}
             <div className="bg-white p-6 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
@@ -145,10 +193,19 @@ function WageDisplayPage() {
                         <Wallet className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
                         Avg. Wage/Employee
                     </p>
-                    <TrendingUpIcon className="w-4 h-4 text-error rotate-180" stroke={CoffeeColors.ERROR_RED} strokeWidth={2.2} />
+                    <TrendingUpIcon className="w-4 h-4" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(250000)}</p>
-                <p className="text-xs text-error mt-2 font-medium">-8.1% from last month</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.averageWage)}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Per payment cycle</p>
+                    </>
+                )}
             </div>
 
             {/* Card 3: Total Employees */}
@@ -160,8 +217,17 @@ function WageDisplayPage() {
                     </p>
                     <UserIcon className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">50</p>
-                <p className="text-xs text-gray-500 mt-2 font-medium">Stable over last quarter</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.totalEmployees}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">Receiving wages</p>
+                    </>
+                )}
             </div>
         </div>
     );
