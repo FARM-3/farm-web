@@ -695,7 +695,7 @@ function Login() {
                   textDecoration: 'underline',
                 }}
               >
-                FORGOT YOUR PIN?
+                Reset Pin
               </button>
             </div>
           </form>
