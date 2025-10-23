@@ -134,8 +134,8 @@ export const SideNav = ({ children }) => {
                 <div className="flex items-center justify-between p-4 h-20 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
                     <div className="flex items-center gap-2">
                          <span role="img" aria-label="Rugyeyo Farm Logo" style={{ fontSize: '1.2rem', color: CoffeeColors.DARK_BROWN }}>
-                            ☕
                          </span>
+                         <img src="/logo.png" alt="Rugyeyo Farm Logo" className="h-8 w-8 object-contain" />
                         <h2 className="text-xl font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Rugyeyo Farm
                         </h2>
