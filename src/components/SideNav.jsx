@@ -5,12 +5,14 @@ import {
     BarChart3, TreePine, User as ProfileIcon, TrendingUp, TrendingDown, ClipboardCheck
 } from 'lucide-react';
 
-// --- CONFIGURATION: Unified Theme Colors (Light Theme) ---
+// --- CONFIGURATION: Updated Theme Colors to match the brown sidebar ---
 const CoffeeColors = {
     SCREEN_BG: '#F8F9FB',      // Off-white/light gray for the main content area background
-    SIDEBAR_BG: '#FFFFFF',     // Pure White background for the sidebar
-    LIGHT_BG: '#FEEFEA',       // Light Coffee Brown for active link background
-    DARK_BROWN: '#4A3423',     // Used for all primary text, icons, and non-active links
+    SIDEBAR_BG: '#F8F9FB',     // Brown background for the sidebar (matching image)
+    ACTIVE_BG: '#8B5A3C',      // Lighter brown for active/hover state
+    WHITE_TEXT: '#3D2817',     // White text for sidebar
+    LIGHT_TEXT: '#3D2817', // Semi-transparent white for non-active items
+    DARK_BROWN: '#4A3423',     // Used for main content text
     BORDER_GRAY: '#E0E0E0',    // Light gray for borders/dividers
     LIGHT_HOVER: '#F5F5F5',    // Very light gray for subtle hover effect
     SUCCESS: '#4CAF50',        // Green for positive metrics
@@ -52,13 +54,11 @@ const getCurrentPageKey = () => {
 const SidebarLink = ({ item, currentPage, CoffeeColors }) => {
     const isActive = item.key === currentPage;
 
-    const activeColor = CoffeeColors.DARK_BROWN;
-    const defaultColor = CoffeeColors.DARK_BROWN;
+    const activeColor = CoffeeColors.WHITE_TEXT;
+    const defaultColor = CoffeeColors.LIGHT_TEXT;
     
     const iconColor = isActive ? activeColor : defaultColor;
     const textColor = isActive ? activeColor : defaultColor;
-    
-    const hoverBg = CoffeeColors.LIGHT_HOVER;
 
     return (
         <Link
@@ -69,11 +69,11 @@ const SidebarLink = ({ item, currentPage, CoffeeColors }) => {
                         ${isActive ? 'shadow-sm' : ''}`}
             style={{
                 color: textColor,
-                backgroundColor: isActive ? CoffeeColors.LIGHT_BG : 'transparent',
+                backgroundColor: isActive ? 'rgba(200, 200, 200, 0.3)' : 'transparent',
             }}
             onMouseEnter={(e) => {
                 if (!isActive) {
-                    e.currentTarget.style.backgroundColor = hoverBg;
+                    e.currentTarget.style.backgroundColor = 'rgba(200, 200, 200, 0.3)';
                 }
             }}
             onMouseLeave={(e) => {
@@ -124,7 +124,7 @@ export const SideNav = ({ children }) => {
                 />
             )}
 
-            {/* Sidebar (Collapsible) */}
+            {/* Sidebar (Collapsible) - Now with brown background */}
             <aside
                 className={`fixed top-0 left-0 h-full ${sidebarWidthClass} transform ${
                     sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -132,12 +132,12 @@ export const SideNav = ({ children }) => {
                 style={{ backgroundColor: CoffeeColors.SIDEBAR_BG }}
             >
                 {/* Logo and Title Section */}
-                <div className="flex items-center justify-between p-4 h-20 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
+                <div className="flex items-center justify-between p-4 h-20" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
                     <div className="flex items-center gap-2">
                         <img
                             src="/logo.jpg"
                             alt="Rugyeyo Farm Logo"
-                            className="w-8 h-8 rounded-full object-cover"
+                            className="w-12 h-12 rounded-full object-cover"
                         />
                         <h2 className="text-xl font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Rugyeyo Farm
@@ -145,8 +145,8 @@ export const SideNav = ({ children }) => {
                     </div>
                     <button
                         onClick={() => setSidebarOpen(false)}
-                        className="md:hidden hover:bg-light-hover p-1 rounded-lg"
-                        style={{ color: CoffeeColors.DARK_BROWN }}
+                        className="md:hidden hover:bg-opacity-20 hover:bg-white p-1 rounded-lg"
+                        style={{ color: CoffeeColors.WHITE_TEXT }}
                     >
                         <X size={24} />
                     </button>
@@ -160,7 +160,7 @@ export const SideNav = ({ children }) => {
                 </nav>
 
                 {/* Footer Links (Profile/Logout) */}
-                <div className="py-4 px-3 border-t absolute bottom-0 left-0 right-0" style={{ borderColor: CoffeeColors.BORDER_GRAY, backgroundColor: CoffeeColors.SIDEBAR_BG }}>
+                <div className="py-4 px-3 absolute bottom-0 left-0 right-0" style={{ borderTop: `1px solid rgba(255,255,255,0.1)`, backgroundColor: CoffeeColors.SIDEBAR_BG }}>
                     <div className="flex flex-col space-y-1">
                         {footerNavItems.map((item) => (
                             <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} />
@@ -178,7 +178,7 @@ export const SideNav = ({ children }) => {
                 {/* Fixed Header Bar (Top right corner icons) */}
                 <header 
                     className={`fixed top-0 right-0 z-30 p-4 h-20 shadow-sm transition-all duration-300 ${sidebarOpen ? 'md:left-64' : 'md:left-0'} w-full`} 
-                    style={{ backgroundColor: CoffeeColors.SIDEBAR_BG, borderBottom: `1px solid ${CoffeeColors.BORDER_GRAY}` }}
+                    style={{ backgroundColor: '#FFFFFF', borderBottom: `1px solid ${CoffeeColors.BORDER_GRAY}` }}
                 >
                     <div className="flex items-center justify-end h-full max-w-7xl mx-auto">
                         
@@ -194,13 +194,33 @@ export const SideNav = ({ children }) => {
                             </button>
                         )}
 
-                        {/* User/Notification Icons (Right-aligned) */}
+                        {/* Search Bar */}
+                        <div className="flex-1 max-w-md mx-4">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="Search records, transactions..."
+                                    className="w-full px-4 py-2 pl-10 rounded-lg border text-sm"
+                                    style={{ 
+                                        borderColor: CoffeeColors.BORDER_GRAY,
+                                        backgroundColor: CoffeeColors.SCREEN_BG
+                                    }}
+                                />
+                                <svg 
+                                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" 
+                                    fill="none" 
+                                    stroke="#999" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </div>
+                        </div>
+
+                        {/* User Profile Icon */}
                         <div className="flex items-center space-x-3">
-                            <button className="p-2 rounded-full hover:bg-light-hover transition-colors" title="Notifications">
-                                <svg className="w-6 h-6" fill="none" stroke={CoffeeColors.DARK_BROWN} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.16 6.137 6 7.822 6 10v4.158a2.032 2.032 0 01-.595 1.437L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0h-6"></path></svg>
-                            </button>
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold border" style={{ backgroundColor: CoffeeColors.LIGHT_HOVER, color: CoffeeColors.DARK_BROWN, borderColor: CoffeeColors.BORDER_GRAY }}>
-                                <ProfileIcon size={24} style={{ color: CoffeeColors.DARK_BROWN }} />
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold" style={{ backgroundColor: CoffeeColors.DARK_BROWN }}>
+                                <ProfileIcon size={20} style={{ color: CoffeeColors.WHITE_TEXT }} />
                             </div>
                         </div>
                     </div>
