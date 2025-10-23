@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, Menu, X, Bell, LogOut, UserIcon, TrendingUpIcon, Eye, Edit, Trash2, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, UserIcon, TrendingUpIcon, Edit, Trash2 } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
 
@@ -210,10 +210,7 @@ function WageDisplayPage() {
                     <td className="px-6 py-3 text-left text-xs italic text-gray-500 max-w-xs truncate">{wage.noted_reason || '-'}</td>
                     <td className="px-6 py-3 text-center">
                         <div className="flex items-center justify-center space-x-2">
-                            <button onClick={() => alert(`Viewing wage for ${wage.employee_name}`)} className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors">
-                                <Eye className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => alert(`Editing wage for ${wage.employee_name}`)} className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors">
+                            <button onClick={() => alert(`Editing wage for ${wage.employee_name}`)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button onClick={() => alert(`Deleting wage for ${wage.employee_name}`)} className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors">
@@ -291,7 +288,7 @@ function WageDisplayPage() {
                 >
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="sticky top-0 z-10 bg-light-coffee-brown text-text-default">
+                            <thead className="sticky top-0 z-10" style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
                                         <th

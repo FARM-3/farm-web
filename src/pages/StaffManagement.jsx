@@ -267,20 +267,20 @@ function StaffPage() {
                     <div className="flex items-center justify-center space-x-2">
                         <button
                             onClick={() => handleEditStaff(staffMember)}
-                            className="p-1 rounded hover:bg-gray-200 transition-colors"
+                            className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
                             title="Edit Staff Member"
                         >
-                            <Edit className="w-4 h-4 text-blue-600" />
+                            <Edit className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => {
                                 setStaffToDelete(staffMember);
                                 setShowDeleteModal(true);
                             }}
-                            className="p-1 rounded hover:bg-gray-200 transition-colors"
+                            className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
                             title="Delete Staff Member"
                         >
-                            <Trash2 className="w-4 h-4 text-red-600" />
+                            <Trash2 className="w-4 h-4" />
                         </button>
                     </div>
                 </td>
@@ -360,12 +360,12 @@ function StaffPage() {
                 <div className="mt-8">
                     <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-light-coffee-brown text-text-default">
+                            <thead className="sticky top-0 z-10" style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
                                         <th
                                             key={header.key}
-                                            className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150"
+                                            className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-accent-btn/90 transition-colors duration-150"
                                             onClick={() => requestSort(header.key)}
                                             scope="col"
                                         >
@@ -375,7 +375,7 @@ function StaffPage() {
                                             </div>
                                         </th>
                                     ))}
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center text-text-default">
+                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
                                         Actions
                                     </th>
                                 </tr>
