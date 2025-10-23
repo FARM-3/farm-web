@@ -33,6 +33,7 @@ function App() {
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/staff-registration" element={<StaffRegistration />} />
           <Route path="/staff-management" element={<StaffManagement />} />
+          <Route path="/staff" element={<StaffManagement />} />
           <Route path="/dashboard" element={<Dashboard />} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
