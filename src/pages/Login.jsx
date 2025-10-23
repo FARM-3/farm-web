@@ -464,12 +464,12 @@ function Login() {
                 type="submit"
                 disabled={loading || phoneNumber.length !== 10}
                 style={{
-                  background: 'rgba(255, 255, 255, 0.9)',
+                  background: '#efebe9',
                   width: '100%',
                   padding: '16px',
                   borderRadius: '12px',
                   border: 'none',
-                  color: CoffeeColors.DARK_BROWN,
+                  color: '#783A1E',
                   fontSize: '16px',
                   fontWeight: '700',
                   letterSpacing: '0.5px',
@@ -481,13 +481,15 @@ function Login() {
                 }}
                 onMouseEnter={(e) => {
                   if (!loading && phoneNumber.length === 10) {
-                    e.target.style.background = 'rgba(255, 255, 255, 1)';
+                    e.target.style.background = '#e0dad6';
                     e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = 'rgba(255, 255, 255, 0.9)';
+                  e.target.style.background = '#efebe9';
                   e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = 'none';
                 }}
               >
                 {loading ? 'Processing...' : 'Continue'}
@@ -739,12 +741,12 @@ function Login() {
               type="submit"
               disabled={loading || pin.join("").length !== 4 || phoneNumber.length !== 10}
               style={{
-                background: 'rgba(255, 255, 255, 0.9)',
+                background: '#795548',
                 width: '100%',
                 padding: '16px',
                 borderRadius: '12px',
                 border: 'none',
-                color: CoffeeColors.DARK_BROWN,
+                color: '#FFFFFF',
                 fontSize: '16px',
                 fontWeight: '700',
                 letterSpacing: '0.5px',
@@ -756,13 +758,15 @@ function Login() {
               }}
               onMouseEnter={(e) => {
                 if (!loading && pin.join("").length === 4 && phoneNumber.length === 10) {
-                  e.target.style.background = 'rgba(255, 255, 255, 1)';
+                  e.target.style.background = '#6d4c41';
                   e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.target.style.background = 'rgba(255, 255, 255, 0.9)';
+                e.target.style.background = '#795548';
                 e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
               }}
             >
               {loading ? 'Processing...' : 'Login'}
