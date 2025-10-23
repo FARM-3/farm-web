@@ -69,11 +69,11 @@ const SidebarLink = ({ item, currentPage, CoffeeColors }) => {
                         ${isActive ? 'shadow-sm' : ''}`}
             style={{
                 color: textColor,
-                backgroundColor: isActive ? CoffeeColors.ACTIVE_BG : 'transparent',
+                backgroundColor: isActive ? 'rgba(200, 200, 200, 0.3)' : 'transparent',
             }}
             onMouseEnter={(e) => {
                 if (!isActive) {
-                    e.currentTarget.style.backgroundColor = 'rgba(139, 90, 60, 0.5)';
+                    e.currentTarget.style.backgroundColor = 'rgba(200, 200, 200, 0.3)';
                 }
             }}
             onMouseLeave={(e) => {

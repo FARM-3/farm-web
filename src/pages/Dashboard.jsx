@@ -17,29 +17,30 @@ const CoffeeColors = {
 // --- COMPONENT: Dashboard Card (4 cards in a row) ---
 const DashboardCard = ({ title, value, unit, subtitle, icon: Icon, iconColor }) => (
     <div 
-        className="p-6 rounded-2xl shadow-md flex-1 min-w-[220px] hover:shadow-lg transition-shadow" 
+        className="p-6 rounded-2xl shadow-lg flex-1 min-w-[220px] hover:shadow-xl transition-shadow" 
         style={{ 
-            backgroundColor: CoffeeColors.CARD_BROWN,
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+            backgroundColor: '#FFFFFF',
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}
     >
         <div className="flex justify-between items-start mb-4">
-            <h3 className="text-xs font-medium tracking-wide" style={{ color: 'rgba(255,255,255,0.8)' }}>
+            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                 {title}
             </h3>
-            <Icon size={20} style={{ color: 'rgba(255,255,255,0.9)' }} />
+            <Icon size={20} style={{ color: CoffeeColors.CARD_BROWN }} />
         </div>
         
         <div className="mt-2">
             <div className="flex flex-col gap-1">
-                {unit && <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.9)' }}>{unit}</p>}
-                <p className="text-3xl font-bold" style={{ color: '#FFFFFF' }}>{value}</p>
+                {unit && <p className="text-sm font-medium" style={{ color: '#888' }}>{unit}</p>}
+                <p className="text-3xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>{value}</p>
             </div>
         </div>
         
         {subtitle && (
             <div className="mt-3 text-xs">
-                <p style={{ color: 'rgba(255,255,255,0.75)' }}>
+                <p style={{ color: '#666' }}>
                     {subtitle}
                 </p>
             </div>
