@@ -299,13 +299,16 @@ function StaffPage() {
                         Staff Details
                     </h1>
                     <div className="flex space-x-3 mt-4 md:mt-0">
-                        <Button onClick={() => navigate('/staff-entry')} className="shadow-xl">
-                            <Plus className="w-4 h-4 mr-2" />
+                        <button
+                            onClick={() => navigate('/staffRegistration')}
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#795548', color: '#FFFFFF', border: 'none' }}
+                        >
                             Record New Staff
-                        </Button>
+                        </button>
                         <Button
                             type="secondary"
-                            onClick={() => alert('Exporting staff to Excel is not yet implemented.')}
+                            onClick={() => alert('Exporting to Excel is not yet implemented.')}
                             className="shadow-xl"
                         >
                             Export to Excel

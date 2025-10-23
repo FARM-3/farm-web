@@ -268,14 +268,14 @@ function WageDisplayPage() {
                 {/* Action Bar */}
                 <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
                     <div className="flex gap-3">
-                        <Button
-                            type="secondary"
+                        <button
                             onClick={() => window.location.assign('/wage-entry')}
-                            className="py-2 px-4 shadow-xl"
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center"
+                            style={{ backgroundColor: '#795548', color: '#FFFFFF', border: 'none' }}
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             Record New Wage
-                        </Button>
+                        </button>
                         <Button 
                             type="secondary" 
                             onClick={() => alert('Exporting data...')} 

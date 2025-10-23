@@ -180,7 +180,7 @@ export const SideNav = ({ children }) => {
                         <img
                             src="/logo.jpg"
                             alt="Rugyeyo Farm Logo"
-                            className="w-8 h-8 rounded-full object-cover"
+                            className="w-12 h-12 rounded-full object-cover"
                         />
                         <h2 className="text-xl font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Rugyeyo Farm

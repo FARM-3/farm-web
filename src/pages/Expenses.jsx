@@ -348,13 +348,13 @@ function Expenses() {
                         Expense Records Overview
                     </h1>
                     <div className="flex space-x-3 mt-4 md:mt-0">
-                        <Button
-                            type="secondary"
+                        <button
                             onClick={() => navigate('/expense-entry')}
-                            className="shadow-xl"
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#795548', color: '#FFFFFF', border: 'none' }}
                         >
                             Record New Expense
-                        </Button>
+                        </button>
                         <Button
                             type="secondary"
                             onClick={() => alert('Exporting to Excel is not yet implemented.')}
