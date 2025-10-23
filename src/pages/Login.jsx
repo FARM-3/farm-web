@@ -1,10 +1,10 @@
-import React, { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 
 // --- Coffee Theme Colors (with brown accents) ---
 const CoffeeColors = {
-  SCREEN_BG: '#8B4513', // Brown background
-  LIGHT_BG: '#8FBC8F', // Light green
+  SCREEN_BG: '#8B4513',
+  LIGHT_BG: '#8FBC8F',
   DARK_BROWN: '#4A3423',
   BUTTON_BROWN: '#8B4513',
   MEDIUM_BROWN: '#795548',
@@ -17,7 +17,7 @@ const CoffeeColors = {
   PALE_GREEN: '#E8F5E9',
 };
 
-// --- API Client - Connected to your Django backend ---
+// --- API Client ---
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-3181.onrender.com';
 
 const ApiClient = {
@@ -25,31 +25,29 @@ const ApiClient = {
     console.log('🔵 API Called:', url);
     console.log('📤 Request Data:', data);
     console.log('🌐 Full URL:', `${API_BASE_URL}/api/users/${url}`);
-    
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/users/${url}`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(data),
       });
 
       console.log('📥 Response Status:', response.status);
-      
+
       const responseData = await response.json();
       console.log('📥 Response Data:', responseData);
 
       if (!response.ok) {
-        // Handle different error cases based on Django response
         if (response.status === 404) {
           throw new Error("USER_NOT_REGISTERED");
         } else if (response.status === 401) {
           throw new Error("INVALID_CREDENTIALS");
         } else if (response.status === 400) {
-          // Django validation errors
-          const errorMsg = responseData.detail 
-            || responseData.error 
+          const errorMsg = responseData.detail
+            || responseData.error
             || responseData.non_field_errors?.[0]
             || responseData.pin?.[0]
             || responseData.phone?.[0]
@@ -64,12 +62,11 @@ const ApiClient = {
 
     } catch (error) {
       console.error('❌ API Error:', error);
-      
-      // Handle network errors
+
       if (error.message === "Failed to fetch") {
         throw new Error("Cannot connect to server. Please check your internet connection.");
       }
-      
+
       throw error;
     }
   },
@@ -78,37 +75,16 @@ const ApiClient = {
 function Login() {
   const navigate = useNavigate();
 
+  const [showLoginForm, setShowLoginForm] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
-  const pinRefs = useRef([]);
 
   const [isResetMode, setIsResetMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
-  const [focusedField, setFocusedField] = useState({ row: null, idx: null });
   const [rememberMe, setRememberMe] = useState(false);
   const [showPin, setShowPin] = useState(false);
-
-  const handlePinChange = (value, index) => {
-    setMessage("");
-    setMessageType("");
-
-    const newVal = value.replace(/[^0-9]/g, "").slice(-1);
-    const updated = [...pin];
-    updated[index] = newVal;
-    setPin(updated);
-
-    setFocusedField({ row: 'pin', idx: index });
-
-    if (newVal && index < 3) pinRefs.current[index + 1]?.focus();
-  };
-
-  const handleKeyDown = (e, index) => {
-    if (e.key === 'Backspace' && !pin[index] && index > 0) {
-      pinRefs.current[index - 1]?.focus();
-    }
-  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -133,21 +109,16 @@ function Login() {
 
     setLoading(true);
     try {
-      console.log('=== LOGIN ATTEMPT ===');
-      console.log('📱 Phone:', phoneNumber);
-      console.log('🔐 PIN Length:', fullPin.length);
-      
       const response = await ApiClient.post("login/", {
-        phone: phoneNumber,  // Changed from phone_number to phone
+        phone: phoneNumber,
         pin: fullPin,
       });
-      
+
       console.log('✅ Login Response:', response);
 
-      // Store token and user data based on your API response structure
       const token = response.access || response.token || response.access_token;
       const refreshToken = response.refresh || response.refresh_token;
-      
+
       if (token) {
         if (rememberMe) {
           localStorage.setItem('authToken', token);
@@ -162,7 +133,7 @@ function Login() {
 
       setMessage("Login successful! Redirecting...");
       setMessageType("success");
-      
+
       setTimeout(() => {
         console.log('🚀 Navigating to dashboard...');
         navigate('/dashboard');
@@ -170,7 +141,7 @@ function Login() {
 
     } catch (err) {
       console.error('❌ Login Error:', err.message);
-      
+
       if (err.message === "USER_NOT_REGISTERED") {
         setMessage("This phone number is not registered. Please contact support to register.");
         setMessageType("error");
@@ -187,7 +158,7 @@ function Login() {
         setMessage(err.message || "Login failed. Please try again.");
         setMessageType("error");
       }
-      
+
       setPin(["", "", "", ""]);
     } finally {
       setLoading(false);
@@ -208,7 +179,7 @@ function Login() {
     setLoading(true);
     try {
       const response = await ApiClient.post("security-question/", {
-        phone: phoneNumber,  // Changed from phone_number to phone
+        phone: phoneNumber,
       });
 
       if (response.security_question) {
@@ -218,7 +189,7 @@ function Login() {
         setMessage("Phone number verified! Check your SMS for reset instructions.");
         setMessageType("success");
       }
-      
+
       setTimeout(() => {
         setIsResetMode(false);
         setPhoneNumber("");
@@ -228,7 +199,7 @@ function Login() {
 
     } catch (error) {
       console.error('❌ Reset PIN Error:', error.message);
-      
+
       if (error.message === "USER_NOT_REGISTERED" || error.message.includes("not found")) {
         setMessage("Phone number not found in our system. Please contact support.");
         setMessageType("error");
@@ -244,105 +215,205 @@ function Login() {
     }
   };
 
-  const getPinBoxBorderColor = (idx) => {
-    const isFocused = focusedField.row === 'pin' && focusedField.idx === idx;
-    const isError = messageType === 'error' && pin.join('').length === 4;
-
-    if (isFocused) return CoffeeColors.BUTTON_BROWN;
-    if (isError) return CoffeeColors.ERROR_RED;
-    return '#D0D0D0';
-  };
-
-  if (isResetMode) {
+  // Landing Page (Welcome Screen)
+  if (!showLoginForm && !isResetMode) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        backgroundColor: CoffeeColors.SCREEN_BG,
-        backgroundImage: 'url(/path-to-your-background-image.jpg)', // Add your background image path
+      <div style={{
+        minHeight: '100vh',
+        backgroundImage: 'url(/img/coffee%20harvest.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        padding: '20px',
+        backgroundRepeat: 'no-repeat',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        padding: '20px',
         position: 'relative',
       }}>
-        {/* Optional overlay for better text readability */}
+        {/* Dark overlay for better text readability */}
         <div style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(139, 69, 19, 0.85)',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
         }} />
 
-        <div style={{ 
+        {/* Content */}
+        <div style={{
           position: 'relative',
           zIndex: 1,
-          width: '95%', 
-          maxWidth: '450px',
+          textAlign: 'center',
+          maxWidth: '800px',
         }}>
-          {/* Left side content */}
+          {/* Logo */}
           <div style={{
             marginBottom: '40px',
-            color: CoffeeColors.WHITE,
+            display: 'flex',
+            justifyContent: 'center',
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '30px',
-            }}>
-              <img src="/logo.jpg" alt="Logo" style={{ width: '50px', height: '50px', marginRight: '12px' }} />
-              <h1 style={{
-                fontSize: '28px',
-                fontWeight: '700',
-                margin: 0,
-              }}>Rugyeyo Farm</h1>
-            </div>
-
-            <h2 style={{
-              fontSize: '36px',
-              fontWeight: '700',
-              marginBottom: '15px',
-              lineHeight: '1.2',
-            }}>Reset Your PIN</h2>
-
-            <p style={{
-              fontSize: '16px',
-              opacity: 0.9,
-              marginBottom: '20px',
-            }}>
-              Not currently registered?<br />
-              We'd love for you to join us.
-            </p>
-
+            <img
+              src="/logo.jpg"
+              alt="Rugyeyo Farm Logo"
+              style={{
+                width: '120px',
+                height: '120px',
+                borderRadius: '50%',
+                border: '4px solid white',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              }}
+            />
           </div>
 
-          {/* Right side - Reset form */}
-          <div style={{
-            backgroundColor: CoffeeColors.WHITE,
-            borderRadius: '20px',
-            padding: '40px 35px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+          {/* Welcome Text */}
+          <h1 style={{
+            fontSize: 'clamp(32px, 8vw, 64px)',
+            fontWeight: '800',
+            color: 'white',
+            marginBottom: '20px',
+            textShadow: '2px 4px 8px rgba(0, 0, 0, 0.5)',
+            letterSpacing: '2px',
+            lineHeight: '1.2',
           }}>
-            <h3 style={{
-              fontSize: '24px',
+            Welcome to<br />Rugyeyo Farm<br />Management System
+          </h1>
+
+          <p style={{
+            fontSize: 'clamp(16px, 3vw, 22px)',
+            color: 'rgba(255, 255, 255, 0.95)',
+            marginBottom: '50px',
+            maxWidth: '600px',
+            margin: '0 auto 50px',
+            textShadow: '1px 2px 4px rgba(0, 0, 0, 0.5)',
+            lineHeight: '1.6',
+          }}>
+            Streamline your farm operations with our comprehensive management solution
+          </p>
+
+          {/* Get Started Button */}
+          <button
+            onClick={() => setShowLoginForm(true)}
+            style={{
+              padding: '18px 48px',
+              fontSize: '20px',
               fontWeight: '700',
               color: CoffeeColors.DARK_BROWN,
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(10px)',
+              border: '2px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '50px',
+              cursor: 'pointer',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              transition: 'all 0.3s ease',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-5px) scale(1.05)';
+              e.target.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4)';
+              e.target.style.background = 'rgba(255, 255, 255, 1)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0) scale(1)';
+              e.target.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+              e.target.style.background = 'rgba(255, 255, 255, 0.95)';
+            }}
+          >
+            Get Started
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Reset PIN Page
+  if (isResetMode) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundImage: 'url(/img/coffee%20harvest.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        padding: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+      }}>
+        {/* Dark overlay */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        }} />
+
+        <div style={{
+          position: 'relative',
+          zIndex: 1,
+          width: '95%',
+          maxWidth: '450px',
+        }}>
+          {/* Glassmorphic card */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '24px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            padding: '40px 35px',
+            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+          }}>
+            {/* Logo */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginBottom: '30px',
+            }}>
+              <img
+                src="/logo.jpg"
+                alt="Logo"
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  border: '3px solid white',
+                }}
+              />
+            </div>
+
+            <h3 style={{
+              fontSize: '28px',
+              fontWeight: '700',
+              color: 'white',
               marginBottom: '10px',
-            }}>Reset your PIN</h3>
+              textAlign: 'center',
+              textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+            }}>Reset Your PIN</h3>
+
+            <p style={{
+              fontSize: '14px',
+              color: 'rgba(255, 255, 255, 0.9)',
+              textAlign: 'center',
+              marginBottom: '30px',
+            }}>
+              Enter your phone number to receive reset instructions
+            </p>
 
             <form onSubmit={handleResetPin}>
               <div style={{ marginBottom: '20px' }}>
                 <label style={{
                   fontSize: '14px',
-                  color: CoffeeColors.DARK_BROWN,
+                  color: 'white',
                   marginBottom: '8px',
                   fontWeight: '600',
                   display: 'block',
                 }}>Phone Number</label>
-                
+
                 <input
                   type="tel"
                   value={phoneNumber}
@@ -357,12 +428,13 @@ function Login() {
                   style={{
                     width: '100%',
                     height: '50px',
-                    backgroundColor: CoffeeColors.LIGHT_GRAY_BG,
-                    borderRadius: '10px',
-                    border: 'none',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
                     padding: '0 15px',
                     fontSize: '16px',
-                    color: CoffeeColors.DARK_BROWN,
+                    color: 'white',
                     outline: 'none',
                   }}
                 />
@@ -374,8 +446,12 @@ function Login() {
                   padding: '12px',
                   borderRadius: '10px',
                   marginBottom: '20px',
-                  backgroundColor: messageType === 'error' ? '#FFE5E5' : CoffeeColors.PALE_GREEN,
-                  color: messageType === 'error' ? CoffeeColors.ERROR_RED : CoffeeColors.SUCCESS_GREEN,
+                  background: messageType === 'error'
+                    ? 'rgba(211, 47, 47, 0.2)'
+                    : 'rgba(76, 175, 80, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  border: `1px solid ${messageType === 'error' ? 'rgba(211, 47, 47, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`,
+                  color: 'white',
                   fontSize: '14px',
                   fontWeight: '500',
                   textAlign: 'center',
@@ -388,7 +464,7 @@ function Login() {
                 type="submit"
                 disabled={loading || phoneNumber.length !== 10}
                 style={{
-                  backgroundColor: CoffeeColors.BUTTON_BROWN,
+                  background: 'rgba(255, 255, 255, 0.9)',
                   width: '100%',
                   padding: '16px',
                   borderRadius: '12px',
@@ -401,6 +477,17 @@ function Login() {
                   opacity: loading || phoneNumber.length !== 10 ? 0.6 : 1,
                   marginBottom: '15px',
                   textTransform: 'uppercase',
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading && phoneNumber.length === 10) {
+                    e.target.style.background = 'rgba(255, 255, 255, 1)';
+                    e.target.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.9)';
+                  e.target.style.transform = 'translateY(0)';
                 }}
               >
                 {loading ? 'Processing...' : 'Continue'}
@@ -411,6 +498,7 @@ function Login() {
                   type="button"
                   onClick={() => {
                     setIsResetMode(false);
+                    setShowLoginForm(true);
                     setPhoneNumber("");
                     setMessage("");
                     setMessageType("");
@@ -419,7 +507,7 @@ function Login() {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: CoffeeColors.DARK_BROWN,
+                    color: 'white',
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: 'pointer',
@@ -436,101 +524,92 @@ function Login() {
     );
   }
 
+  // Login Form Page
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      backgroundColor: CoffeeColors.SCREEN_BG,
-      backgroundImage: 'url(/path-to-your-background-image.jpg)', // Add your background image path here
+    <div style={{
+      minHeight: '100vh',
+      backgroundImage: 'url(/img/coffee%20harvest.png)',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
       padding: '20px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       position: 'relative',
     }}>
-      {/* Overlay for better text readability */}
+      {/* Dark overlay */}
       <div style={{
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(139, 69, 19, 0.85)', // Semi-transparent brown overlay
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
       }} />
 
-      <div style={{ 
+      <div style={{
         position: 'relative',
         zIndex: 1,
-        width: '95%', 
-        maxWidth: '1000px',
-        display: 'flex',
-        gap: '40px',
-        alignItems: 'center',
-        flexWrap: 'wrap',
+        width: '95%',
+        maxWidth: '450px',
       }}>
-        {/* Left side content */}
+        {/* Glassmorphic login card */}
         <div style={{
-          flex: '1',
-          minWidth: '300px',
-          color: CoffeeColors.WHITE,
+          background: 'rgba(255, 255, 255, 0.15)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderRadius: '24px',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          padding: '40px 35px',
+          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         }}>
+          {/* Logo */}
           <div style={{
             display: 'flex',
-            alignItems: 'center',
-            marginBottom: '30px',
+            justifyContent: 'center',
+            marginBottom: '20px',
           }}>
-            <img src="/logo.jpg" alt="Logo" style={{ width: '50px', height: '50px', marginRight: '12px' }} />
-            <h1 style={{
-              fontSize: '28px',
-              fontWeight: '700',
-              margin: 0,
-            }}>Rugyeyo Farm</h1>
+            <img
+              src="/logo.jpg"
+              alt="Logo"
+              style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                border: '3px solid white',
+              }}
+            />
           </div>
 
-          <h2 style={{
-            fontSize: '42px',
+          <h3 style={{
+            fontSize: '28px',
             fontWeight: '700',
-            marginBottom: '15px',
-            lineHeight: '1.2',
-          }}>Welcome Back,<br />Administrator!</h2>
+            color: 'white',
+            marginBottom: '10px',
+            textAlign: 'center',
+            textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
+          }}>Welcome Back</h3>
 
           <p style={{
-            fontSize: '16px',
-            opacity: 0.9,
-            marginBottom: '25px',
+            fontSize: '14px',
+            color: 'rgba(255, 255, 255, 0.9)',
+            textAlign: 'center',
+            marginBottom: '30px',
           }}>
-            Not currently a registered user?<br />
-            We'd love for you to join us.
+            Enter your credentials to continue
           </p>
-
-        </div>
-
-        {/* Right side - Login form */}
-        <div style={{
-          flex: '0 0 420px',
-          backgroundColor: CoffeeColors.WHITE,
-          borderRadius: '20px',
-          padding: '40px 35px',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-        }}>
-          <h3 style={{
-            fontSize: '24px',
-            fontWeight: '700',
-            color: CoffeeColors.DARK_BROWN,
-            marginBottom: '10px',
-          }}>Enter Your Phone Number and Pin to Login</h3>
 
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '20px' }}>
               <label style={{
                 fontSize: '14px',
-                color: CoffeeColors.DARK_BROWN,
+                color: 'white',
                 marginBottom: '8px',
                 fontWeight: '600',
                 display: 'block',
               }}>Phone Number</label>
-              
+
               <input
                 type="tel"
                 value={phoneNumber}
@@ -542,17 +621,16 @@ function Login() {
                 placeholder="0700000000"
                 maxLength={10}
                 disabled={loading}
-                onFocus={() => setFocusedField({ row: 'phone', idx: -1 })}
-                onBlur={() => setFocusedField({ row: null, idx: null })}
                 style={{
                   width: '100%',
                   height: '50px',
-                  backgroundColor: CoffeeColors.LIGHT_GRAY_BG,
-                  borderRadius: '10px',
-                  border: 'none',
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  backdropFilter: 'blur(10px)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
                   padding: '0 15px',
                   fontSize: '16px',
-                  color: CoffeeColors.DARK_BROWN,
+                  color: 'white',
                   outline: 'none',
                 }}
               />
@@ -561,12 +639,12 @@ function Login() {
             <div style={{ marginBottom: '20px' }}>
               <label style={{
                 fontSize: '14px',
-                color: CoffeeColors.DARK_BROWN,
+                color: 'white',
                 marginBottom: '8px',
                 fontWeight: '600',
                 display: 'block',
               }}>PIN</label>
-              
+
               <div style={{ position: 'relative' }}>
                 <input
                   type={showPin ? "text" : "password"}
@@ -584,12 +662,13 @@ function Login() {
                   style={{
                     width: '100%',
                     height: '50px',
-                    backgroundColor: CoffeeColors.LIGHT_GRAY_BG,
-                    borderRadius: '10px',
-                    border: 'none',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
                     padding: '0 45px 0 15px',
                     fontSize: '24px',
-                    color: CoffeeColors.DARK_BROWN,
+                    color: 'white',
                     outline: 'none',
                     letterSpacing: '8px',
                   }}
@@ -623,7 +702,7 @@ function Login() {
                 display: 'flex',
                 alignItems: 'center',
                 fontSize: '14px',
-                color: CoffeeColors.DARK_BROWN,
+                color: 'white',
                 cursor: 'pointer',
               }}>
                 <input
@@ -642,8 +721,12 @@ function Login() {
                 padding: '12px',
                 borderRadius: '10px',
                 marginBottom: '20px',
-                backgroundColor: messageType === 'error' ? '#FFE5E5' : CoffeeColors.PALE_GREEN,
-                color: messageType === 'error' ? CoffeeColors.ERROR_RED : CoffeeColors.SUCCESS_GREEN,
+                background: messageType === 'error'
+                  ? 'rgba(211, 47, 47, 0.2)'
+                  : 'rgba(76, 175, 80, 0.2)',
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${messageType === 'error' ? 'rgba(211, 47, 47, 0.3)' : 'rgba(76, 175, 80, 0.3)'}`,
+                color: 'white',
                 fontSize: '14px',
                 fontWeight: '500',
                 textAlign: 'center',
@@ -656,7 +739,7 @@ function Login() {
               type="submit"
               disabled={loading || pin.join("").length !== 4 || phoneNumber.length !== 10}
               style={{
-                backgroundColor: CoffeeColors.BUTTON_BROWN,
+                background: 'rgba(255, 255, 255, 0.9)',
                 width: '100%',
                 padding: '16px',
                 borderRadius: '12px',
@@ -669,12 +752,51 @@ function Login() {
                 opacity: loading || pin.join("").length !== 4 || phoneNumber.length !== 10 ? 0.6 : 1,
                 marginBottom: '15px',
                 textTransform: 'uppercase',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!loading && pin.join("").length === 4 && phoneNumber.length === 10) {
+                  e.target.style.background = 'rgba(255, 255, 255, 1)';
+                  e.target.style.transform = 'translateY(-2px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.9)';
+                e.target.style.transform = 'translateY(0)';
               }}
             >
               {loading ? 'Processing...' : 'Login'}
             </button>
 
-            <div style={{ textAlign: 'center' }}>
+            <div style={{
+              textAlign: 'center',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLoginForm(false);
+                  setMessage("");
+                  setMessageType("");
+                  setPin(["", "", "", ""]);
+                  setPhoneNumber("");
+                }}
+                disabled={loading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                ← Back
+              </button>
+
               <button
                 type="button"
                 onClick={() => {
@@ -688,14 +810,14 @@ function Login() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: CoffeeColors.DARK_BROWN,
+                  color: 'white',
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   textDecoration: 'underline',
                 }}
               >
-                Reset Pin
+                Reset PIN
               </button>
             </div>
           </form>
