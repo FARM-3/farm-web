@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
@@ -295,13 +295,13 @@ function SalesPage() {
                     </div>
                     
                     <div className="flex gap-3 order-1 sm:order-2">
-                        <Button
-                            type="secondary"
+                        <button
                             onClick={() => window.location.href = '/sales-entry'}
-                            className="py-2 px-4 shadow-xl"
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#795548', color: '#FFFFFF', border: 'none' }}
                         >
                             Record New Sale
-                        </Button>
+                        </button>
                         <Button
                             type="secondary"
                             onClick={() => console.log('Export to Excel')}
@@ -318,7 +318,7 @@ function SalesPage() {
                 >
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="sticky top-0 z-10 bg-light-coffee-brown text-text-default">
+                            <thead className="sticky top-0 z-10" style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
                                         <th

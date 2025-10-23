@@ -5,6 +5,7 @@ import {
     RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, Plus, ChevronsDown, Loader2
 } from 'lucide-react'; // Added Plus icon for 'Record New Staff'
 import { SideNav } from '../components/SideNav';
+import { Button } from '../components/Button';
 
 // --- Global Styles & Constants (Consistent with other pages) ---
 const CoffeeColors = {
@@ -51,26 +52,6 @@ const MenuButton = ({ onClick, isOpen }) => (
 
 
 
-const Button = ({ children, onClick, className, disabled, type = 'primary' }) => {
-    const baseClasses = `px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm`;
-
-    let colorClasses;
-    if (type === 'secondary') {
-        colorClasses = `bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80`;
-    } else {
-        colorClasses = `bg-accent-btn text-white hover:bg-accent-btn/90`;
-    }
-
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`${baseClasses} ${colorClasses} ${className}`}
-        >
-            {children}
-        </button>
-    );
-};
 
 // Data Structure for Table Headers
 const TABLE_HEADERS = [

@@ -36,29 +36,72 @@ const footerNavItems = [
 // --- UTILITY: Get Current Page Key ---
 const getCurrentPageKey = () => {
     const path = window.location.pathname.split('/')[1] || 'dashboard';
-    
+
     if (path.startsWith('sales')) return 'sales';
     if (path.startsWith('staff')) return 'staff';
     if (path.startsWith('wages')) return 'wages';
     if (path.startsWith('profile')) return 'profile';
-    
+
     const item = [...navItems, ...footerNavItems].find(item => item.key === path);
     if (item) return path;
 
     return 'dashboard';
 };
 
+// --- UTILITY: Logout Function ---
+const handleLogout = () => {
+    // Clear any stored authentication tokens or session data
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userSession');
+    sessionStorage.clear();
+
+    // Redirect to login page
+    window.location.href = '/login';
+};
+
 // --- COMPONENT: Sidebar Link ---
-const SidebarLink = ({ item, currentPage, CoffeeColors }) => {
+const SidebarLink = ({ item, currentPage, CoffeeColors, onLogout }) => {
     const isActive = item.key === currentPage;
 
     const activeColor = CoffeeColors.DARK_BROWN;
     const defaultColor = CoffeeColors.DARK_BROWN;
-    
+
     const iconColor = isActive ? activeColor : defaultColor;
     const textColor = isActive ? activeColor : defaultColor;
-    
+
     const hoverBg = CoffeeColors.LIGHT_HOVER;
+
+    // Special handling for logout link
+    if (item.key === 'logout') {
+        return (
+            <button
+                onClick={onLogout}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium w-full text-left
+                            hover:scale-[1.01]
+                            ${isActive ? 'shadow-sm' : ''}`}
+                style={{
+                    color: textColor,
+                    backgroundColor: isActive ? CoffeeColors.LIGHT_BG : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                    if (!isActive) {
+                        e.currentTarget.style.backgroundColor = hoverBg;
+                    }
+                }}
+                onMouseLeave={(e) => {
+                    if (!isActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                }}
+            >
+                <item.icon
+                    size={20}
+                    style={{ color: iconColor }}
+                />
+                <span className="text-base">{item.name}</span>
+            </button>
+        );
+    }
 
     return (
         <Link
@@ -163,7 +206,7 @@ export const SideNav = ({ children }) => {
                 <div className="py-4 px-3 border-t absolute bottom-0 left-0 right-0" style={{ borderColor: CoffeeColors.BORDER_GRAY, backgroundColor: CoffeeColors.SIDEBAR_BG }}>
                     <div className="flex flex-col space-y-1">
                         {footerNavItems.map((item) => (
-                            <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} />
+                            <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} onLogout={handleLogout} />
                         ))}
                     </div>
                 </div>
