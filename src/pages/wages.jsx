@@ -50,7 +50,6 @@ const TABLE_HEADERS = [
     { key: 'employee_name', label: 'Employee', icon: User, type: 'string', align: 'left' },
     { key: 'date_of_payment', label: 'Date Paid', icon: Calendar, type: 'date', align: 'center' },
     { key: 'days_worked', label: 'Days', icon: Calendar, type: 'number', align: 'center' },
-    { key: 'monthly_pay', label: 'Base Pay (UGX)', icon: Wallet, type: 'number', align: 'right' },
     { key: 'amount_paid', label: 'Total Paid (UGX)', icon: DollarSign, type: 'number', align: 'right' },
     { key: 'deduction', label: 'Deduction (UGX)', icon: MinusCircle, type: 'number', align: 'right' },
     { key: 'noted_reason', label: 'Note', icon: null, type: 'string', align: 'left' },
@@ -231,7 +230,6 @@ function WageDisplayPage() {
                     <td className="px-6 py-3 text-left font-medium text-text-default text-sm max-w-[200px] truncate">{wage.employee_name || 'N/A'}</td>
                     <td className="px-6 py-3 text-center text-gray-600">{dateStr}</td>
                     <td className="px-6 py-3 text-center text-gray-600">{wage.days_worked || 0}</td>
-                    <td className="px-6 py-3 text-right text-text-default font-semibold whitespace-nowrap">{formatUGX(wage.monthly_pay)}</td>
                     <td className="px-6 py-3 text-right text-success font-bold whitespace-nowrap">{formatUGX(wage.amount_paid)}</td>
                     <td className="px-6 py-3 text-right text-error whitespace-nowrap">{formatUGX(wage.deduction)}</td>
                     <td className="px-6 py-3 text-left text-xs italic text-gray-500 max-w-xs truncate">{wage.noted_reason || '-'}</td>
