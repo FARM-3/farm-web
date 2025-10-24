@@ -52,12 +52,20 @@ const getCurrentPageKey = () => {
 
 // --- UTILITY: Logout Function ---
 const handleLogout = () => {
+    // Confirm logout
+    const confirmLogout = window.confirm('Are you sure you want to log out?');
+
+    if (!confirmLogout) return;
+
     // Clear any stored authentication tokens or session data
     localStorage.removeItem('authToken');
     localStorage.removeItem('userSession');
     sessionStorage.clear();
 
-    // Redirect to login page
+    // Show success message
+    alert('Successfully logged out!');
+
+    // Redirect to login page and force reload to prevent back navigation
     window.location.href = '/';
 };
 
