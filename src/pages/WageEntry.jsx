@@ -178,3 +178,4 @@ function WageEntry() {
 }
 
 export default WageEntry;
+
