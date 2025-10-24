@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, ShoppingBag, Truck, X, Plus, Send } from 'lucide-react';
 
@@ -493,8 +493,17 @@ function SalesPage() {
                     </p>
                     <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(2500000)}</p>
-                <p className="text-xs text-success mt-2 font-medium" style={{ color: CoffeeColors.SUCCESS_GREEN }}>+20.1% from last month</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalSales)}</p>
+                        <p className="text-xs text-success mt-2 font-medium text-gray-500">Total orders: {kpis.totalOrders}</p>
+                    </>
+                )}
             </div>
             
             <div className="bg-white p-6 rounded-2xl shadow-lg">
@@ -505,20 +514,38 @@ function SalesPage() {
                     </p>
                     <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(50000)}</p>
-                <p className="text-xs mt-2 font-medium" style={{ color: CoffeeColors.SUCCESS_GREEN }}>+5.2% from last month</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.averageOrderValue)}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Per transaction</p>
+                    </>
+                )}
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-500 flex items-center">
                         <User className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                        New Customers
+                        Unique Customers
                     </p>
                     <User className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
                 </div>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">150</p>
-                <p className="text-xs mt-2 font-medium" style={{ color: CoffeeColors.SUCCESS_GREEN }}>+10.5% from last month</p>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.uniqueCustomers}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Registered customers</p>
+                    </>
+                )}
             </div>
         </div>
     );
@@ -622,28 +649,28 @@ function SalesPage() {
                                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                             </div>
                         </div>
-                        <Button 
-                            type="secondary" 
-                            onClick={() => fetchSales(currentPage)} 
-                            disabled={loading} 
-                            className="py-2 px-4 shadow-lg flex-shrink-0"
+                        <button
+                            onClick={() => fetchSales(currentPage)}
+                            disabled={loading}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
                             Refresh Data
-                        </Button>
+                        </button>
                     </div>
-                    
+                      
                     <div className="flex gap-3 order-1 sm:order-2">
                         <Button onClick={() => setIsModalOpen(true)} className="py-2 px-4 shadow-xl bg-accent-btn">
                             Record New Sale
                         </Button>
-                        <Button 
-                            type="secondary" 
-                            onClick={() => console.log('Export to Excel')} 
-                            className="py-2 px-4 shadow-xl"
+                        <button
+                            onClick={() => console.log('Export to Excel')}
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
@@ -653,7 +680,7 @@ function SalesPage() {
                 >
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="sticky top-0 z-10 bg-light-coffee-brown text-text-default">
+                            <thead className="sticky top-0 z-10" style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
                                         <th
@@ -685,29 +712,28 @@ function SalesPage() {
                                 <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Button
+                                <button
                                     onClick={() => handlePageChange(currentPage - 1)}
                                     disabled={currentPage === 1 || loading}
-                                    className="px-4 py-1.5 text-xs bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80 rounded-lg shadow-sm"
-                                    type="secondary" 
+                                    className="px-4 py-1.5 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: '#efebe9', color: '#783A1E' }}
                                 >
                                     Previous
-                                </Button>
-                                <Button
+                                </button>
+                                <button
                                     onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage === totalPages || loading}
-                                    className="px-4 py-1.5 text-xs bg-light-coffee-brown text-active-link-text hover:bg-light-coffee-brown/80 rounded-lg shadow-sm"
-                                    type="secondary"
+                                    className="px-4 py-1.5 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ backgroundColor: '#efebe9', color: '#783A1E' }}
                                 >
                                     Next
-                                </Button>
+                                </button>
                             </div>
                         </div>
                     )}
                 </div>
             </main>
 
-            {/* The Sales Entry Modal (should be outside the SideNav if SideNav is the main layout) */}
             <SalesEntryModal 
                 isOpen={isModalOpen} 
                 onClose={() => setIsModalOpen(false)} 

@@ -225,8 +225,6 @@ function StaffRegistration() {
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: CoffeeColors.SCREEN_BG, fontFamily: 'Inter, sans-serif' }}>
-      {/* Tailwind CSS CDN is added for full functionality */}
-      <script src="https://cdn.tailwindcss.com"></script>
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
@@ -613,7 +611,7 @@ function StaffRegistration() {
                   disabled={!isFormValid() || loading}
                   className="w-full py-3 font-semibold"
                   style={{
-                    backgroundColor: '#702A0B',
+                    backgroundColor: '#795548',
                     color: '#FFFFFF',
                     opacity: (!isFormValid() || loading) ? 0.7 : 1,
                     cursor: (!isFormValid() || loading) ? 'not-allowed' : 'pointer',

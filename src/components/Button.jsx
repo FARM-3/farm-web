@@ -26,4 +26,5 @@ const Button = ({ children, onClick, type = 'button', disabled = false, classNam
   );
 };
 
+export { Button };
 export default Button;

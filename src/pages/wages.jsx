@@ -728,7 +728,6 @@ const TABLE_HEADERS = [
     { key: 'employee_name', label: 'Employee', icon: User, type: 'string', align: 'left' },
     { key: 'date_of_payment', label: 'Date Paid', icon: Calendar, type: 'date', align: 'center' },
     { key: 'days_worked', label: 'Days', icon: Calendar, type: 'number', align: 'center' },
-    { key: 'monthly_pay', label: 'Base Pay (UGX)', icon: Wallet, type: 'number', align: 'right' },
     { key: 'amount_paid', label: 'Total Paid (UGX)', icon: DollarSign, type: 'number', align: 'right' },
     { key: 'deduction', label: 'Deduction (UGX)', icon: MinusCircle, type: 'number', align: 'right' },
     { key: 'noted_reason', label: 'Note', icon: null, type: 'string', align: 'left' },
@@ -849,10 +848,7 @@ function Wages() {
                     <td className="px-6 py-3 text-left text-xs italic text-gray-500 max-w-xs truncate">{wage.noted_reason || '-'}</td>
                     <td className="px-6 py-3 text-center">
                         <div className="flex items-center justify-center space-x-2">
-                            <button onClick={() => alert(`Viewing wage for ${wage.employee_name}`)} className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors">
-                                <Eye className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => alert(`Editing wage for ${wage.employee_name}`)} className="text-gray-500 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors">
+                            <button onClick={() => alert(`Editing wage for ${wage.employee_name}`)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button onClick={() => alert(`Deleting wage for ${wage.employee_name}`)} className="text-[#EA4335] hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors">
@@ -923,10 +919,15 @@ function Wages() {
                     </div>
 
                     <div className="flex gap-3 items-center">
-                        <Button type="secondary" onClick={() => fetchWages(currentPage)} disabled={loading} className="py-2 px-4 shadow-xl">
+                        <button
+                            onClick={() => fetchWages(currentPage)}
+                            disabled={loading}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
+                        >
                             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                             Refresh Data
-                        </Button>
+                        </button>
 
                         <div className="relative inline-block text-left">
                             <select className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-[#795548] focus:border-[#795548] shadow-lg hover:shadow-xl transition duration-300 ease-in-out" defaultValue="">
