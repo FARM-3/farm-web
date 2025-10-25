@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
 import WageEntry from './pages/WageEntry.jsx';
 import Wages from './pages/wages.jsx';
@@ -13,30 +13,33 @@ import Aggregation from './pages/Aggregation.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+  return token ? children : <Navigate to="/" replace />;
+};
+
 function App() {
   return (
-    <BrowserRouter> 
+    <BrowserRouter>
       <div className="App">
-        <Routes> 
-          
+        <Routes>
+
           {/* Path 1: Root path must show Login */}
-          <Route path="/" element={<Login />} /> 
-          
-          {/* Path 2: This path MUST render the WageEntry form. 
-            If you are seeing the Login form when the URL is /wage-entry,
-            it means the browser's memory is holding an older version.
-          */}
-          <Route path="/sales-entry" element={<SalesEntry />} />
-          <Route path="/sales" element={<Sales />} />
-          <Route path="/wage-entry" element={<WageEntry />} />
-          <Route path="/wages" element={<Wages />} />
-          <Route path="/expense-entry" element={<ExpenseEntry />} />
-          <Route path="/expenses" element={<Expenses />} />
-          <Route path="/staff-registration" element={<StaffRegistration />} />
-          <Route path="/staff-management" element={<StaffManagement />} />
-          <Route path="/staff" element={<StaffManagement />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/aggregation" element={<Aggregation />} />
+          <Route path="/" element={<Login />} />
+
+          {/* Protected Routes - require authentication */}
+          <Route path="/sales-entry" element={<ProtectedRoute><SalesEntry /></ProtectedRoute>} />
+          <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+          <Route path="/wage-entry" element={<ProtectedRoute><WageEntry /></ProtectedRoute>} />
+          <Route path="/wages" element={<ProtectedRoute><Wages /></ProtectedRoute>} />
+          <Route path="/expense-entry" element={<ProtectedRoute><ExpenseEntry /></ProtectedRoute>} />
+          <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+          <Route path="/staff-registration" element={<ProtectedRoute><StaffRegistration /></ProtectedRoute>} />
+          <Route path="/staff-management" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
+          <Route path="/staff" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/aggregation" element={<ProtectedRoute><Aggregation /></ProtectedRoute>} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>
