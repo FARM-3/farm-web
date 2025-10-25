@@ -334,7 +334,7 @@ function SalesPage() {
                         <button
                             onClick={() => window.location.href = '/sales-entry'}
                             className="py-2 px-4 shadow-xl rounded-xl"
-                            style={{ backgroundColor: '#795548', color: '#FFFFFF', border: 'none' }}
+                            style={{ backgroundColor: '#8B4513', color: '#FFFFFF', border: 'none' }}
                         >
                             Record New Sale
                         </button>

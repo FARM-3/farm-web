@@ -307,7 +307,7 @@ function WageDisplayPage() {
                         <button
                             onClick={() => window.location.assign('/wage-entry')}
                             className="py-2 px-4 shadow-xl rounded-xl flex items-center"
-                            style={{ backgroundColor: '#795548', color: '#FFFFFF', border: 'none' }}
+                            style={{ backgroundColor: '#8B4513', color: '#FFFFFF', border: 'none' }}
                         >
                             <Plus className="w-4 h-4 mr-2" />
                             Record New Wage

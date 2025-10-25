@@ -464,12 +464,12 @@ function Login() {
                 type="submit"
                 disabled={loading || phoneNumber.length !== 10}
                 style={{
-                  background: '#efebe9',
+                  background: '#D2A679',
                   width: '100%',
                   padding: '16px',
                   borderRadius: '12px',
                   border: 'none',
-                  color: '#783A1E',
+                  color: '#4A2C0F',
                   fontSize: '16px',
                   fontWeight: '700',
                   letterSpacing: '0.5px',
@@ -481,13 +481,13 @@ function Login() {
                 }}
                 onMouseEnter={(e) => {
                   if (!loading && phoneNumber.length === 10) {
-                    e.target.style.background = '#e0dad6';
+                    e.target.style.background = '#C19763';
                     e.target.style.transform = 'translateY(-2px)';
                     e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  e.target.style.background = '#efebe9';
+                  e.target.style.background = '#D2A679';
                   e.target.style.transform = 'translateY(0)';
                   e.target.style.boxShadow = 'none';
                 }}
@@ -741,7 +741,7 @@ function Login() {
               type="submit"
               disabled={loading || pin.join("").length !== 4 || phoneNumber.length !== 10}
               style={{
-                background: '#795548',
+                background: '#8B4513',
                 width: '100%',
                 padding: '16px',
                 borderRadius: '12px',
@@ -758,13 +758,13 @@ function Login() {
               }}
               onMouseEnter={(e) => {
                 if (!loading && pin.join("").length === 4 && phoneNumber.length === 10) {
-                  e.target.style.background = '#6d4c41';
+                  e.target.style.background = '#6d3410';
                   e.target.style.transform = 'translateY(-2px)';
                   e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
                 }
               }}
               onMouseLeave={(e) => {
-                e.target.style.background = '#795548';
+                e.target.style.background = '#8B4513';
                 e.target.style.transform = 'translateY(0)';
                 e.target.style.boxShadow = 'none';
               }}

@@ -297,7 +297,7 @@ const AggregationPage = () => {
                         onClick={fetchData}
                         disabled={loading}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition disabled:opacity-50"
-                        style={{ backgroundColor: CoffeeColors.MEDIUM_BROWN, color: '#FFFFFF' }}
+                        style={{ backgroundColor: '#8B4513', color: '#FFFFFF' }}
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
@@ -339,7 +339,7 @@ const AggregationPage = () => {
                                 : ''
                         }`}
                         style={{
-                            backgroundColor: activeTab === 'farmers' ? CoffeeColors.MEDIUM_BROWN : CoffeeColors.ACTIVE_LINK_BG,
+                            backgroundColor: activeTab === 'farmers' ? '#8B4513' : CoffeeColors.ACTIVE_LINK_BG,
                             color: activeTab === 'farmers' ? '#FFFFFF' : CoffeeColors.ACTIVE_LINK_TEXT
                         }}
                     >
@@ -353,7 +353,7 @@ const AggregationPage = () => {
                                 : ''
                         }`}
                         style={{
-                            backgroundColor: activeTab === 'harvest' ? CoffeeColors.MEDIUM_BROWN : CoffeeColors.ACTIVE_LINK_BG,
+                            backgroundColor: activeTab === 'harvest' ? '#8B4513' : CoffeeColors.ACTIVE_LINK_BG,
                             color: activeTab === 'harvest' ? '#FFFFFF' : CoffeeColors.ACTIVE_LINK_TEXT
                         }}
                     >
