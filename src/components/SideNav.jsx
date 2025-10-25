@@ -62,9 +62,6 @@ const handleLogout = () => {
     localStorage.removeItem('userSession');
     sessionStorage.clear();
 
-    // Show success message
-    alert('Successfully logged out!');
-
     // Redirect to login page and force reload to prevent back navigation
     window.location.href = '/';
 };

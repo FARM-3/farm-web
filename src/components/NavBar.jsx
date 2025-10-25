@@ -65,30 +65,18 @@ const NavBar = () => {
             // Also clear sessionStorage
             sessionStorage.clear();
 
-            // Show success message
-            setShowLogoutConfirm(false);
-            setShowSuccessMessage(true);
-
-            // Redirect after showing message
-            setTimeout(() => {
-                navigate('/', { replace: true });
-                window.location.reload();
-            }, 1500);
+            // Redirect immediately without showing success message
+            navigate('/', { replace: true });
+            window.location.reload();
 
         } catch (error) {
             console.error('Logout error:', error);
 
-            // Even if API call fails, clear local data and show success message
+            // Even if API call fails, clear local data and redirect immediately
             localStorage.clear();
             sessionStorage.clear();
-            setShowLogoutConfirm(false);
-            setShowSuccessMessage(true);
-
-            // Redirect after showing message
-            setTimeout(() => {
-                navigate('/', { replace: true });
-                window.location.reload();
-            }, 1500);
+            navigate('/', { replace: true });
+            window.location.reload();
         } finally {
             setIsLoggingOut(false);
         }
