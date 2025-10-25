@@ -688,26 +688,70 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 )}
             </div>
 
-            <div className="p-4 flex justify-end space-x-3 border-t border-gray-200 bg-white">
-                <Button onClick={onClose} type="secondary" htmlType="button" className="w-24">
+            <div className="p-5 flex justify-end space-x-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <button
+                    onClick={onClose}
+                    type="button"
+                    className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
                     Cancel
-                </Button>
+                </button>
 
-                <Button type="primary" htmlType="submit" disabled={submitting} className="w-48 shadow-lg">
-                    {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : 'Submit Wage Record'}
-                </Button>
+                <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-8 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    style={{
+                        background: submitting ? '#795548' : 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
+                    }}
+                >
+                    {submitting ? (
+                        <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Submitting...
+                        </>
+                    ) : (
+                        'Submit Wage Record'
+                    )}
+                </button>
             </div>
         </form>
     );
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center transition-opacity duration-300">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg lg:max-w-3xl h-full max-h-[90vh] transition-transform duration-300 ease-out transform scale-100 flex flex-col" style={{ maxWidth: '600px' }}>
-                <header className="flex justify-between items-center p-4 rounded-t-xl shadow-md flex-shrink-0" style={{ backgroundColor: CoffeeColors.MODAL_HEADER_BG, borderBottom: '1px solid #eee' }}>
-                    <div className="flex items-center">
-                        <h2 className="text-xl font-bold text-[#4A3423]">Wage Entry</h2>
+        <div
+            className="fixed inset-0 z-50 overflow-y-auto flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+            style={{
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                animation: 'fadeIn 0.3s ease-out'
+            }}
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] transition-all duration-300 ease-out transform scale-100 flex flex-col m-4"
+                style={{
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 15px rgba(139, 69, 19, 0.1)',
+                    animation: 'slideUp 0.3s ease-out'
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <header
+                    className="flex justify-between items-center p-5 rounded-t-2xl flex-shrink-0 border-b-2"
+                    style={{
+                        background: 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                    }}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                            <DollarSign className="w-6 h-6 text-white" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">Wage Entry Form</h2>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200"
+                    >
                         <X className="w-6 h-6" />
                     </button>
                 </header>
@@ -716,6 +760,23 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     {EntryForm}
                 </div>
             </div>
+
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px) scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+            `}</style>
         </div>
     );
 };
@@ -727,10 +788,9 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 const TABLE_HEADERS = [
     { key: 'employee_name', label: 'Employee', icon: User, type: 'string', align: 'left' },
     { key: 'date_of_payment', label: 'Date Paid', icon: Calendar, type: 'date', align: 'center' },
-    { key: 'days_worked', label: 'Days', icon: Calendar, type: 'number', align: 'center' },
-    { key: 'amount_paid', label: 'Total Paid (UGX)', icon: DollarSign, type: 'number', align: 'right' },
-    { key: 'deduction', label: 'Deduction (UGX)', icon: MinusCircle, type: 'number', align: 'right' },
-    { key: 'noted_reason', label: 'Note', icon: null, type: 'string', align: 'left' },
+    { key: 'days_worked', label: 'Days Worked', icon: Calendar, type: 'number', align: 'center' },
+    { key: 'amount_paid', label: 'Amount Paid', icon: DollarSign, type: 'number', align: 'right' },
+    { key: 'deduction', label: 'Deduction', icon: MinusCircle, type: 'number', align: 'right' },
     { key: 'actions', label: 'Actions', icon: null, type: 'actions', align: 'center' },
 ];
 
@@ -836,22 +896,26 @@ function Wages() {
         }
 
         return sortedWages.map((wage, index) => {
-            const dateStr = wage.date_of_payment ? new Date(wage.date_of_payment).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'N/A';
+            const dateStr = wage.date_of_payment ? new Date(wage.date_of_payment).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
             return (
-                <tr key={index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-[#efebe9]/40">
-                    <td className="px-6 py-3 text-left font-medium text-[#4A3423] text-sm max-w-[200px] truncate">{wage.employee_name || 'N/A'}</td>
-                    <td className="px-6 py-3 text-center text-gray-600">{dateStr}</td>
-                    <td className="px-6 py-3 text-center text-gray-600">{wage.days_worked || 0}</td>
-                    <td className="px-6 py-3 text-right text-[#4A3423] font-semibold whitespace-nowrap">{formatUGX(wage.monthly_pay)}</td>
-                    <td className="px-6 py-3 text-right text-[#34A853] font-bold whitespace-nowrap">{formatUGX(wage.amount_paid)}</td>
-                    <td className="px-6 py-3 text-right text-[#EA4335] whitespace-nowrap">{formatUGX(wage.deduction)}</td>
-                    <td className="px-6 py-3 text-left text-xs italic text-gray-500 max-w-xs truncate">{wage.noted_reason || '-'}</td>
-                    <td className="px-6 py-3 text-center">
+                <tr key={index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-[#efebe9]/30">
+                    <td className="px-6 py-4 text-left font-semibold text-[#4A3423] text-sm">{wage.employee_name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-center text-gray-700 text-sm">{dateStr}</td>
+                    <td className="px-6 py-4 text-center text-gray-700 text-sm font-medium">{wage.days_worked || 0}</td>
+                    <td className="px-6 py-4 text-right text-[#34A853] font-bold whitespace-nowrap text-base">UGX {formatUGX(wage.amount_paid)}</td>
+                    <td className="px-6 py-4 text-right text-[#EA4335] font-semibold whitespace-nowrap">UGX {formatUGX(wage.deduction)}</td>
+                    <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
-                            <button onClick={() => alert(`Editing wage for ${wage.employee_name}`)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
+                            <button
+                                onClick={() => alert(`Editing wage for ${wage.employee_name}`)}
+                                className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                            >
                                 <Edit className="w-4 h-4" />
                             </button>
-                            <button onClick={() => alert(`Deleting wage for ${wage.employee_name}`)} className="text-[#EA4335] hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors">
+                            <button
+                                onClick={() => alert(`Deleting wage for ${wage.employee_name}`)}
+                                className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                            >
                                 <Trash2 className="w-4 h-4" />
                             </button>
                         </div>
@@ -866,7 +930,6 @@ function Wages() {
     return (
         <SideNav>
             <main className={`${mobilePadding} pt-0`}>
-                <h1 className="text-3xl sm:text-4xl font-bold text-[#4A3423] mb-2">Welcome Back!</h1>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">Wages Records Overview</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -909,10 +972,14 @@ function Wages() {
 
                 <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
                     <div className="flex gap-3">
-                        <Button onClick={() => setIsModalOpen(true)} className="py-2 px-4 shadow-xl" type="primary">
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
+                            style={{ backgroundColor: '#8B4513' }}
+                        >
                             <Plus className="w-4 h-4 mr-2" />
                             Record New Wage
-                        </Button>
+                        </button>
                         <Button type="secondary" onClick={() => alert('Exporting data...')} className="py-2 px-4 shadow-xl">
                             Export to Excel
                         </Button>
@@ -951,7 +1018,7 @@ function Wages() {
                                     {TABLE_HEADERS.map((header) => (
                                         <th
                                             key={header.key}
-                                            className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider transition-colors duration-150 cursor-pointer ${header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'} hover:bg-[#795548]/90 whitespace-nowrap`}
+                                            className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'} whitespace-nowrap ${header.icon !== null ? 'cursor-pointer' : ''}`}
                                             onClick={() => header.icon !== null && requestSort(header.key)}
                                             scope="col"
                                         >

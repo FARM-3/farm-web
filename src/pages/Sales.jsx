@@ -483,6 +483,39 @@ function SalesPage() {
         setIsModalOpen(false);
     }
 
+    // Calculate KPI metrics from real-time data
+    const calculateKPIs = () => {
+        if (!sales || sales.length === 0) {
+            return {
+                totalSales: 0,
+                averageOrderValue: 0,
+                totalOrders: 0,
+                uniqueCustomers: 0
+            };
+        }
+
+        // Calculate total sales amount
+        const totalSales = sales.reduce((sum, sale) => {
+            const amount = parseFloat(sale.total_amount || sale.amount || 0);
+            return sum + amount;
+        }, 0);
+
+        // Calculate average order value
+        const averageOrderValue = sales.length > 0 ? totalSales / sales.length : 0;
+
+        // Count unique customers
+        const uniqueCustomers = new Set(sales.map(sale => sale.customer_name).filter(Boolean)).size;
+
+        return {
+            totalSales,
+            averageOrderValue,
+            totalOrders: sales.length,
+            uniqueCustomers
+        };
+    };
+
+    const kpis = calculateKPIs();
+
     const KPICards = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-white p-6 rounded-2xl shadow-lg">
@@ -661,21 +694,21 @@ function SalesPage() {
                     </div>
                       
                     <div className="flex gap-3 order-1 sm:order-2">
-                        <Button onClick={() => setIsModalOpen(true)} className="py-2 px-4 shadow-xl bg-accent-btn">
-                        <button
+                        <Button onClick={() => setIsModalOpen(true)} className="py-2 px-4 shadow-xl bg-accent-btn"></Button>
+                        <Button
                             onClick={() => window.location.href = '/sales-entry'}
                             className="py-2 px-4 shadow-xl rounded-xl"
-                            style={{ backgroundColor: '#8B4513', color: '#FFFFFF', border: 'none' }}
-                        >
+                            style={{ backgroundColor: '#8B4513', color: '#FFFFFF', border: 'none' }}>
+                        
                             Record New Sale
                         </Button>
-                        <button
+                        <Button
                             onClick={() => console.log('Export to Excel')}
                             className="py-2 px-4 shadow-xl rounded-xl"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
