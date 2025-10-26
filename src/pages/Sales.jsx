@@ -1,4 +1,4 @@
- import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, ShoppingBag, Truck, X, Plus, Send } from 'lucide-react';
 
@@ -565,8 +565,8 @@ function SalesPage() {
                     </div>
                 ) : (
                     <>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalSales)}</p>
-                        <p className="text-xs text-success mt-2 font-medium text-gray-500">Total orders: {kpis.totalOrders}</p>
+                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalSales)}</p> */}
+                        {/* <p className="text-xs text-success mt-2 font-medium text-gray-500">Total orders: {kpis.totalOrders}</p> */}
                     </>
                 )}
             </div>
@@ -586,7 +586,7 @@ function SalesPage() {
                     </div>
                 ) : (
                     <>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.averageOrderValue)}</p>
+                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.averageOrderValue)}</p> */}
                         <p className="text-xs mt-2 font-medium text-gray-500">Per transaction</p>
                     </>
                 )}
@@ -607,7 +607,7 @@ function SalesPage() {
                     </div>
                 ) : (
                     <>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.uniqueCustomers}</p>
+                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.uniqueCustomers}</p> */}
                         <p className="text-xs mt-2 font-medium text-gray-500">Registered customers</p>
                     </>
                 )}
@@ -717,7 +717,7 @@ function SalesPage() {
                         <button
                             onClick={() => fetchSales(currentPage)}
                             disabled={loading}
-                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            // className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
