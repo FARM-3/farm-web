@@ -387,6 +387,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, TrendingUpIcon, Eye, Edit, Trash2, FileText } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
+const styleElement = document.createElement('style');
+styleElement.innerHTML = `
+    body, html {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+`;
+document.head.appendChild(styleElement);
+
 // --- CONFIGURATION & UTILITIES ---
 
 const CoffeeColors = {
@@ -452,14 +461,15 @@ const Input = ({ type = 'text', name, id, value, onChange, placeholder, classNam
 // =========================================================
 
 const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
+    const safeInitial = initialData || {};
     const [form, setForm] = useState({
-        employee_name: initialData.employee_name || '',
-        date_of_payment: initialData.date_of_payment || new Date().toISOString().substring(0, 10),
-        days_worked: initialData.days_worked || '',
-        monthly_pay: initialData.monthly_pay || '',
-        amount_paid: initialData.amount_paid || '',
-        deduction: initialData.deduction || '0',
-        noted_reason: initialData.noted_reason || '',
+        employee_name: safeInitial.employee_name || '',
+        date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
+        days_worked: safeInitial.days_worked || '',
+        monthly_pay: safeInitial.monthly_pay || '',
+         amount_paid: safeInitial.amount_paid || '',
+         deduction: safeInitial.deduction || '0',
+         noted_reason: safeInitial.noted_reason || '',
     });
 
     const [errors, setErrors] = useState({});
@@ -470,19 +480,19 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     useEffect(() => {
         if (isOpen) {
             setForm({
-                employee_name: initialData.employee_name || '',
-                date_of_payment: initialData.date_of_payment || new Date().toISOString().substring(0, 10),
-                days_worked: initialData.days_worked || '',
-                monthly_pay: initialData.monthly_pay || '',
-                amount_paid: initialData.amount_paid || '',
-                deduction: initialData.deduction || '0',
-                noted_reason: initialData.noted_reason || '',
+                employee_name: safeInitial.employee_name || '',
+                date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
+                days_worked: safeInitial.days_worked || '',
+                monthly_pay: safeInitial.monthly_pay || '',
+                amount_paid: safeInitial.amount_paid || '',
+                deduction:  safeInitial.deduction || '0',
+                noted_reason: safeInitial.noted_reason || '',
             });
             setErrors({});
             setMessage('');
             setAttemptedSubmit(false);
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, safeInitial]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -929,7 +939,7 @@ function Wages() {
 
     return (
         <SideNav>
-            <main className={`${mobilePadding} pt-0`}>
+            <main className={`${mobilePadding} pt-0`} style={{ maxWidth: '100%', overflowX: 'hidden' }}>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">Wages Records Overview</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -1010,9 +1020,9 @@ function Wages() {
                     </div>
                 </div>
 
-                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
+                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300" style={{ maxWidth: '100%' }}>
+                    <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                        <table className="min-w-full divide-y divide-gray-100" style={{ width: '100%', tableLayout: 'auto' }}>
                             <thead className="sticky top-0 z-10 bg-[#efebe9] text-[#4A3423]">
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
