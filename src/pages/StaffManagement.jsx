@@ -751,7 +751,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, User, MapPin 
+   X, RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, UserCircle, MapPin 
 } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
@@ -913,7 +913,6 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             if (!ok) allValid = false;
         }
         setValidation(prev => ({ ...prev, ...newValidation }));
-
         if (!allValid) {
             // keep UI-driven messages; still give a lightweight hint
             alert('Please fix highlighted fields before submitting.');

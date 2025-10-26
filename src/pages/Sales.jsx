@@ -516,7 +516,7 @@ function SalesPage() {
     }
 
     // Calculate KPI metrics from real-time data
-    const calculateKPIs = () => {
+    const KPIs = () => {
         if (!sales || sales.length === 0) {
             return {
                 totalSales: 0,
@@ -546,9 +546,8 @@ function SalesPage() {
         };
     };
 
-    const kpis = calculateKPIs();
-
-    const KPICards = () => (
+    // const kpis = calculateKPIs();
+    const  KPICards = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-white p-6 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
@@ -565,8 +564,8 @@ function SalesPage() {
                     </div>
                 ) : (
                     <>
-                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalSales)}</p> */}
-                        {/* <p className="text-xs text-success mt-2 font-medium text-gray-500">Total orders: {kpis.totalOrders}</p> */}
+                         <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalSales)}</p> 
+                         <p className="text-xs text-success mt-2 font-medium text-gray-500">Total orders: {kpis.totalOrders}</p> 
                     </>
                 )}
             </div>
