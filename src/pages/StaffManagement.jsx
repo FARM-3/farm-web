@@ -751,7 +751,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, User, MapPin, 
+    RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, User, MapPin 
 } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
