@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     Home, DollarSign, ShoppingBag, Users, Settings, LogOut, Menu, X, Bell, UserCircle,
-    RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, Plus, ChevronsDown, Loader2
+    RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, Plus, ChevronsDown, Loader2, User, MapPin
 } from 'lucide-react'; // Added Plus icon for 'Record New Staff'
 import { SideNav } from '../components/SideNav';
 
@@ -292,12 +292,118 @@ function StaffPage() {
         <SideNav>
             <main className="p-4 sm:p-6 md:p-8 pt-0">
 
-                {/* Top Action Bar */}
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-text-default mb-4 md:mb-0">
-                        Staff Details
-                    </h1>
-                    <div className="flex space-x-3 mt-4 md:mt-0">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">
+                    Staff Management Overview
+                </h2>
+
+
+                {/* KPI Cards - Staff Analytics */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Total Staff */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <Users className="w-4 h-4 mr-1" stroke="#8B4513" />
+                                Total Staff
+                            </p>
+                            <Users className="w-4 h-4" stroke="#8D8D8D" strokeWidth={2.2} />
+                        </div>
+                        {loading ? (
+                            <div className="flex items-center gap-2 mt-2">
+                                <RefreshCw className="w-6 h-6 animate-spin text-[#795548]" />
+                                <span className="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
+                                    {staff.length}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2 font-medium">Active employees</p>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Male Staff */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <User className="w-4 h-4 mr-1" stroke="#4A90E2" />
+                                Male Staff
+                            </p>
+                            <User className="w-4 h-4" stroke="#8D8D8D" strokeWidth={2.2} />
+                        </div>
+                        {loading ? (
+                            <div className="flex items-center gap-2 mt-2">
+                                <RefreshCw className="w-6 h-6 animate-spin text-[#795548]" />
+                                <span className="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
+                                    {staff.filter(s => s.gender?.toLowerCase() === 'male').length}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2 font-medium">
+                                    {staff.length > 0 ? Math.round((staff.filter(s => s.gender?.toLowerCase() === 'male').length / staff.length) * 100) : 0}% of total
+                                </p>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Female Staff */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <User className="w-4 h-4 mr-1" stroke="#E91E63" />
+                                Female Staff
+                            </p>
+                            <User className="w-4 h-4" stroke="#8D8D8D" strokeWidth={2.2} />
+                        </div>
+                        {loading ? (
+                            <div className="flex items-center gap-2 mt-2">
+                                <RefreshCw className="w-6 h-6 animate-spin text-[#795548]" />
+                                <span className="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
+                                    {staff.filter(s => s.gender?.toLowerCase() === 'female').length}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2 font-medium">
+                                    {staff.length > 0 ? Math.round((staff.filter(s => s.gender?.toLowerCase() === 'female').length / staff.length) * 100) : 0}% of total
+                                </p>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Unique Districts */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <MapPin className="w-4 h-4 mr-1" stroke="#34A853" />
+                                Districts
+                            </p>
+                            <MapPin className="w-4 h-4" stroke="#8D8D8D" strokeWidth={2.2} />
+                        </div>
+                        {loading ? (
+                            <div className="flex items-center gap-2 mt-2">
+                                <RefreshCw className="w-6 h-6 animate-spin text-[#795548]" />
+                                <span className="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
+                                    {new Set(staff.map(s => s.district).filter(Boolean)).size}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2 font-medium">Unique locations</p>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Action Bar */}
+                <div className="mb-8 flex flex-wrap justify-between items-center gap-3">
+                    <div></div>
+                    <div className="flex gap-3">
                         <button
                             onClick={() => navigate('/staffRegistration')}
                             className="py-2 px-4 shadow-xl rounded-xl"
@@ -316,7 +422,7 @@ function StaffPage() {
                 </div>
 
                 {/* Search, Filter, Refresh Bar */}
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 items-stretch sm:items-center p-4 rounded-lg bg-white shadow-md">
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 items-stretch sm:items-center p-4 rounded-lg bg-white shadow-md mb-6">
                     
                     {/* Search Input */}
                     <div className="relative flex-1 max-w-sm">
@@ -365,7 +471,7 @@ function StaffPage() {
                                     {TABLE_HEADERS.map((header) => (
                                         <th
                                             key={header.key}
-                                            className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer hover:bg-accent-btn/90 transition-colors duration-150"
+                                            className="px-6 py-3 text-sm font-semibold uppercase tracking-wider cursor-pointer hover:bg-accent-btn/90 transition-colors duration-150"
                                             onClick={() => requestSort(header.key)}
                                             scope="col"
                                         >
@@ -375,12 +481,12 @@ function StaffPage() {
                                             </div>
                                         </th>
                                     ))}
-                                    <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                    <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                         Actions
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-gray-100 text-xs">
                                 {renderTableContent()}
                             </tbody>
                         </table>

@@ -375,38 +375,38 @@ const AggregationPage = () => {
                             <tr>
                                 {activeTab === 'farmers' ? (
                                     <>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer ID
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer Name
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Recorded
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Actions
                                         </th>
                                     </>
                                 ) : (
                                     <>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Harvest ID
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer Name
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Delivered
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Actions
                                         </th>
                                     </>
                                 )}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 text-xs">
                             {loading ? (
                                 <tr className="h-24">
                                     <td colSpan="4" className="text-center py-6 text-gray-600">

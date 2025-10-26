@@ -899,10 +899,10 @@ function Wages() {
             const dateStr = wage.date_of_payment ? new Date(wage.date_of_payment).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
             return (
                 <tr key={index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-[#efebe9]/30">
-                    <td className="px-6 py-4 text-left font-semibold text-[#4A3423] text-sm">{wage.employee_name || 'N/A'}</td>
-                    <td className="px-6 py-4 text-center text-gray-700 text-sm">{dateStr}</td>
-                    <td className="px-6 py-4 text-center text-gray-700 text-sm font-medium">{wage.days_worked || 0}</td>
-                    <td className="px-6 py-4 text-right text-[#34A853] font-bold whitespace-nowrap text-base">UGX {formatUGX(wage.amount_paid)}</td>
+                    <td className="px-6 py-4 text-left font-semibold text-[#4A3423]">{wage.employee_name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-center text-gray-700">{dateStr}</td>
+                    <td className="px-6 py-4 text-center text-gray-700 font-medium">{wage.days_worked || 0}</td>
+                    <td className="px-6 py-4 text-right text-[#34A853] font-bold whitespace-nowrap">UGX {formatUGX(wage.amount_paid)}</td>
                     <td className="px-6 py-4 text-right text-[#EA4335] font-semibold whitespace-nowrap">UGX {formatUGX(wage.deduction)}</td>
                     <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
@@ -1018,7 +1018,7 @@ function Wages() {
                                     {TABLE_HEADERS.map((header) => (
                                         <th
                                             key={header.key}
-                                            className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider ${header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'} whitespace-nowrap ${header.icon !== null ? 'cursor-pointer' : ''}`}
+                                            className={`px-6 py-3 text-sm font-semibold uppercase tracking-wider ${header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'} whitespace-nowrap ${header.icon !== null ? 'cursor-pointer' : ''}`}
                                             onClick={() => header.icon !== null && requestSort(header.key)}
                                             scope="col"
                                         >
@@ -1031,7 +1031,7 @@ function Wages() {
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="bg-white/80 divide-y divide-gray-100 text-sm text-[#4A3423]">
+                            <tbody className="bg-white/80 divide-y divide-gray-100 text-xs text-[#4A3423]">
                                 {renderTableContent()}
                             </tbody>
                         </table>
