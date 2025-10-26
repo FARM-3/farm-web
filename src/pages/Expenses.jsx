@@ -1198,19 +1198,59 @@ export function ExpensesPage() {
             </main>
 
             {/* --- Delete Confirmation Modal --- */}
-            {showDeleteModal && expenseToDelete && (
-                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full mx-4">
-                        <h3 className="text-xl font-bold mb-4" style={{ color: ACCENT_COLORS.ACCENT_BROWN }}>Confirm Deletion</h3>
-                        <p className="text-gray-600 mb-6">Are you sure you want to delete the expense: **{expenseToDelete.expense_name}**?</p>
-                        <div className="flex justify-end space-x-3">
-                            <button onClick={() => { setShowDeleteModal(false); setExpenseToDelete(null); }} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors text-sm" disabled={deleting}>Cancel</button>
-                            <button onClick={handleDeleteExpense} disabled={deleting} className="px-4 py-2 text-white rounded-lg transition-colors flex items-center shadow-md" style={{ backgroundColor: '#D32F2F' }}>
-                                {deleting ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Deleting...</>) : ('Delete Permanently')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+            {showDeleteModal && expenseToDelete && (
+                <div
+                    className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                        zIndex: 1000,
+                    }}
+                    onClick={() => { setShowDeleteModal(false); setExpenseToDelete(null); }}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-[#4A3423]">Confirm Delete</h3>
+                            <button
+                                onClick={() => { setShowDeleteModal(false); setExpenseToDelete(null); }}
+                                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <p className="text-gray-700 mb-6">
+                            Are you sure you want to delete the expense: <strong>{expenseToDelete.expense_name}</strong>?
+                            <br />
+                            <span className="text-sm text-gray-500">This action cannot be undone.</span>
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => { setShowDeleteModal(false); setExpenseToDelete(null); }}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                                disabled={deleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteExpense}
+                                disabled={deleting}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 flex items-center"
+                                style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}
+                            >
+                                {deleting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* --- Expense Entry Modal (Internal Component) --- */}

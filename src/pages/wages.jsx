@@ -479,20 +479,21 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
     useEffect(() => {
         if (isOpen) {
+            const safeData = initialData || {};
             setForm({
-                employee_name: safeInitial.employee_name || '',
-                date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
-                days_worked: safeInitial.days_worked || '',
-                monthly_pay: safeInitial.monthly_pay || '',
-                amount_paid: safeInitial.amount_paid || '',
-                deduction:  safeInitial.deduction || '0',
-                noted_reason: safeInitial.noted_reason || '',
+                employee_name: safeData.employee_name || '',
+                date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
+                days_worked: safeData.days_worked || '',
+                monthly_pay: safeData.monthly_pay || '',
+                amount_paid: safeData.amount_paid || '',
+                deduction:  safeData.deduction || '0',
+                noted_reason: safeData.noted_reason || '',
             });
             setErrors({});
             setMessage('');
             setAttemptedSubmit(false);
         }
-    }, [isOpen, safeInitial]);
+    }, [isOpen, initialData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -812,6 +813,9 @@ function Wages() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingWage, setEditingWage] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [wageToDelete, setWageToDelete] = useState(null);
     const itemsPerPage = 7;
 
     const fetchWages = useCallback(async (page = 1) => {
@@ -840,8 +844,29 @@ function Wages() {
         fetchWages(currentPage);
     }, [fetchWages, currentPage]);
 
-    const handleSaveSuccess = () => {
+    const handleSaveSuccess = (wageData) => {
+        if (editingWage) {
+            // Update existing wage
+            setWages(prevWages => prevWages.map(w => w.id === editingWage.id ? { ...editingWage, ...wageData } : w));
+
+            // Also update MOCK_WAGES_DATA for persistence
+            const index = MOCK_WAGES_DATA.findIndex(w => w.id === editingWage.id);
+            if (index > -1) {
+                MOCK_WAGES_DATA[index] = { ...MOCK_WAGES_DATA[index], ...wageData };
+            }
+        } else {
+            // Add new wage
+            const newWage = {
+                id: MOCK_WAGES_DATA.length > 0 ? Math.max(...MOCK_WAGES_DATA.map(w => w.id)) + 1 : 1,
+                ...wageData
+            };
+
+            setWages(prevWages => [newWage, ...prevWages]);
+            MOCK_WAGES_DATA.unshift(newWage);
+        }
+
         setIsModalOpen(false);
+        setEditingWage(null);
         setCurrentPage(1);
         fetchWages(1);
     };
@@ -883,6 +908,40 @@ function Wages() {
         return sortConfig.direction === 'ascending' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
     };
 
+    const handleEditWage = (wage) => {
+        setEditingWage(wage);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteWage = (wage) => {
+        setWageToDelete(wage);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = () => {
+        if (wageToDelete) {
+            // Update the wages list by removing the deleted wage
+            setWages(prevWages => prevWages.filter(w => w.id !== wageToDelete.id));
+
+            // Also remove from MOCK_WAGES_DATA if needed for persistence in this session
+            const index = MOCK_WAGES_DATA.findIndex(w => w.id === wageToDelete.id);
+            if (index > -1) {
+                MOCK_WAGES_DATA.splice(index, 1);
+            }
+
+            setShowDeleteModal(false);
+            setWageToDelete(null);
+
+            // Refresh the current page
+            fetchWages(currentPage);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setWageToDelete(null);
+    };
+
     const renderTableContent = () => {
         if (loading) {
             return (
@@ -917,13 +976,13 @@ function Wages() {
                     <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
                             <button
-                                onClick={() => alert(`Editing wage for ${wage.employee_name}`)}
+                                onClick={() => handleEditWage(wage)}
                                 className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
                             >
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button
-                                onClick={() => alert(`Deleting wage for ${wage.employee_name}`)}
+                                onClick={() => handleDeleteWage(wage)}
                                 className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -1060,7 +1119,54 @@ function Wages() {
                     )}
                 </div>
 
-                <WagesModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaveSuccess={handleSaveSuccess} />
+                <WagesModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingWage(null); }} onSaveSuccess={handleSaveSuccess} initialData={editingWage} />
+
+                {/* Delete Confirmation Modal */}
+                {showDeleteModal && (
+                    <div
+                        className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                            zIndex: 1000,
+                        }}
+                        onClick={cancelDelete}
+                    >
+                        <div
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 p-6"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-[#4A3423]">Confirm Delete</h3>
+                                <button
+                                    onClick={cancelDelete}
+                                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <p className="text-gray-700 mb-6">
+                                Are you sure you want to delete the wage record for <strong>{wageToDelete?.employee_name}</strong>?
+                                <br />
+                                <span className="text-sm text-gray-500">This action cannot be undone.</span>
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={cancelDelete}
+                                    className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200"
+                                    style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </SideNav>
     );

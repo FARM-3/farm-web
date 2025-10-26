@@ -338,6 +338,7 @@
 //                                         required
 //                                         className={getInputClass('subcounty', true, true)}
 //                                         disabled={!subcountyOptions.length}
+
 //                                     >
 //                                         <option value="" disabled>-- Select Subcounty --</option>
 //                                         {subcountyOptions.map(s => <option key={s} value={s}>{s}</option>)}
@@ -751,7 +752,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-   X, RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, UserCircle, MapPin 
+   X, RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, UserCircle, MapPin, Users, UserCheck, UserX, TrendingUp
 } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
@@ -1239,6 +1240,42 @@ const TABLE_HEADERS = [
     { key: 'hire-date', label: 'Hire Date', type: 'date' },
 ];
 
+// INITIAL MOCK DATA - default staff records
+const INITIAL_STAFF_DATA = [
+    { id: 1, staff_id: 'RF001', first_name: 'Billy', last_name: 'Banks', gender: 'Male', nin: 'CM004GDT777G88', district: 'Wakiso', date_hired: '2023-06-15' },
+    { id: 2, staff_id: 'RF002', first_name: 'Ivan', last_name: 'Koreta', gender: 'Male', nin: 'CM00566674632A', district: 'Wakiso', date_hired: '2024-11-20' },
+    { id: 3, staff_id: 'RF003', first_name: 'Jackson', last_name: 'Ssemengo', gender: 'Male', nin: 'CM004673H7645F', district: 'Wakiso', date_hired: '2024-05-07' },
+    { id: 4, staff_id: 'RF004', first_name: 'Justine', last_name: 'Natasha', gender: 'Female', nin: 'CF003674F7894A', district: 'Wakiso', date_hired: '2024-10-16' },
+    { id: 5, staff_id: 'RF005', first_name: 'Agnes', last_name: 'Nalubega', gender: 'Female', nin: 'CF003675N876B', district: 'Mpigi', date_hired: '2023-03-22' },
+    { id: 6, staff_id: 'RF006', first_name: 'Peter', last_name: 'Mwesigye', gender: 'Male', nin: 'CM004678P1234C', district: 'Mbarara', date_hired: '2024-01-10' },
+];
+
+// Helper functions for localStorage persistence
+const STORAGE_KEY = 'staff_management_data';
+
+const getStoredStaffData = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (error) {
+        console.error('Error reading from localStorage:', error);
+    }
+    return [...INITIAL_STAFF_DATA];
+};
+
+const saveStaffDataToStorage = (data) => {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+        console.error('Error saving to localStorage:', error);
+    }
+};
+
+// Initialize MOCK_STAFF_DATA from localStorage or use initial data
+let MOCK_STAFF_DATA = getStoredStaffData();
+
 function StaffPage() {
     const [staff, setStaff] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -1253,15 +1290,6 @@ function StaffPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [staffToDelete, setStaffToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
-
-    const MOCK_STAFF_DATA = [
-        { id: 1, staff_id: 'RF001', first_name: 'Billy', last_name: 'Banks', gender: 'Male', nin: 'CM004GDT777G88', district: 'Wakiso', date_hired: '2023-06-15' },
-        { id: 2, staff_id: 'RF002', first_name: 'Ivan', last_name: 'Koreta', gender: 'Male', nin: 'CM00566674632A', district: 'Wakiso', date_hired: '2024-11-20' },
-        { id: 3, staff_id: 'RF003', first_name: 'Jackson', last_name: 'Ssemengo', gender: 'Male', nin: 'CM004673H7645F', district: 'Wakiso', date_hired: '2024-05-07' },
-        { id: 4, staff_id: 'RF004', first_name: 'Justine', last_name: 'Natasha', gender: 'Female', nin: 'CF003674F7894A', district: 'Wakiso', date_hired: '2024-10-16' },
-        { id: 5, staff_id: 'RF005', first_name: 'Agnes', last_name: 'Nalubega', gender: 'Female', nin: 'CF003675N876B', district: 'Mpigi', date_hired: '2023-03-22' },
-        { id: 6, staff_id: 'RF006', first_name: 'Peter', last_name: 'Mwesigye', gender: 'Male', nin: 'CM004678P1234C', district: 'Mbarara', date_hired: '2024-01-10' },
-    ];
 
     const fetchStaff = useCallback(async () => {
         setLoading(true);
@@ -1344,13 +1372,101 @@ function StaffPage() {
         setIsStaffModalOpen(true);
     };
 
-    const handleSaveStaff = (savedStaffData) => {
+    const handleSaveStaff = async (savedStaffData) => {
+        console.log('handleSaveStaff called with:', savedStaffData);
         if (!savedStaffData) return;
-        // keep list consistent: store hire_date; existing mock uses date_hired but we support both when rendering
-        if (staffToEdit) {
-            setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...savedStaffData } : s));
-        } else {
-            setStaff(prev => [savedStaffData, ...prev]);
+
+        // Prepare data for API (use sub_county instead of subcounty, date_hired instead of hire_date)
+        const apiData = {
+            first_name: savedStaffData.first_name,
+            last_name: savedStaffData.last_name,
+            nin: savedStaffData.nin,
+            district: savedStaffData.district,
+            sub_county: savedStaffData.subcounty || savedStaffData.sub_county,
+            parish: savedStaffData.parish,
+            village: savedStaffData.village,
+            gender: savedStaffData.gender,
+            date_hired: savedStaffData.hire_date || savedStaffData.date_hired,
+            employment_type: savedStaffData.employment_status || 'fulltime',
+            is_active: true
+        };
+
+        try {
+            if (staffToEdit) {
+                // Update existing staff via PUT request
+                console.log('Updating existing staff via API');
+                const response = await fetch(`${STAFF_API_ENDPOINT}${staffToEdit.staff_id}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(apiData)
+                });
+
+                if (response.ok) {
+                    const updatedStaff = await response.json();
+                    console.log('Staff updated successfully:', updatedStaff);
+
+                    // Update local state
+                    const staffWithDateHired = { ...updatedStaff, date_hired: updatedStaff.date_hired };
+                    const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
+                    if (index > -1) {
+                        MOCK_STAFF_DATA[index] = { ...staffWithDateHired };
+                    }
+                    setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithDateHired } : s));
+
+                    // Save to localStorage as backup
+                    saveStaffDataToStorage(MOCK_STAFF_DATA);
+                } else {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+            } else {
+                // Add new staff via POST request
+                console.log('Creating new staff via API');
+                const response = await fetch(STAFF_API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(apiData)
+                });
+
+                if (response.ok) {
+                    const newStaff = await response.json();
+                    console.log('Staff created successfully:', newStaff);
+
+                    // Update local state with API-generated data
+                    MOCK_STAFF_DATA.unshift(newStaff);
+                    setStaff(prev => [newStaff, ...prev]);
+
+                    // Save to localStorage as backup
+                    saveStaffDataToStorage(MOCK_STAFF_DATA);
+                } else {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to save staff to API:', error);
+            alert('Failed to save to database. The record has been saved locally but may not persist.');
+
+            // Fallback to localStorage only
+            const staffWithDateHired = {
+                ...savedStaffData,
+                date_hired: savedStaffData.hire_date || savedStaffData.date_hired
+            };
+
+            if (staffToEdit) {
+                const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
+                if (index > -1) {
+                    MOCK_STAFF_DATA[index] = { ...staffWithDateHired };
+                }
+                setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithDateHired } : s));
+            } else {
+                MOCK_STAFF_DATA.unshift(staffWithDateHired);
+                setStaff(prev => [staffWithDateHired, ...prev]);
+            }
+
+            saveStaffDataToStorage(MOCK_STAFF_DATA);
         }
     };
 
@@ -1358,12 +1474,44 @@ function StaffPage() {
         if (!staffToDelete) return;
         setDeleting(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Delete from API
+            const response = await fetch(`${STAFF_API_ENDPOINT}${staffToDelete.staff_id}/`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok || response.status === 404) {
+                console.log('Staff deleted successfully from API');
+
+                // Remove from MOCK_STAFF_DATA
+                const index = MOCK_STAFF_DATA.findIndex(s => s.id === staffToDelete.id);
+                if (index > -1) {
+                    MOCK_STAFF_DATA.splice(index, 1);
+                }
+
+                // Update state
+                setStaff(prev => prev.filter(s => s.id !== staffToDelete.id));
+
+                // Save to localStorage for persistence
+                saveStaffDataToStorage(MOCK_STAFF_DATA);
+
+                setShowDeleteModal(false);
+                setStaffToDelete(null);
+            } else {
+                throw new Error(`API Error: ${response.status}`);
+            }
+        } catch (err) {
+            console.error('Failed to delete from API:', err);
+            // Still delete locally even if API fails
+            const index = MOCK_STAFF_DATA.findIndex(s => s.id === staffToDelete.id);
+            if (index > -1) {
+                MOCK_STAFF_DATA.splice(index, 1);
+            }
             setStaff(prev => prev.filter(s => s.id !== staffToDelete.id));
+            saveStaffDataToStorage(MOCK_STAFF_DATA);
+
             setShowDeleteModal(false);
             setStaffToDelete(null);
-        } catch (err) {
-            setError('Failed to delete staff member.');
+            setError('Deleted locally, but failed to sync with database.');
         } finally {
             setDeleting(false);
         }
@@ -1424,16 +1572,152 @@ function StaffPage() {
         ));
     };
 
+    // Calculate KPI metrics
+    const kpis = useMemo(() => {
+        if (!staff || staff.length === 0) {
+            return {
+                totalStaff: 0,
+                maleStaff: 0,
+                femaleStaff: 0,
+                recentHires: 0
+            };
+        }
+
+        const totalStaff = staff.length;
+        const maleStaff = staff.filter(s => s.gender === 'Male').length;
+        const femaleStaff = staff.filter(s => s.gender === 'Female').length;
+
+        // Count staff hired in the last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const recentHires = staff.filter(s => {
+            const hireDate = new Date(s.hire_date || s.date_hired);
+            return hireDate >= thirtyDaysAgo;
+        }).length;
+
+        return {
+            totalStaff,
+            maleStaff,
+            femaleStaff,
+            recentHires
+        };
+    }, [staff]);
+
+    const KPICards = () => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-2xl shadow-lg">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-500 flex items-center">
+                        <Users className="w-4 h-4 mr-1" style={{ color: '#8B4513' }} />
+                        Total Staff
+                    </p>
+                    <Users className="w-4 h-4 text-gray-400" strokeWidth={2.2} />
+                </div>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.totalStaff}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Active employees</p>
+                    </>
+                )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl shadow-lg">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-500 flex items-center">
+                        <UserCheck className="w-4 h-4 mr-1" style={{ color: '#34A853' }} />
+                        Male Staff
+                    </p>
+                    <UserCheck className="w-4 h-4 text-gray-400" strokeWidth={2.2} />
+                </div>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.maleStaff}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">
+                            {kpis.totalStaff > 0 ? `${((kpis.maleStaff / kpis.totalStaff) * 100).toFixed(0)}% of staff` : '0% of staff'}
+                        </p>
+                    </>
+                )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl shadow-lg">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-500 flex items-center">
+                        <UserX className="w-4 h-4 mr-1" style={{ color: '#EA4335' }} />
+                        Female Staff
+                    </p>
+                    <UserX className="w-4 h-4 text-gray-400" strokeWidth={2.2} />
+                </div>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.femaleStaff}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">
+                            {kpis.totalStaff > 0 ? `${((kpis.femaleStaff / kpis.totalStaff) * 100).toFixed(0)}% of staff` : '0% of staff'}
+                        </p>
+                    </>
+                )}
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl shadow-lg">
+                <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-gray-500 flex items-center">
+                        <TrendingUp className="w-4 h-4 mr-1" style={{ color: '#FBBC04' }} />
+                        Recent Hires
+                    </p>
+                    <Calendar className="w-4 h-4 text-gray-400" strokeWidth={2.2} />
+                </div>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
+                        <span className="text-sm text-gray-500">Loading...</span>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.recentHires}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Last 30 days</p>
+                    </>
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <SideNav>
             <main className="p-4 sm:p-6 md:p-8 pt-0">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-6">Staff Management Overview</h2>
+
+                <KPICards />
+
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-text-default mb-4 md:mb-0">Staff Details</h1>
+                    <div className="hidden md:block"></div>
                     <div className="flex space-x-3 mt-4 md:mt-0">
-                        <button onClick={handleNewStaff} className="py-2 px-4 shadow-xl rounded-xl" style={{ backgroundColor: CoffeeColors.BUTTON_BROWN, color: '#FFFFFF', border: 'none' }}>
-                            <Plus className="w-5 h-5 mr-2 inline-block" /> Record New Staff
+                        <button
+                            onClick={handleNewStaff}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
+                            style={{ backgroundColor: '#8B4513' }}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Record New Staff
                         </button>
-                        <button onClick={() => alert('Exporting to Excel is not yet implemented.')} className="py-2 px-4 shadow-xl rounded-xl" style={{ backgroundColor: CoffeeColors.ACTIVE_LINK_BG, color: CoffeeColors.ACTIVE_LINK_TEXT, border: 'none' }}>
+                        <button
+                            onClick={() => alert('Exporting to Excel is not yet implemented.')}
+                            className="py-2 px-4 shadow-xl rounded-xl font-semibold hover:shadow-2xl transition-all duration-200"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
+                        >
                             Export to Excel
                         </button>
                     </div>
@@ -1485,15 +1769,57 @@ function StaffPage() {
 
             <StaffEntryModal isOpen={isStaffModalOpen} onClose={() => { setIsStaffModalOpen(false); setStaffToEdit(null); }} staffData={staffToEdit} onSave={handleSaveStaff} />
 
+
+            {/* Delete Confirmation Modal */}
             {showDeleteModal && staffToDelete && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white p-6 rounded-lg shadow-2xl max-w-md w-full mx-4">
-                        <h3 className="text-xl font-bold mb-4 text-text-default">Confirm Deletion</h3>
-                        <p className="text-gray-600 mb-6">Are you sure you want to delete staff member: <strong>{staffToDelete.first_name} {staffToDelete.last_name}</strong>? This action cannot be undone.</p>
-                        <div className="flex justify-end space-x-3">
-                            <button onClick={() => { setShowDeleteModal(false); setStaffToDelete(null); }} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-100" disabled={deleting}>Cancel</button>
-                            <button onClick={handleDeleteStaff} disabled={deleting} className="px-4 py-2 text-white rounded-lg flex items-center" style={{ backgroundColor: '#D32F2F' }}>
-                                {deleting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Deleting...</> : 'Delete Permanently'}
+                <div
+                    className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                        zIndex: 1000,
+                    }}
+                    onClick={() => { setShowDeleteModal(false); setStaffToDelete(null); }}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-[#4A3423]">Confirm Delete</h3>
+                            <button
+                                onClick={() => { setShowDeleteModal(false); setStaffToDelete(null); }}
+                                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <p className="text-gray-700 mb-6">
+                            Are you sure you want to delete staff member: <strong>{staffToDelete.first_name} {staffToDelete.last_name}</strong>?
+                            <br />
+                            <span className="text-sm text-gray-500">This action cannot be undone.</span>
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => { setShowDeleteModal(false); setStaffToDelete(null); }}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                                disabled={deleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteStaff}
+                                disabled={deleting}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 flex items-center"
+                                style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}
+                            >
+                                {deleting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
                             </button>
                         </div>
                     </div>

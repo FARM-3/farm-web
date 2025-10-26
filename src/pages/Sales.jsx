@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, ShoppingBag, Truck, X, Plus, Send } from 'lucide-react';
+import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, ShoppingBag, X, Plus, Send } from 'lucide-react';
 
 // 💡 IMPORTANT: ADJUST THE PATH BELOW TO YOUR ACTUAL SideNav COMPONENT
 import SideNav from '../components/SideNav'; 
 
 // --- MOCK DATA ---
 const MOCK_SALES = [
-    { id: 1, customer_name: 'Richard Mac', item: 'Coffee', quantity: 70, payment_method: 'Cash', date: '2025-10-22' },
-    { id: 2, customer_name: 'Winnie Daisy', item: 'Coffee', quantity: 100, payment_method: 'Cash', date: '2025-10-16' },
-    { id: 3, customer_name: 'Emma Mas', item: 'Coffee', quantity: 200, payment_method: 'Cash', date: '2025-10-15' },
-    { id: 4, customer_name: 'Jayden Max', item: 'Coffee', quantity: 100, payment_method: 'Cash', date: '2025-10-14' },
-    { id: 5, customer_name: 'Latim Mark', item: 'Coffee', quantity: 200, payment_method: 'Mobile Money', date: '2025-10-12' },
-    { id: 6, customer_name: 'Sophia Lee', item: 'Coffee', quantity: 85, payment_method: 'Credit Card', date: '2025-10-10' },
-    { id: 7, customer_name: 'Liam Chen', item: 'Coffee', quantity: 120, payment_method: 'Cash', date: '2025-10-09' },
-    { id: 8, customer_name: 'Aisha Nabaasa', item: 'Vanilla', quantity: 50, payment_method: 'Cash', date: '2025-10-08' },
-    { id: 9, customer_name: 'Musa Sempa', item: 'Coffee', quantity: 150, payment_method: 'Mobile Money', date: '2025-10-07' },
+    { id: 1, customer_name: 'Richard Mac', item: 'Coffee', quantity: 70, rate: 5000, payment_method: 'Cash', date: '2025-10-22' },
+    { id: 2, customer_name: 'Winnie Daisy', item: 'Coffee', quantity: 100, rate: 5000, payment_method: 'Cash', date: '2025-10-16' },
+    { id: 3, customer_name: 'Emma Mas', item: 'Coffee', quantity: 200, rate: 5000, payment_method: 'Cash', date: '2025-10-15' },
+    { id: 4, customer_name: 'Jayden Max', item: 'Coffee', quantity: 100, rate: 5000, payment_method: 'Cash', date: '2025-10-14' },
+    { id: 5, customer_name: 'Latim Mark', item: 'Coffee', quantity: 200, rate: 5000, payment_method: 'Mobile Money', date: '2025-10-12' },
+    { id: 6, customer_name: 'Sophia Lee', item: 'Coffee', quantity: 85, rate: 5000, payment_method: 'Credit Card', date: '2025-10-10' },
+    { id: 7, customer_name: 'Liam Chen', item: 'Coffee', quantity: 120, rate: 5000, payment_method: 'Cash', date: '2025-10-09' },
+    { id: 8, customer_name: 'Aisha Nabaasa', item: 'Vanilla', quantity: 50, rate: 4500, payment_method: 'Cash', date: '2025-10-08' },
+    { id: 9, customer_name: 'Musa Sempa', item: 'Coffee', quantity: 150, rate: 5000, payment_method: 'Mobile Money', date: '2025-10-07' },
 ];
 
 // --- CONFIGURATION & UTILITIES ---
@@ -49,6 +49,7 @@ const formatUGX = (amount) => {
 
 // --- SHARED COMPONENTS (Customized Button) ---
 
+/* Commented out - not currently used
 const Button = ({ children, onClick, className, disabled, type = 'primary' }) => {
     const baseClasses = `px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm`;
     
@@ -89,33 +90,47 @@ const Button = ({ children, onClick, className, disabled, type = 'primary' }) =>
         </button>
     );
 };
+*/
 
 // --- SALES ENTRY LOGIC ---
 
 const initialFormData = {
-    firstName: '', lastName: '', product: '', item: '', quantity: '', rate: '',
-    dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: ''
+    customer_name: '',
+    item: '',
+    quantity: '',
+    rate: '',
+    amount: '',
+    date_of_payment: '',
+    method_of_payment: ''
 };
-const products = ['Coffee', 'Banana', 'Rice', 'Wheat', 'Cassava'];
-const items = ['Dried', 'Hulled'];
-const statuses = ['Paid', 'Pending', 'Partial'];
+
+const items = ['Coffee', 'Vanilla', 'Robusta', 'Arabica'];
 const paymentMethods = ['Cash', 'Mobile Money', 'Bank Transfer', 'Cheque'];
 
-const useSalesForm = (onSuccess) => {
-    const [formData, setFormData] = useState(initialFormData);
+const useSalesForm = (onSuccess, editData = null) => {
+    const [formData, setFormData] = useState(editData || initialFormData);
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
 
+    // Update form when editData changes
+    useEffect(() => {
+        if (editData) {
+            setFormData(editData);
+        } else {
+            setFormData(initialFormData);
+        }
+    }, [editData]);
+
     const validateField = (name, value) => {
         switch (name) {
-            case 'firstName': case 'lastName':
+            case 'customer_name':
                 return value.trim().length < 2 ? 'Must be at least 2 characters' : '';
-            case 'product': case 'item': case 'status': case 'methodOfPayment':
+            case 'item': case 'method_of_payment':
                 return !value ? 'This field is required' : '';
-            case 'quantity': case 'rate':
+            case 'quantity': case 'rate': case 'amount':
                 const numVal = parseFloat(value);
                 return !value || isNaN(numVal) || numVal <= 0 ? 'Must be a positive number' : '';
-            case 'dateOfPayment':
+            case 'date_of_payment':
                 return !value ? 'Date is required' : '';
             default: return '';
         }
@@ -176,12 +191,10 @@ const useSalesForm = (onSuccess) => {
         const newErrors = {};
         let isFormValid = true;
         Object.keys(initialFormData).forEach(key => {
-            if (key !== 'balance' && key !== 'amount' && key !== 'batchId') {
-                const error = validateField(key, formData[key]);
-                if (error) {
-                    newErrors[key] = error;
-                    isFormValid = false;
-                }
+            const error = validateField(key, formData[key]);
+            if (error) {
+                newErrors[key] = error;
+                isFormValid = false;
             }
         });
 
@@ -197,7 +210,7 @@ const useSalesForm = (onSuccess) => {
         } 
     };
 
-    return { formData, errors, touched, products, items, statuses, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit, resetForm };
+    return { formData, errors, touched, items, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit, resetForm };
 };
 
 // --- MODAL SECTION HEADER COMPONENT ---
@@ -223,8 +236,8 @@ const FormSectionHeader = ({ icon: Icon, title }) => (
 // --- SalesEntryModal Component (MEDIUM SIZE ADJUSTMENT) ---
 // =========================================================
 
-const SalesEntryModal = ({ isOpen, onClose, onSubmit }) => {
-    const { formData, errors, products, items, statuses, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit } = useSalesForm(onSubmit);
+const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
+    const { formData, errors, items, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit } = useSalesForm(onSubmit, editData);
 
     if (!isOpen) return null;
 
@@ -337,58 +350,49 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit }) => {
                 <div className="flex-1 overflow-y-auto">
                     <form onSubmit={handleSubmit} className="p-6" style={{ display: 'grid', gap: '15px' }}>
 
-                        {/* 1. Customer Information Section Card */}
-                    <div style={{ 
-                        backgroundColor: CoffeeColors.FORM_CARD_BG, 
-                        borderRadius: '6px', 
-                        padding: '15px', 
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)', 
+                        {/* 1. Customer & Item Information */}
+                    <div style={{
+                        backgroundColor: CoffeeColors.FORM_CARD_BG,
+                        borderRadius: '6px',
+                        padding: '15px',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
                         border: `1px solid ${CoffeeColors.INPUT_BORDER}`
                     }}>
-                        <FormSectionHeader icon={User} title="Customer Information" />
+                        <FormSectionHeader icon={User} title="Customer & Item Information" />
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                            {renderInputField('First Name *', 'firstName', 'text', 'John')}
-                            {renderInputField('Last Name *', 'lastName', 'text', 'Doe')}
-                            {renderInputField('Product *', 'product', 'select', '-- Select Product', products)}
-                            {renderInputField('Item Type *', 'item', 'select', '-- Select Item', items)}
+                            {renderInputField('Customer Name', 'customer_name', 'text', 'e.g., John Doe')}
+                            {renderInputField('Item *', 'item', 'select', '-- Select Item', items)}
                         </div>
                     </div>
 
-                    {/* 2. Transaction Details Section Card */}
-                    <div style={{ 
-                        backgroundColor: CoffeeColors.FORM_CARD_BG, 
-                        borderRadius: '6px', 
-                        padding: '15px', 
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)', 
+                    {/* 2. Transaction Details */}
+                    <div style={{
+                        backgroundColor: CoffeeColors.FORM_CARD_BG,
+                        borderRadius: '6px',
+                        padding: '15px',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
                         border: `1px solid ${CoffeeColors.INPUT_BORDER}`
                     }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                            <FormSectionHeader icon={ShoppingBag} title="Transaction Details" />
-                            <Button type="modal-primary" className="py-1 px-3 text-xs rounded-md shadow-md">
-                                <Plus className="w-3 h-3 mr-1" /> Add Item
-                            </Button>
-                        </div>
+                        <FormSectionHeader icon={ShoppingBag} title="Transaction Details" />
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
                             {renderInputField('Quantity (Kgs/Units) *', 'quantity', 'number', 'e.g., 50')}
                             {renderInputField('Rate (UGX/Unit) *', 'rate', 'number', 'e.g., 5000')}
-                            {renderInputField('Total Amount (UGX)', 'amount', 'readonly', 'Calculated')}
-                            {renderInputField('Payment Method *', 'methodOfPayment', 'select', '-- Select Method', paymentMethods)}
+                            {renderInputField('Amount (UGX) *', 'amount', 'number', 'e.g., 250000')}
+                            {renderInputField('Payment Method *', 'method_of_payment', 'select', '-- Select Method', paymentMethods)}
                         </div>
                     </div>
 
-                    {/* 3. Payment & Dispatch Status Section Card */}
-                    <div style={{ 
-                        backgroundColor: CoffeeColors.FORM_CARD_BG, 
-                        borderRadius: '6px', 
-                        padding: '15px', 
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)', 
+                    {/* 3. Payment Date */}
+                    <div style={{
+                        backgroundColor: CoffeeColors.FORM_CARD_BG,
+                        borderRadius: '6px',
+                        padding: '15px',
+                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
                         border: `1px solid ${CoffeeColors.INPUT_BORDER}`
                     }}>
-                        <FormSectionHeader icon={Truck} title="Payment & Dispatch Status" />
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                            {renderInputField('Date of Payment *', 'dateOfPayment', 'date', '')}
-                            {renderInputField('Status *', 'status', 'select', '-- Select Status', statuses)}
-                            {renderInputField('Balance Due (UGX)', 'balance', 'readonly', '0.00')}
+                        <FormSectionHeader icon={Calendar} title="Payment Date" />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+                            {renderInputField('Date of Payment *', 'date_of_payment', 'date', '')}
                         </div>
                     </div>
 
@@ -455,14 +459,17 @@ const TABLE_HEADERS = [
 ];
 
 function SalesPage() {
-    const navigate = useNavigate(); 
+    const navigate = useNavigate();
     const [sales, setSales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [isModalOpen, setIsModalOpen] = useState(false); 
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingSale, setEditingSale] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [saleToDelete, setSaleToDelete] = useState(null);
     const itemsPerPage = 7;
     
     const fetchSales = useCallback(async (page = 1) => {
@@ -514,8 +521,68 @@ function SalesPage() {
     
     const handleSalesSubmit = (data) => {
         console.log('New Sales Record Submitted:', data);
+
+        if (editingSale) {
+            // Update existing sale
+            setSales(prevSales => prevSales.map(s => s.id === editingSale.id ? { ...editingSale, ...data } : s));
+
+            // Also update MOCK_SALES for persistence
+            const index = MOCK_SALES.findIndex(s => s.id === editingSale.id);
+            if (index > -1) {
+                MOCK_SALES[index] = { ...MOCK_SALES[index], ...data };
+            }
+        } else {
+            // Add new sale
+            const newSale = {
+                id: MOCK_SALES.length > 0 ? Math.max(...MOCK_SALES.map(s => s.id)) + 1 : 1,
+                ...data,
+                payment_method: data.method_of_payment
+            };
+
+            setSales(prevSales => [newSale, ...prevSales]);
+            MOCK_SALES.unshift(newSale);
+        }
+
         setIsModalOpen(false);
+        setEditingSale(null);
+
+        // Refresh the current page
+        fetchSales(currentPage);
     }
+
+    const handleEditSale = (sale) => {
+        setEditingSale(sale);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteSale = (sale) => {
+        setSaleToDelete(sale);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = () => {
+        if (saleToDelete) {
+            // Update the sales list by removing the deleted sale
+            setSales(prevSales => prevSales.filter(s => s.id !== saleToDelete.id));
+
+            // Also remove from MOCK_SALES if needed for persistence in this session
+            const index = MOCK_SALES.findIndex(s => s.id === saleToDelete.id);
+            if (index > -1) {
+                MOCK_SALES.splice(index, 1);
+            }
+
+            setShowDeleteModal(false);
+            setSaleToDelete(null);
+
+            // Refresh the current page
+            fetchSales(currentPage);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setSaleToDelete(null);
+    };
 
     // Calculate KPI metrics from real-time data
     const KPIs = () => {
@@ -550,8 +617,8 @@ function SalesPage() {
 
     const kpis = KPIs();
     const  KPICards = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white p-6 rounded-2xl shadow-lg">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-500 flex items-center">
                         <DollarSign className="w-4 h-4 mr-1" stroke={CoffeeColors.SUCCESS_GREEN} />
@@ -572,7 +639,7 @@ function SalesPage() {
                 )}
             </div>
             
-            <div className="bg-white p-6 rounded-2xl shadow-lg">
+            <div className="bg-white p-4 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-500 flex items-center">
                         <Tag className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
@@ -593,7 +660,7 @@ function SalesPage() {
                 )}
             </div>
 
-            <div className="bg-white p-6 rounded-2xl shadow-lg">
+            <div className="bg-white p-4 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-500 flex items-center">
                         <User className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
@@ -644,31 +711,31 @@ function SalesPage() {
             
             return (
                 <tr key={sale.id || index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
-                    <td className="px-6 py-3 text-left font-medium text-text-default text-sm">{sale.customer_name || 'N/A'}</td>
-                    <td className="px-6 py-3 text-left text-gray-600">{sale.item || 'N/A'}</td>
-                    <td className="px-6 py-3 text-center text-gray-600">{sale.quantity || 0}</td>
-                    <td className="px-6 py-3 text-right text-gray-700 font-semibold">
+                    <td className="px-3 py-2 text-left font-medium text-text-default text-xs">{sale.customer_name || 'N/A'}</td>
+                    <td className="px-3 py-2 text-left text-gray-600 text-xs">{sale.item || 'N/A'}</td>
+                    <td className="px-3 py-2 text-center text-gray-600 text-xs">{sale.quantity || 0}</td>
+                    <td className="px-3 py-2 text-right text-gray-700 font-semibold text-xs">
                         {parseFloat(sale.rate || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </td>
-                    <td className="px-6 py-3 text-right text-[#8B4513] font-bold">
+                    <td className="px-3 py-2 text-right text-[#8B4513] font-bold text-xs">
                         {(parseFloat(sale.quantity || 0) * parseFloat(sale.rate || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </td>
-                    <td className="px-6 py-3 text-left font-medium">
+                    <td className="px-3 py-2 text-left font-medium">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isCash ? 'bg-green-100 text-success' : 'bg-red-100 text-error'}`}>
                             {sale.payment_method || 'N/A'}
                         </span>
                     </td>
-                    <td className="px-6 py-3 text-right text-gray-600">{dateStr}</td>
-                    <td className="px-6 py-3 text-center">
+                    <td className="px-3 py-2 text-right text-gray-600 text-xs">{dateStr}</td>
+                    <td className="px-3 py-2 text-center">
                         <div className="flex items-center justify-center space-x-2">
-                            <button 
-                                onClick={() => console.log(`Editing sale ${sale.id}`)} 
+                            <button
+                                onClick={() => handleEditSale(sale)}
                                 className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
                             >
                                 <Edit className="w-4 h-4" />
                             </button>
-                            <button 
-                                onClick={() => console.log(`Deleting sale ${sale.id}`)} 
+                            <button
+                                onClick={() => handleDeleteSale(sale)}
                                 className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
                             >
                                 <Trash2 className="w-4 h-4" />
@@ -680,24 +747,22 @@ function SalesPage() {
         });
     };
     
-    const mobilePadding = 'p-4 sm:p-6 md:p-8';
-
     // ----------------------------------------------------
     // *** The SideNav component is now correctly wrapping the main content ***
     // ----------------------------------------------------
     return (
         <SideNav style={{ minHeight: '100vh', backgroundColor: CoffeeColors.SCREEN_BG }}>
-            
+
             {/* The main content area */}
-            <main className={`${mobilePadding} pt-0`}>
-                <h2 className="text-2xl sm:text-3xl font-bold text-text-default mb-8">
+            <main className="p-3 sm:p-4 md:p-6 pt-0">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-6">
                     Sales Records Overview
                 </h2>
                 
                 <KPICards />
 
                 {/* Action Bar & Filter */}
-                <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
+                <div className="mb-4 flex flex-wrap justify-between items-center gap-3">
                     <div className="flex gap-3 items-center w-full sm:w-auto order-2 sm:order-1">
                         <div className="relative flex-grow">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -724,7 +789,7 @@ function SalesPage() {
                         <button
                             onClick={() => fetchSales(currentPage)}
                             disabled={loading}
-                            // className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
@@ -741,58 +806,59 @@ function SalesPage() {
                             <Plus className="w-4 h-4 mr-2" />
                             Record New Sale
                         </button>
-                        <Button
+                        <button
                             onClick={() => console.log('Export to Excel')}
-                            className="py-2 px-4 shadow-xl rounded-xl"
+                            className="py-2 px-4 shadow-xl rounded-xl font-semibold hover:shadow-2xl transition-all duration-200"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
-                        </Button>
+                        </button>
                     </div>
                 </div>
 
                 {/* Sales Records Table Container */}
-                <div
-                    className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300"
-                >
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="sticky top-0 z-10" style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
-                                <tr>
-                                    {TABLE_HEADERS.map((header) => (
-                                        <th
-                                            key={header.key}
-                                            className={`px-6 py-3 text-sm font-semibold uppercase tracking-wider transition-colors duration-150 cursor-pointer ${
-                                                header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'
-                                            } hover:bg-accent-btn/90 whitespace-nowrap`}
-                                            onClick={() => header.key !== 'actions' && requestSort(header.key)}
-                                            scope="col"
-                                        >
-                                            <div className={`flex items-center ${header.align === 'right' ? 'justify-end' : header.align === 'center' ? 'justify-center' : 'justify-start'}`}>
-                                                {header.label}
-                                                {header.key !== 'actions' && getSortIcon(header.key)}
-                                            </div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white/80 divide-y divide-gray-100 text-xs text-text-default">
-                                {renderTableContent()}
-                            </tbody>
-                        </table>
+                <div className="w-full shadow-xl rounded-2xl bg-white transition-all duration-300 overflow-hidden">
+                    {/* Scrollable Table Wrapper */}
+                    <div className="overflow-x-auto overflow-y-visible" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        <div className="min-w-full inline-block align-middle">
+                            <table className="min-w-full divide-y divide-gray-100">
+                                <thead className="sticky top-0 z-10" style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
+                                    <tr>
+                                        {TABLE_HEADERS.map((header) => (
+                                            <th
+                                                key={header.key}
+                                                className={`px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-colors duration-150 cursor-pointer ${
+                                                    header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'
+                                                } hover:bg-accent-btn/90 whitespace-nowrap`}
+                                                onClick={() => header.key !== 'actions' && requestSort(header.key)}
+                                                scope="col"
+                                            >
+                                                <div className={`flex items-center ${header.align === 'right' ? 'justify-end' : header.align === 'center' ? 'justify-center' : 'justify-start'}`}>
+                                                    {header.label}
+                                                    {header.key !== 'actions' && getSortIcon(header.key)}
+                                                </div>
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white/80 divide-y divide-gray-100 text-xs text-text-default">
+                                    {renderTableContent()}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     {/* Pagination Controls */}
                     {totalPages >= 1 && (
-                        <div className="flex items-center justify-between px-6 py-3 bg-white border-t border-gray-100">
-                            <div className="flex items-center text-sm text-gray-700">
+                        <div className="flex items-center justify-between px-3 py-2 bg-white border-t border-gray-100 flex-wrap gap-2">
+                            <div className="flex items-center text-xs text-gray-700">
                                 <span className="text-gray-600">Page {currentPage} of {totalPages}</span>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <button
                                     onClick={() => handlePageChange(currentPage - 1)}
                                     disabled={currentPage === 1 || loading}
-                                    className="px-4 py-1.5 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-3 py-1 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     style={{ backgroundColor: '#efebe9', color: '#783A1E' }}
                                 >
                                     Previous
@@ -800,7 +866,7 @@ function SalesPage() {
                                 <button
                                     onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage === totalPages || loading}
-                                    className="px-4 py-1.5 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-3 py-1 text-xs rounded-lg shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     style={{ backgroundColor: '#efebe9', color: '#783A1E' }}
                                 >
                                     Next
@@ -811,11 +877,62 @@ function SalesPage() {
                 </div>
             </main>
 
-            <SalesEntryModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
+            <SalesEntryModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingSale(null);
+                }}
                 onSubmit={handleSalesSubmit}
+                editData={editingSale}
             />
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div
+                    className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                        zIndex: 1000,
+                    }}
+                    onClick={cancelDelete}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-[#4A3423]">Confirm Delete</h3>
+                            <button
+                                onClick={cancelDelete}
+                                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <p className="text-gray-700 mb-6">
+                            Are you sure you want to delete the sale record for <strong>{saleToDelete?.customer_name}</strong>?
+                            <br />
+                            <span className="text-sm text-gray-500">This action cannot be undone.</span>
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={cancelDelete}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200"
+                                style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}
+                            >
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </SideNav>
     );
 }
