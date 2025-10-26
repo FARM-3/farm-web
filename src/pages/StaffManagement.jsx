@@ -752,7 +752,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Home, DollarSign, ShoppingBag, Users, Settings, LogOut, Menu, X, Bell, UserCircle,
-    RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, MapPin
+    RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, User, MapPin, MapPin
 } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
@@ -1477,7 +1477,7 @@ function StaffPage() {
                                     <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-100">
+                            <tbody className="divide-y divide-gray-100 text-xs">
                                 {renderTableContent()}
                             </tbody>
                         </table>

@@ -611,7 +611,7 @@ function StaffRegistration() {
                   disabled={!isFormValid() || loading}
                   className="w-full py-3 font-semibold"
                   style={{
-                    backgroundColor: '#795548',
+                    backgroundColor: '#8B4513',
                     color: '#FFFFFF',
                     opacity: (!isFormValid() || loading) ? 0.7 : 1,
                     cursor: (!isFormValid() || loading) ? 'not-allowed' : 'pointer',

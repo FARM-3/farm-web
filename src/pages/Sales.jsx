@@ -294,42 +294,50 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit }) => {
     };
 
     return (
-        <div style={{
-            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            backdropFilter: 'blur(3px)', 
-            zIndex: 1000,
-            display: 'flex', justifyContent: 'center', alignItems: 'flex-start',
-            overflowY: 'auto',
-            padding: '30px 10px',
-        }}>
-            <div style={{
-                backgroundColor: CoffeeColors.FORM_BG, 
-                borderRadius: '8px',
-                width: '100%',
-                maxWidth: '600px', // *** MEDIUM SIZE ***
-                boxShadow: '0 8px 20px rgba(0,0,0,0.2)', 
-                position: 'relative',
-            }}>
+        <div
+            className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+            style={{
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                zIndex: 1000,
+                overflowY: 'auto',
+                padding: '30px 10px',
+            }}
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col m-4"
+                style={{
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 15px rgba(139, 69, 19, 0.1)',
+                    animation: 'slideUp 0.3s ease-out'
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
                 {/* MODAL HEADER */}
-                <div style={{
-                    padding: '15px 20px 10px 20px', 
-                    borderBottom: `1px solid ${CoffeeColors.INPUT_BORDER}`, 
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: 'bold', color: CoffeeColors.MODAL_TITLE_TEXT }}>
-                        Record New Sale
-                    </h2>
-                    <button onClick={onClose} style={{ border: 'none', background: 'none', color: CoffeeColors.GRAY_TEXT, cursor: 'pointer', padding: '0' }}>
-                        <X className="w-5 h-5" />
+                <div
+                    className="flex justify-between items-center p-5 rounded-t-2xl flex-shrink-0 border-b-2"
+                    style={{
+                        background: 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                    }}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                            <ShoppingBag className="w-6 h-6 text-white" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">Sales Entry Form</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200"
+                    >
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} style={{ padding: '20px', display: 'grid', gap: '15px' }}>
-                    
-                    {/* 1. Customer Information Section Card */}
+                <div className="flex-1 overflow-y-auto">
+                    <form onSubmit={handleSubmit} className="p-6" style={{ display: 'grid', gap: '15px' }}>
+
+                        {/* 1. Customer Information Section Card */}
                     <div style={{ 
                         backgroundColor: CoffeeColors.FORM_CARD_BG, 
                         borderRadius: '6px', 
@@ -385,23 +393,47 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit }) => {
                     </div>
 
                     {/* MODAL FOOTER */}
-                    <div style={{ 
-                        display: 'flex', 
-                        justifyContent: 'flex-end', 
-                        gap: '10px', 
-                        marginTop: '15px', 
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        gap: '10px',
+                        marginTop: '15px',
                         paddingTop: '15px',
                         borderTop: `1px solid ${CoffeeColors.INPUT_BORDER}`
                     }}>
-                        <Button type="modal-secondary" onClick={onClose} className="px-4 py-1.5 text-sm">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                        >
                             Cancel
-                        </Button>
-                        <Button type="modal-primary" className="px-4 py-1.5 text-sm">
-                            <Send className="w-3.5 h-3.5 mr-2" />
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-8 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl flex items-center"
+                            style={{
+                                background: 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
+                            }}
+                        >
+                            <Send className="w-4 h-4 mr-2" />
                             Submit Sales Record
-                        </Button>
+                        </button>
                     </div>
                 </form>
+                </div>
+
+                <style>{`
+                    @keyframes slideUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(20px) scale(0.95);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0) scale(1);
+                        }
+                    }
+                `}</style>
             </div>
         </div>
     );
@@ -482,6 +514,39 @@ function SalesPage() {
         console.log('New Sales Record Submitted:', data);
         setIsModalOpen(false);
     }
+
+    // Calculate KPI metrics from real-time data
+    const calculateKPIs = () => {
+        if (!sales || sales.length === 0) {
+            return {
+                totalSales: 0,
+                averageOrderValue: 0,
+                totalOrders: 0,
+                uniqueCustomers: 0
+            };
+        }
+
+        // Calculate total sales amount
+        const totalSales = sales.reduce((sum, sale) => {
+            const amount = parseFloat(sale.total_amount || sale.amount || 0);
+            return sum + amount;
+        }, 0);
+
+        // Calculate average order value
+        const averageOrderValue = sales.length > 0 ? totalSales / sales.length : 0;
+
+        // Count unique customers
+        const uniqueCustomers = new Set(sales.map(sale => sale.customer_name).filter(Boolean)).size;
+
+        return {
+            totalSales,
+            averageOrderValue,
+            totalOrders: sales.length,
+            uniqueCustomers
+        };
+    };
+
+    const kpis = calculateKPIs();
 
     const KPICards = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -661,16 +726,21 @@ function SalesPage() {
                     </div>
                       
                     <div className="flex gap-3 order-1 sm:order-2">
-                        <Button onClick={() => setIsModalOpen(true)} className="py-2 px-4 shadow-xl bg-accent-btn">
-                            Record New Sale
-                        </Button>
                         <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
+                            style={{ backgroundColor: '#8B4513' }}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Record New Sale
+                        </button>
+                        <Button
                             onClick={() => console.log('Export to Excel')}
                             className="py-2 px-4 shadow-xl rounded-xl"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -685,7 +755,7 @@ function SalesPage() {
                                     {TABLE_HEADERS.map((header) => (
                                         <th
                                             key={header.key}
-                                            className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider transition-colors duration-150 cursor-pointer ${
+                                            className={`px-6 py-3 text-sm font-semibold uppercase tracking-wider transition-colors duration-150 cursor-pointer ${
                                                 header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'
                                             } hover:bg-accent-btn/90 whitespace-nowrap`}
                                             onClick={() => header.key !== 'actions' && requestSort(header.key)}
@@ -699,7 +769,7 @@ function SalesPage() {
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="bg-white/80 divide-y divide-gray-100 text-sm text-text-default">
+                            <tbody className="bg-white/80 divide-y divide-gray-100 text-xs text-text-default">
                                 {renderTableContent()}
                             </tbody>
                         </table>
