@@ -338,9 +338,9 @@
 
 //     return (
 //         <SideNav>
-//             <div className="flex flex-col space-y-6">
+//             <main className="p-4 sm:p-6 md:p-8 pt-0">
 
-//                 {/* Top Action Bar */}
+//                 {/* Main Content */}
 //                 <div className="flex flex-col md:flex-row md:justify-between md:items-center">
 //                     <h1 className="text-2xl md:text-3xl font-extrabold" style={{ color: ACCENT_COLORS.PRIMARY_TEXT }}>
 //                         Expense Records Overview
@@ -407,14 +407,13 @@
 //                 </div>
 
 //                 {/* Expense Records Table Container */}
-//                 <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto">
 //                     <table className="min-w-full divide-y divide-gray-200">
-//                         <thead style={{ backgroundColor: ACCENT_COLORS.TABLE_HEADER_BG }}>
+//                         <thead style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
 //                             <tr>
 //                                 {TABLE_HEADERS.map((header) => (
 //                                     <th
 //                                         key={header.key}
-//                                         className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150"
+//                                         className="px-6 py-3 text-sm font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150"
 //                                         onClick={() => requestSort(header.key)}
 //                                         scope="col"
 //                                     >
@@ -424,12 +423,12 @@
 //                                         </div>
 //                                     </th>
 //                                 ))}
-//                                 <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center text-gray-700">
+//                                 <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center text-gray-700">
 //                                     Actions
 //                                 </th>
 //                             </tr>
 //                         </thead>
-//                         <tbody className="divide-y divide-gray-100">
+//                         <tbody className="bg-white/80 divide-y divide-gray-100 text-xs">
 //                             {renderTableContent()}
 //                         </tbody>
 //                     </table>
@@ -490,7 +489,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     DollarSign, Send, Loader2, X, RefreshCw, ArrowUp, ArrowDown, Edit, Trash2, Search, ChevronsDown,
-    Tag, Calendar, MapPin, AlignLeft, User, ShoppingBag, Receipt, Home
+    Tag, Calendar, MapPin, AlignLeft, User, ShoppingBag, Receipt, Home, Plus
 } from 'lucide-react';
 
 // NOTE: Assuming SideNav is imported from '../components/SideNav'
@@ -908,6 +907,7 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
 // --- ExpensesPage Component (Main Export) ---
 
 export function ExpensesPage() {
+    const navigate = useNavigate();
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -1036,8 +1036,12 @@ export function ExpensesPage() {
                 <td className="px-6 py-3 text-left text-sm italic text-gray-500">{expense.location || '-'}</td>
                 <td className="px-6 py-3 text-center">
                     <div className="flex items-center justify-center space-x-2">
-                        <button onClick={() => handleEditExpense(expense)} className="p-1 rounded hover:bg-gray-200 transition-colors" title="Edit expense"><Edit className="w-4 h-4 text-blue-600" /></button>
-                        <button onClick={() => { setExpenseToDelete(expense); setShowDeleteModal(true); }} className="p-1 rounded hover:bg-gray-200 transition-colors" title="Delete expense"><Trash2 className="w-4 h-4 text-red-600" /></button>
+                        <button onClick={() => handleEditExpense(expense)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
+                            <Edit className="w-4 h-4" />
+</button>
+                        <button onClick={() => { setExpenseToDelete(expense); setShowDeleteModal(true); }} className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors">
+                            <Trash2 className="w-4 h-4" />
+</button>
                     </div>
                 </td>
             </tr>
@@ -1046,34 +1050,112 @@ export function ExpensesPage() {
 
     return (
         <SideNav>
-            <div className="flex flex-col space-y-6">
+            <main className="p-4 sm:p-6 md:p-8 pt-0">
 
-                {/* --- Overview Header and Actions --- */}
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center">
-                    <h1 className="text-2xl md:text-3xl font-extrabold" style={{ color: ACCENT_COLORS.PRIMARY_TEXT }}>
-                        Expense Records Overview
-                    </h1>
-                    <div className="flex space-x-3 mt-4 md:mt-0">
-                        <ActionButton 
-                            onClick={handleAddNewExpense} 
-                            style={{ backgroundColor: ACCENT_COLORS.ACCENT_BROWN }}
-                            className="shadow-xl"
-                        >
-                            <Send className="w-4 h-4 mr-2" />
-                            Record New Expense
-                        </ActionButton>
-                        <ActionButton 
-                            onClick={() => alert('Exporting...')}
-                            style={{ backgroundColor: ACCENT_COLORS.ACCENT_GREEN }}
-                            className="shadow-xl"
-                        >
-                            Export to Excel
-                        </ActionButton>
-                    </div>
-                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">
+                    Expense Records Overview
+                </h2>
+
+                {/* KPI Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {/* Total Expenses */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <DollarSign className="w-4 h-4 mr-1" stroke="#EA4335" />
+                                Total Expenses
+                            </p>
+                            <Calendar className="w-4 h-4" stroke="#8D8D8D" strokeWidth={2.2} />
+                        </div>
+                        {loading ? (
+                            <div className="flex items-center gap-2 mt-2">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#795548]" />
+                                <span className="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
+                                    UGX {expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2 font-medium">Total records: {expenses.length}</p>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Average Expense */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <Tag className="w-4 h-4 mr-1" stroke="#795548" />
+                                Average Expense
+                            </p>
+                            <Calendar className="w-4 h-4" stroke="#8D8D8D" strokeWidth={2.2} />
+                        </div>
+                        {loading ? (
+                            <div className="flex items-center gap-2 mt-2">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#795548]" />
+                                <span className="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
+                                    UGX {expenses.length > 0 ? (expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0) / expenses.length).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2 font-medium">Per transaction</p>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Unique Categories */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <ShoppingBag className="w-4 h-4 mr-1" stroke="#8D8D8D" />
+                                Expense Categories
+                            </p>
+                            <ShoppingBag className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+                        </div>
+                        {loading ? (
+                            <div className="flex items-center gap-2 mt-2">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#795548]" />
+                                <span className="text-sm text-gray-500">Loading...</span>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
+                                    {new Set(expenses.map(exp => exp.category).filter(Boolean)).size}
+                                </p>
+                                <p className="text-xs text-gray-500 mt-2 font-medium">Unique categories</p>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* --- Action Bar --- */}
+                <div className="mb-8 flex flex-wrap justify-between items-center gap-3">
+                    <div></div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={handleAddNewExpense}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
+                            style={{ backgroundColor: '#8B4513' }}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Record New Expense
+                        </button>
+                        <button
+                            onClick={() => alert('Exporting...')}
+                            className="py-2 px-4 shadow-xl rounded-xl"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
+                        >
+                            Export to Excel
+                        </button>
+                    </div>
+                </div>
+
 
                 {/* --- Search, Filter, Refresh Bar --- */}
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 items-stretch sm:items-center p-4 rounded-lg bg-white shadow-md">
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 items-stretch sm:items-center p-4 rounded-lg bg-white shadow-md mb-6">
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input type="text" placeholder="Search by expense/supplier name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition" />
@@ -1092,27 +1174,28 @@ export function ExpensesPage() {
                 </div>
 
                 {/* --- Expense Records Table --- */}
-                <div className="w-full bg-white shadow-xl rounded-2xl overflow-x-auto">
+                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300"><div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead style={{ backgroundColor: ACCENT_COLORS.TABLE_HEADER_BG }}>
+                        <thead style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
                             <tr>
                                 {TABLE_HEADERS.map((header) => (
-                                    <th key={header.key} onClick={() => requestSort(header.key)} scope="col" className="px-6 py-3 text-xs font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150">
+                                    <th key={header.key} onClick={() => requestSort(header.key)} scope="col" className="px-6 py-3 text-sm font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150">
                                         <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
                                             {header.label}
                                             {getSortIcon(header.key)}
                                         </div>
                                     </th>
                                 ))}
-                                <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center text-gray-700">Actions</th>
+                                <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center text-gray-700">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="bg-white/80 divide-y divide-gray-100 text-xs">
                             {renderTableContent()}
                         </tbody>
                     </table>
+                    </div>
                 </div>
-            </div>
+            </main>
 
             {/* --- Delete Confirmation Modal --- */}
             {showDeleteModal && expenseToDelete && (

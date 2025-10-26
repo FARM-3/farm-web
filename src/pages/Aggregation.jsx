@@ -297,7 +297,7 @@ const AggregationPage = () => {
                         onClick={fetchData}
                         disabled={loading}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition disabled:opacity-50"
-                        style={{ backgroundColor: CoffeeColors.MEDIUM_BROWN, color: '#FFFFFF' }}
+                        style={{ backgroundColor: '#8B4513', color: '#FFFFFF' }}
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
@@ -339,7 +339,7 @@ const AggregationPage = () => {
                                 : ''
                         }`}
                         style={{
-                            backgroundColor: activeTab === 'farmers' ? CoffeeColors.MEDIUM_BROWN : CoffeeColors.ACTIVE_LINK_BG,
+                            backgroundColor: activeTab === 'farmers' ? '#8B4513' : CoffeeColors.ACTIVE_LINK_BG,
                             color: activeTab === 'farmers' ? '#FFFFFF' : CoffeeColors.ACTIVE_LINK_TEXT
                         }}
                     >
@@ -353,7 +353,7 @@ const AggregationPage = () => {
                                 : ''
                         }`}
                         style={{
-                            backgroundColor: activeTab === 'harvest' ? CoffeeColors.MEDIUM_BROWN : CoffeeColors.ACTIVE_LINK_BG,
+                            backgroundColor: activeTab === 'harvest' ? '#8B4513' : CoffeeColors.ACTIVE_LINK_BG,
                             color: activeTab === 'harvest' ? '#FFFFFF' : CoffeeColors.ACTIVE_LINK_TEXT
                         }}
                     >
@@ -375,38 +375,38 @@ const AggregationPage = () => {
                             <tr>
                                 {activeTab === 'farmers' ? (
                                     <>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer ID
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer Name
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Recorded
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Actions
                                         </th>
                                     </>
                                 ) : (
                                     <>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Harvest ID
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer Name
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Delivered
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Actions
                                         </th>
                                     </>
                                 )}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 text-xs">
                             {loading ? (
                                 <tr className="h-24">
                                     <td colSpan="4" className="text-center py-6 text-gray-600">
