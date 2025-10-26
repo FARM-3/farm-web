@@ -381,8 +381,6 @@
 
 // export default WageDisplayPage;
 
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, TrendingUpIcon, Eye, Edit, Trash2, FileText } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
@@ -545,6 +543,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         setMessage('');
 
         const payload = {
+            id: initialData?.id || Date.now(), // Use existing ID for edit, or generate new one
             employee_name: form.employee_name,
             date_of_payment: form.date_of_payment,
             days_worked: Number(form.days_worked) || 0,
@@ -556,8 +555,22 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock API POST Success with payload:', payload);
-            setMessage('You have successfully recorded a new wage!');
+
+            if (initialData) {
+                // Edit mode - update existing record
+                const index = MOCK_WAGES_DATA.findIndex(w => w.id === initialData.id);
+                if (index !== -1) {
+                    MOCK_WAGES_DATA[index] = { ...MOCK_WAGES_DATA[index], ...payload };
+                }
+                console.log('Mock API PUT Success with payload:', payload);
+                setMessage('You have successfully updated the wage record!');
+            } else {
+                // Create mode - add new record
+                MOCK_WAGES_DATA.push(payload);
+                console.log('Mock API POST Success with payload:', payload);
+                setMessage('You have successfully recorded a new wage!');
+            }
+
             setTimeout(() => {
                 onSaveSuccess(payload);
             }, 1000);
@@ -718,10 +731,10 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     {submitting ? (
                         <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Submitting...
+                            {initialData ? 'Updating...' : 'Submitting...'}
                         </>
                     ) : (
-                        'Submit Wage Record'
+                        initialData ? 'Update Wage Record' : 'Submit Wage Record'
                     )}
                 </button>
             </div>
@@ -756,7 +769,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                             <DollarSign className="w-6 h-6 text-white" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white">Wage Entry Form</h2>
+                        <h2 className="text-2xl font-bold text-white">{initialData ? 'Edit Wage Record' : 'Wage Entry Form'}</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -812,6 +825,8 @@ function Wages() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingWage, setEditingWage] = useState(null);
+    const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, wage: null });
     const itemsPerPage = 7;
 
     const fetchWages = useCallback(async (page = 1) => {
@@ -842,8 +857,33 @@ function Wages() {
 
     const handleSaveSuccess = () => {
         setIsModalOpen(false);
+        setEditingWage(null);
         setCurrentPage(1);
         fetchWages(1);
+    };
+
+    const handleEdit = (wage) => {
+        setEditingWage(wage);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = (wage) => {
+        setDeleteConfirm({ isOpen: true, wage });
+    };
+
+    const handleDeleteConfirm = () => {
+        if (deleteConfirm.wage) {
+            // Remove from mock data
+            const updatedWages = MOCK_WAGES_DATA.filter(w => w.id !== deleteConfirm.wage.id);
+            // Update the mock data array (in a real app, this would be an API call)
+            MOCK_WAGES_DATA.splice(0, MOCK_WAGES_DATA.length, ...updatedWages);
+            setDeleteConfirm({ isOpen: false, wage: null });
+            fetchWages(currentPage);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteConfirm({ isOpen: false, wage: null });
     };
 
     const sortedWages = React.useMemo(() => {
@@ -917,14 +957,16 @@ function Wages() {
                     <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
                             <button
-                                onClick={() => alert(`Editing wage for ${wage.employee_name}`)}
+                                onClick={() => handleEdit(wage)}
                                 className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                title="Edit wage record"
                             >
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button
-                                onClick={() => alert(`Deleting wage for ${wage.employee_name}`)}
+                                onClick={() => handleDeleteClick(wage)}
                                 className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                title="Delete wage record"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -1060,7 +1102,63 @@ function Wages() {
                     )}
                 </div>
 
-                <WagesModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaveSuccess={handleSaveSuccess} />
+                <WagesModal
+                    isOpen={isModalOpen}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        setEditingWage(null);
+                    }}
+                    onSaveSuccess={handleSaveSuccess}
+                    initialData={editingWage}
+                />
+
+                {/* Delete Confirmation Modal */}
+                {deleteConfirm.isOpen && (
+                    <div className="fixed inset-0 z-50 overflow-y-auto flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                            animation: 'fadeIn 0.3s ease-out'
+                        }}
+                        onClick={handleDeleteCancel}
+                    >
+                        <div
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transition-all duration-300 ease-out transform scale-100"
+                            style={{
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 15px rgba(139, 69, 19, 0.1)',
+                                animation: 'slideUp 0.3s ease-out'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="p-6">
+                                <div className="flex items-center justify-center mb-4">
+                                    <div className="p-3 bg-red-100 rounded-full">
+                                        <Trash2 className="w-8 h-8 text-red-600" />
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-bold text-center text-gray-900 mb-2">Delete Wage Record</h3>
+                                <p className="text-center text-gray-600 mb-6">
+                                    Are you sure you want to delete the wage record for <strong>{deleteConfirm.wage?.employee_name}</strong>?
+                                    This action cannot be undone.
+                                </p>
+                                <div className="flex space-x-3">
+                                    <button
+                                        onClick={handleDeleteCancel}
+                                        className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteConfirm}
+                                        className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white transition-all duration-200"
+                                        style={{ backgroundColor: '#EA4335' }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </SideNav>
     );
