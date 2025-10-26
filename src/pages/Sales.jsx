@@ -447,6 +447,8 @@ const TABLE_HEADERS = [
     { key: 'customer_name', label: 'Customer Name', type: 'string', align: 'left' },
     { key: 'item', label: 'Item', type: 'string', align: 'left' },
     { key: 'quantity', label: 'Quantity', type: 'number', align: 'center' },
+    { key: 'rate', label: 'Rate (UGX)', type: 'number', align: 'right' },
+    { key: 'amount', label: 'Amount (UGX)', type: 'number', align: 'right' },
     { key: 'payment_method', label: 'Payment Method', type: 'string', align: 'left' },
     { key: 'date', label: 'Date', type: 'date', align: 'right' },
     { key: 'actions', label: 'Actions', type: 'actions', align: 'center' },
@@ -646,6 +648,12 @@ function SalesPage() {
                     <td className="px-6 py-3 text-left font-medium text-text-default text-sm">{sale.customer_name || 'N/A'}</td>
                     <td className="px-6 py-3 text-left text-gray-600">{sale.item || 'N/A'}</td>
                     <td className="px-6 py-3 text-center text-gray-600">{sale.quantity || 0}</td>
+                    <td className="px-6 py-3 text-right text-gray-700 font-semibold">
+                        {parseFloat(sale.rate || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </td>
+                    <td className="px-6 py-3 text-right text-[#8B4513] font-bold">
+                        {(parseFloat(sale.quantity || 0) * parseFloat(sale.rate || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                    </td>
                     <td className="px-6 py-3 text-left font-medium">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isCash ? 'bg-green-100 text-success' : 'bg-red-100 text-error'}`}>
                             {sale.payment_method || 'N/A'}
