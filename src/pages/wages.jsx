@@ -383,8 +383,8 @@
 
 
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, TrendingUpIcon, Eye, Edit, Trash2, FileText } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, FileText } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
 const styleElement = document.createElement('style');
@@ -942,6 +942,32 @@ function Wages() {
         setWageToDelete(null);
     };
 
+    // Calculate KPIs with live updates from MOCK_WAGES_DATA
+    const kpis = useMemo(() => {
+        if (!MOCK_WAGES_DATA || MOCK_WAGES_DATA.length === 0) {
+            return {
+                totalWagesPaid: 0,
+                averageWagePerEmployee: 0,
+                totalEmployees: 0,
+                totalDeductions: 0
+            };
+        }
+
+        const totalWagesPaid = MOCK_WAGES_DATA.reduce((sum, wage) => sum + (wage.amount_paid || 0), 0);
+        const totalDeductions = MOCK_WAGES_DATA.reduce((sum, wage) => sum + (wage.deduction || 0), 0);
+
+        // Count unique employees
+        const uniqueEmployees = new Set(MOCK_WAGES_DATA.map(wage => wage.employee_name)).size;
+        const averageWagePerEmployee = uniqueEmployees > 0 ? totalWagesPaid / uniqueEmployees : 0;
+
+        return {
+            totalWagesPaid,
+            averageWagePerEmployee,
+            totalEmployees: uniqueEmployees,
+            totalDeductions
+        };
+    }, [wages]); // Re-calculate when wages state changes
+
     const renderTableContent = () => {
         if (loading) {
             return (
@@ -1001,41 +1027,65 @@ function Wages() {
             <main className={`${mobilePadding} pt-0`} style={{ maxWidth: '100%', overflowX: 'hidden' }}>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">Wages Records Overview</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Card 1: Total Wages Paid */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <DollarSign className="w-4 h-4 mr-1" stroke={CoffeeColors.SUCCESS_GREEN} />
-                                Total Wages Paid (This Period)
+                                Total Wages Paid
                             </p>
-                            <TrendingUpIcon className="w-4 h-4" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.2} />
+                            <div className="p-2 bg-green-50 rounded-lg">
+                                <DollarSign className="w-5 h-5" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(12500000)}</p>
-                        <p className="text-xs text-[#34A853] mt-2 font-medium">+15.3% vs last month</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalWagesPaid)}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">{MOCK_WAGES_DATA.length} wage record(s)</p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                    {/* Card 2: Average Wage Per Employee */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <Wallet className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
                                 Avg. Wage/Employee
                             </p>
-                            <TrendingUpIcon className="w-4 h-4 text-[#EA4335] rotate-180" stroke={CoffeeColors.ERROR_RED} strokeWidth={2.2} />
+                            <div className="p-2 bg-orange-50 rounded-lg">
+                                <Wallet className="w-5 h-5" stroke={CoffeeColors.MEDIUM_BROWN} strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(250000)}</p>
-                        <p className="text-xs text-[#EA4335] mt-2 font-medium">-8.1% from last month</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(Math.round(kpis.averageWagePerEmployee))}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">Per unique employee</p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                    {/* Card 3: Total Employees Paid */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <UserIcon className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                                Total Employees
+                                Employees Paid
                             </p>
-                            <UserIcon className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                                <UserIcon className="w-5 h-5 text-blue-600" strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">50</p>
-                        <p className="text-xs text-gray-500 mt-2 font-medium">Stable over last quarter</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">{kpis.totalEmployees}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">Unique employees</p>
+                    </div>
+
+                    {/* Card 4: Total Deductions */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <MinusCircle className="w-4 h-4 mr-1" stroke={CoffeeColors.ERROR_RED} />
+                                Total Deductions
+                            </p>
+                            <div className="p-2 bg-red-50 rounded-lg">
+                                <MinusCircle className="w-5 h-5" stroke={CoffeeColors.ERROR_RED} strokeWidth={2.5} />
+                            </div>
+                        </div>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalDeductions)}</p>
+                        <p className="text-xs text-[#EA4335] mt-2 font-medium">Total amount deducted</p>
                     </div>
                 </div>
 

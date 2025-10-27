@@ -104,7 +104,7 @@
 //             case 'last_name':
 //                 return nameRegex.test(value || '');
 //             case 'gender':
-//                 return ['Male', 'Female', 'Other'].includes(value);
+//                 return ['Male', 'Female'].includes(value);
 //             case 'nin':
 //                 return ninRegex.test(value || '');
 //             case 'district':
@@ -857,7 +857,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             case 'last_name':
                 return v.length >= 2;
             case 'gender':
-                return ['Male', 'Female', 'Other'].includes(value);
+                return ['Male', 'Female'].includes(value);
             case 'nin':
                 return v.length > 0;
             case 'district':
@@ -1019,7 +1019,6 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                                         <option value="" disabled>-- Select Gender --</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
                                     </select>
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1284,7 +1283,7 @@ function StaffPage() {
     const [filterGender, setFilterGender] = useState('');
     const navigate = useNavigate();
 
-    const [sortConfig, setSortConfig] = useState({ key: 'staff_id', direction: 'ascending' });
+    const [sortConfig, setSortConfig] = useState({ key: 'date_hired', direction: 'descending' });
     const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
     const [staffToEdit, setStaffToEdit] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1376,20 +1375,40 @@ function StaffPage() {
         console.log('handleSaveStaff called with:', savedStaffData);
         if (!savedStaffData) return;
 
-        // Prepare data for API (use sub_county instead of subcounty, date_hired instead of hire_date)
+        // Validate and prepare data for API
         const apiData = {
-            first_name: savedStaffData.first_name,
-            last_name: savedStaffData.last_name,
-            nin: savedStaffData.nin,
-            district: savedStaffData.district,
-            sub_county: savedStaffData.subcounty || savedStaffData.sub_county,
-            parish: savedStaffData.parish,
-            village: savedStaffData.village,
-            gender: savedStaffData.gender,
-            date_hired: savedStaffData.hire_date || savedStaffData.date_hired,
-            employment_type: savedStaffData.employment_status || 'fulltime',
+            first_name: savedStaffData.first_name?.trim() || '',
+            last_name: savedStaffData.last_name?.trim() || '',
+            nin: savedStaffData.nin?.trim().toUpperCase() || '', // API requires uppercase
+            district: savedStaffData.district?.trim() || '',
+            sub_county: (savedStaffData.subcounty || savedStaffData.sub_county || '').trim(),
+            parish: savedStaffData.parish?.trim() || '',
+            village: savedStaffData.village?.trim() || '',
+            gender: savedStaffData.gender?.trim() || '',
+            date_hired: savedStaffData.hire_date || savedStaffData.date_hired || '',
+            employment_type: (savedStaffData.employment_status || 'fulltime').toLowerCase(), // Must be lowercase
             is_active: true
         };
+
+        // Validate required fields
+        const requiredFields = ['first_name', 'last_name', 'nin', 'district', 'sub_county', 'parish', 'village', 'gender', 'date_hired'];
+        const missingFields = requiredFields.filter(field => !apiData[field]);
+
+        if (missingFields.length > 0) {
+            console.error('Missing required fields:', missingFields);
+            alert(`Missing required fields: ${missingFields.join(', ')}`);
+            return;
+        }
+
+        // Validate NIN pattern (uppercase letters and numbers only)
+        const ninPattern = /^[A-Z0-9]+$/;
+        if (!ninPattern.test(apiData.nin)) {
+            console.error('Invalid NIN format:', apiData.nin);
+            alert('National ID Number must contain only uppercase letters and numbers (e.g., CM12345)');
+            return;
+        }
+
+        console.log('Sending to API:', JSON.stringify(apiData, null, 2));
 
         try {
             if (staffToEdit) {
@@ -1403,23 +1422,34 @@ function StaffPage() {
                     body: JSON.stringify(apiData)
                 });
 
-                if (response.ok) {
-                    const updatedStaff = await response.json();
-                    console.log('Staff updated successfully:', updatedStaff);
+                console.log('API Response Status:', response.status);
 
-                    // Update local state
-                    const staffWithDateHired = { ...updatedStaff, date_hired: updatedStaff.date_hired };
-                    const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
-                    if (index > -1) {
-                        MOCK_STAFF_DATA[index] = { ...staffWithDateHired };
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        console.error('API Error Details:', errorJson);
+                        alert(`Failed to update staff: ${JSON.stringify(errorJson)}`);
+                    } catch (e) {
+                        alert(`Failed to update staff: ${response.status} - ${errorText}`);
                     }
-                    setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithDateHired } : s));
-
-                    // Save to localStorage as backup
-                    saveStaffDataToStorage(MOCK_STAFF_DATA);
-                } else {
                     throw new Error(`API Error: ${response.status}`);
                 }
+
+                const updatedStaff = await response.json();
+                console.log('Staff updated successfully:', updatedStaff);
+
+                // Update local state
+                const staffWithDateHired = { ...updatedStaff, date_hired: updatedStaff.date_hired };
+                const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
+                if (index > -1) {
+                    MOCK_STAFF_DATA[index] = { ...staffWithDateHired };
+                }
+                setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithDateHired } : s));
+
+                // Save to localStorage as backup
+                saveStaffDataToStorage(MOCK_STAFF_DATA);
             } else {
                 // Add new staff via POST request
                 console.log('Creating new staff via API');
@@ -1431,19 +1461,30 @@ function StaffPage() {
                     body: JSON.stringify(apiData)
                 });
 
-                if (response.ok) {
-                    const newStaff = await response.json();
-                    console.log('Staff created successfully:', newStaff);
+                console.log('API Response Status:', response.status);
 
-                    // Update local state with API-generated data
-                    MOCK_STAFF_DATA.unshift(newStaff);
-                    setStaff(prev => [newStaff, ...prev]);
-
-                    // Save to localStorage as backup
-                    saveStaffDataToStorage(MOCK_STAFF_DATA);
-                } else {
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        console.error('API Error Details:', errorJson);
+                        alert(`Failed to create staff: ${JSON.stringify(errorJson, null, 2)}`);
+                    } catch (e) {
+                        alert(`Failed to create staff: ${response.status} - ${errorText}`);
+                    }
                     throw new Error(`API Error: ${response.status}`);
                 }
+
+                const newStaff = await response.json();
+                console.log('Staff created successfully:', newStaff);
+
+                // Update local state with API-generated data
+                MOCK_STAFF_DATA.unshift(newStaff);
+                setStaff(prev => [newStaff, ...prev]);
+
+                // Save to localStorage as backup
+                saveStaffDataToStorage(MOCK_STAFF_DATA);
             }
         } catch (error) {
             console.error('Failed to save staff to API:', error);
