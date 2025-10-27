@@ -358,8 +358,8 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/30 backdrop-blur-sm">
-            <div className="relative w-full max-w-2xl mx-auto rounded-lg shadow-2xl flex flex-col h-[90vh] md:h-[80vh] overflow-hidden"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+            <div className="relative w-full max-w-2xl mx-auto rounded-lg shadow-2xl flex flex-col max-h-[90vh] md:max-h-[85vh] overflow-hidden"
                  style={{ backgroundColor: MODAL_COLORS.MODAL_BG }}>
 
                 {/* Modal Header */}
@@ -373,8 +373,8 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                 </div>
 
                 {/* Modal Body (Scrollable Form Content) */}
-                <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col">
-                    <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+                <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 p-6 space-y-4 overflow-y-auto min-h-0">
 
                         {/* Customer & Item Information Section */}
                         <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: MODAL_COLORS.SECTION_BG }}>

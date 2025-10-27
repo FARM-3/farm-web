@@ -1131,10 +1131,44 @@ export function ExpensesPage() {
                     </div>
                 </div>
 
-                {/* --- Action Bar --- */}
-                <div className="mb-8 flex flex-wrap justify-between items-center gap-3">
-                    <div></div>
-                    <div className="flex gap-3">
+                {/* Action Bar & Filter */}
+                <div className="mb-4 flex flex-wrap justify-between items-center gap-3">
+                    <div className="flex gap-3 items-center w-full sm:w-auto order-2 sm:order-1">
+                        <div className="relative flex-grow">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="search"
+                                placeholder="Search by expense/supplier..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg"
+                            />
+                        </div>
+                        <div className="relative inline-block text-left">
+                            <select
+                                value={filterCategory}
+                                onChange={(e) => setFilterCategory(e.target.value)}
+                                className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-accent-btn focus:border-accent-btn shadow-lg transition duration-300 ease-in-out"
+                            >
+                                <option value="">Filter by Category</option>
+                                {uniqueCategories.map(category => (<option key={category} value={category}>{category}</option>))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => fetchExpenses()}
+                            disabled={loading}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
+                        >
+                            <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh Data
+                        </button>
+                    </div>
+
+                    <div className="flex gap-3 order-1 sm:order-2">
                         <button
                             onClick={handleAddNewExpense}
                             className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
@@ -1153,25 +1187,6 @@ export function ExpensesPage() {
                     </div>
                 </div>
 
-
-                {/* --- Search, Filter, Refresh Bar --- */}
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 items-stretch sm:items-center p-4 rounded-lg bg-white shadow-md mb-6">
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input type="text" placeholder="Search by expense/supplier name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition" />
-                    </div>
-                    <div className="relative w-full sm:w-48">
-                        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="appearance-none w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg bg-white focus:ring-1 focus:ring-gray-400 focus:border-gray-400 outline-none transition">
-                            <option value="">Filter by Category</option>
-                            {uniqueCategories.map(category => (<option key={category} value={category}>{category}</option>))}
-                        </select>
-                        <ChevronsDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                    </div>
-                    <ActionButton onClick={() => fetchExpenses()} disabled={loading} className="py-2 px-6 shadow-sm" style={{ backgroundColor: '#D4C3A3', color: ACCENT_COLORS.PRIMARY_TEXT }}>
-                        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh Data
-                    </ActionButton>
-                </div>
 
                 {/* --- Expense Records Table --- */}
                 <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300"><div className="overflow-x-auto">
