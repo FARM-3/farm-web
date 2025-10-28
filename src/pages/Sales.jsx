@@ -390,13 +390,13 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     status={getFieldStatus('customer_name')}
                                     error={errors.customer_name}
                                 />
-                                <SelectField
+                                <InputField
                                     label="Item"
                                     name="item"
                                     value={formData.item}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    options={items}
+                                    placeholder="e.g., Coffee, Vanilla"
                                     required
                                     status={getFieldStatus('item')}
                                     error={errors.item}
