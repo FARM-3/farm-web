@@ -546,6 +546,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         setMessage('');
 
         const payload = {
+            id: initialData?.id || Date.now(), // Use existing ID for edit, or generate new one
             employee_name: form.employee_name,
             date_of_payment: form.date_of_payment,
             days_worked: Number(form.days_worked) || 0,
@@ -557,8 +558,22 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock API POST Success with payload:', payload);
-            setMessage('You have successfully recorded a new wage!');
+
+            if (initialData) {
+                // Edit mode - update existing record
+                const index = MOCK_WAGES_DATA.findIndex(w => w.id === initialData.id);
+                if (index !== -1) {
+                    MOCK_WAGES_DATA[index] = { ...MOCK_WAGES_DATA[index], ...payload };
+                }
+                console.log('Mock API PUT Success with payload:', payload);
+                setMessage('You have successfully updated the wage record!');
+            } else {
+                // Create mode - add new record
+                MOCK_WAGES_DATA.push(payload);
+                console.log('Mock API POST Success with payload:', payload);
+                setMessage('You have successfully recorded a new wage!');
+            }
+
             setTimeout(() => {
                 onSaveSuccess(payload);
             }, 1000);
@@ -719,10 +734,10 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     {submitting ? (
                         <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Submitting...
+                            {initialData ? 'Updating...' : 'Submitting...'}
                         </>
                     ) : (
-                        'Submit Wage Record'
+                        initialData ? 'Update Wage Record' : 'Submit Wage Record'
                     )}
                 </button>
             </div>
@@ -757,7 +772,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                             <DollarSign className="w-6 h-6 text-white" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white">Wage Entry Form</h2>
+                        <h2 className="text-2xl font-bold text-white">{initialData ? 'Edit Wage Record' : 'Wage Entry Form'}</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -869,6 +884,30 @@ function Wages() {
         setEditingWage(null);
         setCurrentPage(1);
         fetchWages(1);
+    };
+
+    const handleEdit = (wage) => {
+        setEditingWage(wage);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = (wage) => {
+        setDeleteConfirm({ isOpen: true, wage });
+    };
+
+    const handleDeleteConfirm = () => {
+        if (deleteConfirm.wage) {
+            // Remove from mock data
+            const updatedWages = MOCK_WAGES_DATA.filter(w => w.id !== deleteConfirm.wage.id);
+            // Update the mock data array (in a real app, this would be an API call)
+            MOCK_WAGES_DATA.splice(0, MOCK_WAGES_DATA.length, ...updatedWages);
+            setDeleteConfirm({ isOpen: false, wage: null });
+            fetchWages(currentPage);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteConfirm({ isOpen: false, wage: null });
     };
 
     const sortedWages = React.useMemo(() => {
@@ -1004,12 +1043,14 @@ function Wages() {
                             <button
                                 onClick={() => handleEditWage(wage)}
                                 className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                title="Edit wage record"
                             >
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => handleDeleteWage(wage)}
                                 className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                title="Delete wage record"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
