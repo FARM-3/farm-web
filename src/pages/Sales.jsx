@@ -661,8 +661,8 @@ function SalesPage() {
                     </div>
                       
                     <div className="flex gap-3 order-1 sm:order-2">
-                        <Button onClick={() => setIsModalOpen(true)} className="py-2 px-4 shadow-xl bg-accent-btn">
-                        <button
+                        <Button onClick={() => setIsModalOpen(true)} className="py-2 px-4 shadow-xl bg-accent-btn"></Button>
+                        <Button
                             onClick={() => window.location.href = '/sales-entry'}
                             className="py-2 px-4 shadow-xl rounded-xl"
                             style={{ backgroundColor: '#8B4513', color: '#FFFFFF', border: 'none' }}
