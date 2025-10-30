@@ -41,6 +41,7 @@ const getCurrentPageKey = () => {
 
     if (path.startsWith('sales')) return 'sales';
     if (path.startsWith('staff')) return 'staff';
+    if (path === 'wagesrecords') return 'wagesrecords';
     if (path.startsWith('wages')) return 'wages';
     if (path.startsWith('profile')) return 'profile';
 

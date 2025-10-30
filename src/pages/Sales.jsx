@@ -826,67 +826,78 @@ function SalesPage() {
 
     const kpis = KPIs();
     const  KPICards = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <DollarSign className="w-4 h-4 mr-1" stroke={CoffeeColors.SUCCESS_GREEN} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                         Total Sales
-                    </p>
-                    <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
+                    </h3>
+                    <DollarSign size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                     </div>
                 ) : (
-                    <>
-                         <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalSales)}</p> 
-                         <p className="text-xs text-success mt-2 font-medium text-gray-500">Total orders: {kpis.totalOrders}</p> 
-                    </>
-                )}
-            </div>
-            
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <Tag className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
-                        Average Order Value
-                    </p>
-                    <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
-                </div>
-                {loading ? (
-                    <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.totalSales)}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>Total orders: {kpis.totalOrders}</p>
+                        </div>
                     </div>
-                ) : (
-                    <>
-                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.averageOrderValue)}</p> */}
-                        <p className="text-xs mt-2 font-medium text-gray-500">Per transaction</p>
-                    </>
                 )}
             </div>
 
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <User className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                        Unique Customers
-                    </p>
-                    <User className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
+                        Average Order Value
+                    </h3>
+                    <Tag size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                     </div>
                 ) : (
-                    <>
-                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.uniqueCustomers}</p> */}
-                        <p className="text-xs mt-2 font-medium text-gray-500">Registered customers</p>
-                    </>
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.averageOrderValue)}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>Per transaction</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
+                        Unique Customers
+                    </h3>
+                    <User size={20} style={{ color: '#8B5A3C' }} />
+                </div>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
+                    </div>
+                ) : (
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.uniqueCustomers}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>Registered customers</p>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

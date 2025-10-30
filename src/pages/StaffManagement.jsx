@@ -1645,92 +1645,104 @@ function StaffPage() {
     }, [staff]);
 
     const KPICards = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <Users className="w-4 h-4 mr-1" style={{ color: '#8B4513' }} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                         Total Staff
-                    </p>
-                    <Users className="w-4 h-4 text-gray-400" strokeWidth={2.2} />
+                    </h3>
+                    <Users size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                     </div>
                 ) : (
-                    <>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.totalStaff}</p>
-                        <p className="text-xs mt-2 font-medium text-gray-500">Active employees</p>
-                    </>
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.totalStaff}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>Active employees</p>
+                        </div>
+                    </div>
                 )}
             </div>
 
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <UserCheck className="w-4 h-4 mr-1" style={{ color: '#34A853' }} />
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                         Male Staff
-                    </p>
-                    <UserCheck className="w-4 h-4 text-gray-400" strokeWidth={2.2} />
+                    </h3>
+                    <UserCheck size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                     </div>
                 ) : (
-                    <>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.maleStaff}</p>
-                        <p className="text-xs mt-2 font-medium text-gray-500">
-                            {kpis.totalStaff > 0 ? `${((kpis.maleStaff / kpis.totalStaff) * 100).toFixed(0)}% of staff` : '0% of staff'}
-                        </p>
-                    </>
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.maleStaff}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>
+                                {kpis.totalStaff > 0 ? `${((kpis.maleStaff / kpis.totalStaff) * 100).toFixed(0)}% of staff` : '0% of staff'}
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
 
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <UserX className="w-4 h-4 mr-1" style={{ color: '#EA4335' }} />
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                         Female Staff
-                    </p>
-                    <UserX className="w-4 h-4 text-gray-400" strokeWidth={2.2} />
+                    </h3>
+                    <UserX size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                     </div>
                 ) : (
-                    <>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.femaleStaff}</p>
-                        <p className="text-xs mt-2 font-medium text-gray-500">
-                            {kpis.totalStaff > 0 ? `${((kpis.femaleStaff / kpis.totalStaff) * 100).toFixed(0)}% of staff` : '0% of staff'}
-                        </p>
-                    </>
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.femaleStaff}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>
+                                {kpis.totalStaff > 0 ? `${((kpis.femaleStaff / kpis.totalStaff) * 100).toFixed(0)}% of staff` : '0% of staff'}
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
 
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <TrendingUp className="w-4 h-4 mr-1" style={{ color: '#FBBC04' }} />
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                         Recent Hires
-                    </p>
-                    <Calendar className="w-4 h-4 text-gray-400" strokeWidth={2.2} />
+                    </h3>
+                    <TrendingUp size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                     </div>
                 ) : (
-                    <>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.recentHires}</p>
-                        <p className="text-xs mt-2 font-medium text-gray-500">Last 30 days</p>
-                    </>
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.recentHires}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>Last 30 days</p>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
