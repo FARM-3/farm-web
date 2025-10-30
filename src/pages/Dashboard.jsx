@@ -33,7 +33,6 @@ const DashboardCard = ({ title, value, unit, subtitle, icon: Icon, iconColor, lo
         className="p-6 rounded-2xl shadow-lg flex-1 min-w-[220px] hover:shadow-xl transition-shadow"
         style={{
             backgroundColor: '#FFFFFF',
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}
     >
@@ -75,7 +74,7 @@ const TransactionItem = ({ type, description, amount, date }) => {
     const textColor = isSale ? '#2E7D32' : '#C62828';
 
     return (
-        <div className="grid grid-cols-12 gap-4 py-4 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY, fontFamily: "'Inter', sans-serif" }}>
+        <div className="grid grid-cols-12 gap-4 py-4 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
             <div className="col-span-2 flex items-center">
                 <span
                     className="px-3 py-1 rounded-md text-xs font-medium"
@@ -234,7 +233,7 @@ export const DashboardScreen = () => {
 
     return (
         <SideNav>
-            <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+            <div>
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>
                         Financial Dashboard

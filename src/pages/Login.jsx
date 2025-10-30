@@ -1,34 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 
-// --- Custom Font Import ---
-const fontStyles = `
-  @font-face {
-    font-family: 'Eina03';
-    src: url('/src/assets/fonts/Eina03-Regular.ttf') format('truetype');
-    font-weight: 400;
-  }
-
-  @font-face {
-    font-family: 'Eina03';
-    src: url('/src/assets/fonts/Eina03-Bold.ttf') format('truetype');
-    font-weight: 700;
-  }
-
-  @font-face {
-    font-family: 'Eina03';
-    src: url('/src/assets/fonts/Eina03-Light.ttf') format('truetype');
-    font-weight: 300;
-  }
-`;
-
-// Inject styles into document
-if (typeof document !== 'undefined') {
-  const style = document.createElement('style');
-  style.textContent = fontStyles;
-  document.head.appendChild(style);
-}
-
 // --- Coffee Theme Colors (with brown accents) ---
 const CoffeeColors = {
   SCREEN_BG: '#8B4513',
@@ -108,6 +80,11 @@ function Login() {
   const [pin, setPin] = useState(["", "", "", ""]);
 
   const [isResetMode, setIsResetMode] = useState(false);
+  const [resetStep, setResetStep] = useState(1); // Step 1: Phone, Step 2: Answer + New PIN
+  const [securityQuestion, setSecurityQuestion] = useState("");
+  const [securityAnswer, setSecurityAnswer] = useState("");
+  const [newPin, setNewPin] = useState(["", "", "", ""]);
+  const [confirmPin, setConfirmPin] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
@@ -198,48 +175,112 @@ function Login() {
     setMessage("");
     setMessageType("");
 
-    if (!/^\d{10}$/.test(phoneNumber)) {
-      setMessage("Phone number must be exactly 10 digits.");
-      setMessageType("error");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await ApiClient.post("security-question/", {
-        phone: phoneNumber,
-      });
-
-      if (response.security_question) {
-        setMessage(`Security Question: ${response.security_question}. Check your SMS for instructions.`);
-        setMessageType("success");
-      } else {
-        setMessage("Phone number verified! Check your SMS for reset instructions.");
-        setMessageType("success");
+    if (resetStep === 1) {
+      // Step 1: Verify phone number and get security question
+      if (!/^\d{10}$/.test(phoneNumber)) {
+        setMessage("Phone number must be exactly 10 digits.");
+        setMessageType("error");
+        return;
       }
 
-      setTimeout(() => {
-        setIsResetMode(false);
-        setPhoneNumber("");
-        setMessage("");
-        setMessageType("");
-      }, 3000);
+      setLoading(true);
+      try {
+        const response = await ApiClient.post("security-question/", {
+          phone: phoneNumber,
+        });
 
-    } catch (error) {
-      console.error('❌ Reset PIN Error:', error.message);
+        if (response.security_question) {
+          setSecurityQuestion(response.security_question);
+          setResetStep(2); // Move to step 2
+          setMessage("");
+          setMessageType("");
+        } else {
+          setMessage("Phone number verified! Check your SMS for reset instructions.");
+          setMessageType("success");
+          setTimeout(() => {
+            setIsResetMode(false);
+            setPhoneNumber("");
+            setSecurityQuestion("");
+            setSecurityAnswer("");
+            setResetStep(1);
+            setMessage("");
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('❌ Reset PIN Error:', error.message);
 
-      if (error.message === "USER_NOT_REGISTERED" || error.message.includes("not found")) {
-        setMessage("Phone number not found in our system. Please contact support.");
-        setMessageType("error");
-      } else if (error.message.includes("Cannot connect to server")) {
-        setMessage("Cannot connect to server. Please check your internet connection.");
-        setMessageType("error");
-      } else {
-        setMessage(error.message || "Reset failed. Please try again.");
-        setMessageType("error");
+        if (error.message === "USER_NOT_REGISTERED" || error.message.includes("not found")) {
+          setMessage("Phone number not found in our system. Please contact support.");
+          setMessageType("error");
+        } else if (error.message.includes("Cannot connect to server")) {
+          setMessage("Cannot connect to server. Please check your internet connection.");
+          setMessageType("error");
+        } else {
+          setMessage(error.message || "Reset failed. Please try again.");
+          setMessageType("error");
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
+    } else if (resetStep === 2) {
+      // Step 2: Submit security answer and new PIN
+      if (!securityAnswer.trim()) {
+        setMessage("Please answer the security question.");
+        setMessageType("error");
+        return;
+      }
+
+      const newPinValue = newPin.join("");
+      const confirmPinValue = confirmPin.join("");
+
+      if (newPinValue.length !== 4) {
+        setMessage("New PIN must be exactly 4 digits.");
+        setMessageType("error");
+        return;
+      }
+
+      if (confirmPinValue.length !== 4) {
+        setMessage("Please confirm your PIN.");
+        setMessageType("error");
+        return;
+      }
+
+      if (newPinValue !== confirmPinValue) {
+        setMessage("PINs do not match. Please try again.");
+        setMessageType("error");
+        setNewPin(["", "", "", ""]);
+        setConfirmPin(["", "", "", ""]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await ApiClient.post("reset-pin/", {
+          phone: phoneNumber,
+          security_answer: securityAnswer,
+          new_pin: newPinValue,
+        });
+
+        setMessage("PIN reset successful! You can now login with your new PIN.");
+        setMessageType("success");
+
+        setTimeout(() => {
+          setIsResetMode(false);
+          setPhoneNumber("");
+          setSecurityQuestion("");
+          setSecurityAnswer("");
+          setNewPin(["", "", "", ""]);
+          setResetStep(1);
+          setMessage("");
+          setShowLoginForm(true);
+        }, 3000);
+      } catch (error) {
+        console.error('❌ Reset PIN Error:', error.message);
+        setMessage(error.message || "PIN reset failed. Please try again.");
+        setMessageType("error");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -436,40 +477,206 @@ function Login() {
             </p>
 
             <form onSubmit={handleResetPin}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  fontSize: '14px',
-                  color: 'white',
-                  marginBottom: '8px',
-                  fontWeight: '600',
-                  display: 'block',
-                }}>Phone Number</label>
-
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => {
-                    const cleanText = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
-                    setPhoneNumber(cleanText);
-                    setMessage("");
-                  }}
-                  placeholder="0700000000"
-                  maxLength={10}
-                  disabled={loading}
-                  style={{
-                    width: '100%',
-                    height: '50px',
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    backdropFilter: 'blur(10px)',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    padding: '0 15px',
-                    fontSize: '16px',
+              {resetStep === 1 && (
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{
+                    fontSize: '14px',
                     color: 'white',
-                    outline: 'none',
-                  }}
-                />
-              </div>
+                    marginBottom: '8px',
+                    fontWeight: '600',
+                    display: 'block',
+                  }}>Phone Number</label>
+
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => {
+                      const cleanText = e.target.value.replace(/[^0-9]/g, '').slice(0, 10);
+                      setPhoneNumber(cleanText);
+                      setMessage("");
+                    }}
+                    placeholder="0700000000"
+                    maxLength={10}
+                    disabled={loading}
+                    style={{
+                      width: '100%',
+                      height: '50px',
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      backdropFilter: 'blur(10px)',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      padding: '0 15px',
+                      fontSize: '16px',
+                      color: 'white',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              )}
+
+              {resetStep === 2 && (
+                <>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{
+                      fontSize: '14px',
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      marginBottom: '8px',
+                      fontWeight: '600',
+                      display: 'block',
+                    }}>Security Question</label>
+                    <div style={{
+                      width: '100%',
+                      padding: '15px',
+                      background: 'rgba(255, 255, 255, 0.15)',
+                      backdropFilter: 'blur(10px)',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      fontSize: '14px',
+                      color: 'white',
+                      fontWeight: '500',
+                    }}>
+                      {securityQuestion}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{
+                      fontSize: '14px',
+                      color: 'white',
+                      marginBottom: '8px',
+                      fontWeight: '600',
+                      display: 'block',
+                    }}>Your Answer</label>
+
+                    <input
+                      type="text"
+                      value={securityAnswer}
+                      onChange={(e) => {
+                        setSecurityAnswer(e.target.value);
+                        setMessage("");
+                      }}
+                      placeholder="Enter your answer"
+                      disabled={loading}
+                      style={{
+                        width: '100%',
+                        height: '50px',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        padding: '0 15px',
+                        fontSize: '16px',
+                        color: 'white',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{
+                      fontSize: '14px',
+                      color: 'white',
+                      marginBottom: '8px',
+                      fontWeight: '600',
+                      display: 'block',
+                    }}>New PIN</label>
+
+                    <input
+                      type="password"
+                      value={newPin.join("")}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+                        const pinArray = value.split('');
+                        while (pinArray.length < 4) pinArray.push('');
+                        setNewPin(pinArray);
+                        setMessage("");
+                      }}
+                      placeholder="••••"
+                      maxLength={4}
+                      disabled={loading}
+                      inputMode="numeric"
+                      style={{
+                        width: '100%',
+                        height: '50px',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        padding: '0 15px',
+                        fontSize: '24px',
+                        color: 'white',
+                        outline: 'none',
+                        letterSpacing: '8px',
+                        textAlign: 'center',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{
+                      fontSize: '14px',
+                      color: 'white',
+                      marginBottom: '8px',
+                      fontWeight: '600',
+                      display: 'block',
+                    }}>Confirm PIN</label>
+
+                    <input
+                      type="password"
+                      value={confirmPin.join("")}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9]/g, '').slice(0, 4);
+                        const pinArray = value.split('');
+                        while (pinArray.length < 4) pinArray.push('');
+                        setConfirmPin(pinArray);
+                        setMessage("");
+                      }}
+                      placeholder="••••"
+                      maxLength={4}
+                      disabled={loading}
+                      inputMode="numeric"
+                      style={{
+                        width: '100%',
+                        height: '50px',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '12px',
+                        border: `1px solid ${
+                          newPin.join("") && confirmPin.join("") && newPin.join("") !== confirmPin.join("")
+                            ? 'rgba(211, 47, 47, 0.5)'
+                            : 'rgba(255, 255, 255, 0.3)'
+                        }`,
+                        padding: '0 15px',
+                        fontSize: '24px',
+                        color: 'white',
+                        outline: 'none',
+                        letterSpacing: '8px',
+                        textAlign: 'center',
+                      }}
+                    />
+                    {newPin.join("") && confirmPin.join("") && newPin.join("") !== confirmPin.join("") && (
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#FF6B6B',
+                        marginTop: '6px',
+                        fontWeight: '500',
+                      }}>
+                        ⚠️ PINs do not match
+                      </p>
+                    )}
+                    {newPin.join("") === confirmPin.join("") && newPin.join("").length === 4 && (
+                      <p style={{
+                        fontSize: '12px',
+                        color: '#4CAF50',
+                        marginTop: '6px',
+                        fontWeight: '500',
+                      }}>
+                        ✓ PINs match
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
 
               {message && (
                 <div style={{
@@ -493,7 +700,7 @@ function Login() {
 
               <button
                 type="submit"
-                disabled={loading || phoneNumber.length !== 10}
+                disabled={loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (!securityAnswer.trim() || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join("")))}
                 style={{
                   background: '#D2A679',
                   width: '100%',
@@ -504,14 +711,14 @@ function Login() {
                   fontSize: '16px',
                   fontWeight: '700',
                   letterSpacing: '0.5px',
-                  cursor: loading || phoneNumber.length !== 10 ? 'not-allowed' : 'pointer',
-                  opacity: loading || phoneNumber.length !== 10 ? 0.6 : 1,
+                  cursor: loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (!securityAnswer.trim() || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join(""))) ? 'not-allowed' : 'pointer',
+                  opacity: loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (!securityAnswer.trim() || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join(""))) ? 0.6 : 1,
                   marginBottom: '15px',
                   textTransform: 'uppercase',
                   transition: 'all 0.3s ease',
                 }}
                 onMouseEnter={(e) => {
-                  if (!loading && phoneNumber.length === 10) {
+                  if (!loading && ((resetStep === 1 && phoneNumber.length === 10) || (resetStep === 2 && securityAnswer.trim() && newPin.join("").length === 4 && confirmPin.join("").length === 4 && newPin.join("") === confirmPin.join("")))) {
                     e.target.style.background = '#C19763';
                     e.target.style.transform = 'translateY(-2px)';
                     e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
@@ -523,16 +730,48 @@ function Login() {
                   e.target.style.boxShadow = 'none';
                 }}
               >
-                {loading ? 'Processing...' : 'Continue'}
+                {loading ? 'Processing...' : resetStep === 1 ? 'Continue' : 'Reset PIN'}
               </button>
 
               <div style={{ textAlign: 'center' }}>
+                {resetStep === 2 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setResetStep(1);
+                      setSecurityQuestion("");
+                      setSecurityAnswer("");
+                      setNewPin(["", "", "", ""]);
+                      setConfirmPin(["", "", "", ""]);
+                      setMessage("");
+                      setMessageType("");
+                    }}
+                    disabled={loading}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      marginRight: '15px',
+                    }}
+                  >
+                    ← Back
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
                     setIsResetMode(false);
                     setShowLoginForm(true);
                     setPhoneNumber("");
+                    setSecurityQuestion("");
+                    setSecurityAnswer("");
+                    setNewPin(["", "", "", ""]);
+                    setConfirmPin(["", "", "", ""]);
+                    setResetStep(1);
                     setMessage("");
                     setMessageType("");
                   }}

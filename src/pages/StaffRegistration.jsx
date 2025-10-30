@@ -224,7 +224,7 @@ function StaffRegistration() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: CoffeeColors.SCREEN_BG, fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: CoffeeColors.SCREEN_BG }}>
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
