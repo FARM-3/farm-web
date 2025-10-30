@@ -384,7 +384,7 @@
 
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, FileText } from 'lucide-react';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, FileText, Search } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
 const styleElement = document.createElement('style');
@@ -942,6 +942,7 @@ function Wages() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [wageToDelete, setWageToDelete] = useState(null);
     const [allWagesForKPI, setAllWagesForKPI] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const itemsPerPage = 7;
 
     const fetchWages = useCallback(async (page = 1) => {
@@ -1048,7 +1049,19 @@ function Wages() {
 
     const sortedWages = React.useMemo(() => {
         const base = Array.isArray(wages) ? wages : [];
-        let sortableItems = [...base];
+
+        // First, filter by search term
+        let filteredItems = base;
+        if (searchTerm.trim()) {
+            const searchLower = searchTerm.toLowerCase();
+            filteredItems = base.filter(wage => {
+                const employeeName = (wage.employee_name || '').toLowerCase();
+                return employeeName.includes(searchLower);
+            });
+        }
+
+        // Then, sort the filtered results
+        let sortableItems = [...filteredItems];
         if (sortConfig.key !== null) {
             sortableItems.sort((a, b) => {
                 const aValue = a[sortConfig.key];
@@ -1066,7 +1079,7 @@ function Wages() {
             });
         }
         return sortableItems;
-    }, [wages, sortConfig]);
+    }, [wages, sortConfig, searchTerm]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -1299,7 +1312,7 @@ function Wages() {
                 </div>
 
                 <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap items-center">
                         <button
                             onClick={() => setIsModalOpen(true)}
                             className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
@@ -1313,7 +1326,19 @@ function Wages() {
                         </Button>
                     </div>
 
-                    <div className="flex gap-3 items-center">
+                    <div className="flex gap-3 items-center flex-wrap">
+                        {/* Search Input */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="search"
+                                placeholder="Search by employee name"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-[#795548] focus:border-[#795548] transition-colors shadow-lg"
+                            />
+                        </div>
+
                         <button
                             onClick={() => fetchWages(currentPage)}
                             disabled={loading}
