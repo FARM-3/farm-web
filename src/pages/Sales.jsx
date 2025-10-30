@@ -931,7 +931,6 @@ function SalesPage() {
             const dateStr = saleDate ? new Date(saleDate).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'N/A';
             // Support both field names: method_of_payment (from API) and payment_method (from mock data)
             const paymentMethod = sale.method_of_payment || sale.payment_method || 'N/A';
-            const isCash = paymentMethod.toLowerCase() === 'cash';
 
             return (
                 <tr key={sale.id || index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
@@ -945,7 +944,7 @@ function SalesPage() {
                         {(parseFloat(sale.quantity || 0) * parseFloat(sale.rate || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-3 py-2 text-left font-medium">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isCash ? 'bg-green-100 text-success' : 'bg-red-100 text-error'}`}>
+                        <span className="text-xs text-gray-600">
                             {paymentMethod}
                         </span>
                     </td>
