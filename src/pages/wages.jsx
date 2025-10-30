@@ -383,9 +383,18 @@
 
 
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, TrendingUpIcon, Eye, Edit, Trash2, FileText } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, FileText } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
+
+const styleElement = document.createElement('style');
+styleElement.innerHTML = `
+    body, html {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+`;
+document.head.appendChild(styleElement);
 
 // --- CONFIGURATION & UTILITIES ---
 
@@ -470,20 +479,21 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
     useEffect(() => {
         if (isOpen) {
+            const safeData = initialData || {};
             setForm({
-                employee_name: safeInitial.employee_name || '',
-                date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
-                days_worked: safeInitial.days_worked || '',
-                monthly_pay: safeInitial.monthly_pay || '',
-                amount_paid: safeInitial.amount_paid || '',
-                deduction:  safeInitial.deduction || '0',
-                noted_reason: safeInitial.noted_reason || '',
+                employee_name: safeData.employee_name || '',
+                date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
+                days_worked: safeData.days_worked || '',
+                monthly_pay: safeData.monthly_pay || '',
+                amount_paid: safeData.amount_paid || '',
+                deduction:  safeData.deduction || '0',
+                noted_reason: safeData.noted_reason || '',
             });
             setErrors({});
             setMessage('');
             setAttemptedSubmit(false);
         }
-    }, [isOpen, safeInitial]);
+    }, [isOpen, initialData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -536,6 +546,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         setMessage('');
 
         const payload = {
+            id: initialData?.id || Date.now(), // Use existing ID for edit, or generate new one
             employee_name: form.employee_name,
             date_of_payment: form.date_of_payment,
             days_worked: Number(form.days_worked) || 0,
@@ -547,8 +558,22 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock API POST Success with payload:', payload);
-            setMessage('You have successfully recorded a new wage!');
+
+            if (initialData) {
+                // Edit mode - update existing record
+                const index = MOCK_WAGES_DATA.findIndex(w => w.id === initialData.id);
+                if (index !== -1) {
+                    MOCK_WAGES_DATA[index] = { ...MOCK_WAGES_DATA[index], ...payload };
+                }
+                console.log('Mock API PUT Success with payload:', payload);
+                setMessage('You have successfully updated the wage record!');
+            } else {
+                // Create mode - add new record
+                MOCK_WAGES_DATA.push(payload);
+                console.log('Mock API POST Success with payload:', payload);
+                setMessage('You have successfully recorded a new wage!');
+            }
+
             setTimeout(() => {
                 onSaveSuccess(payload);
             }, 1000);
@@ -709,10 +734,10 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     {submitting ? (
                         <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Submitting...
+                            {initialData ? 'Updating...' : 'Submitting...'}
                         </>
                     ) : (
-                        'Submit Wage Record'
+                        initialData ? 'Update Wage Record' : 'Submit Wage Record'
                     )}
                 </button>
             </div>
@@ -747,7 +772,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                             <DollarSign className="w-6 h-6 text-white" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white">Wage Entry Form</h2>
+                        <h2 className="text-2xl font-bold text-white">{initialData ? 'Edit Wage Record' : 'Wage Entry Form'}</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -803,6 +828,9 @@ function Wages() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingWage, setEditingWage] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [wageToDelete, setWageToDelete] = useState(null);
     const itemsPerPage = 7;
 
     const fetchWages = useCallback(async (page = 1) => {
@@ -831,10 +859,55 @@ function Wages() {
         fetchWages(currentPage);
     }, [fetchWages, currentPage]);
 
-    const handleSaveSuccess = () => {
+    const handleSaveSuccess = (wageData) => {
+        if (editingWage) {
+            // Update existing wage
+            setWages(prevWages => prevWages.map(w => w.id === editingWage.id ? { ...editingWage, ...wageData } : w));
+
+            // Also update MOCK_WAGES_DATA for persistence
+            const index = MOCK_WAGES_DATA.findIndex(w => w.id === editingWage.id);
+            if (index > -1) {
+                MOCK_WAGES_DATA[index] = { ...MOCK_WAGES_DATA[index], ...wageData };
+            }
+        } else {
+            // Add new wage
+            const newWage = {
+                id: MOCK_WAGES_DATA.length > 0 ? Math.max(...MOCK_WAGES_DATA.map(w => w.id)) + 1 : 1,
+                ...wageData
+            };
+
+            setWages(prevWages => [newWage, ...prevWages]);
+            MOCK_WAGES_DATA.unshift(newWage);
+        }
+
         setIsModalOpen(false);
+        setEditingWage(null);
         setCurrentPage(1);
         fetchWages(1);
+    };
+
+    const handleEdit = (wage) => {
+        setEditingWage(wage);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = (wage) => {
+        setDeleteConfirm({ isOpen: true, wage });
+    };
+
+    const handleDeleteConfirm = () => {
+        if (deleteConfirm.wage) {
+            // Remove from mock data
+            const updatedWages = MOCK_WAGES_DATA.filter(w => w.id !== deleteConfirm.wage.id);
+            // Update the mock data array (in a real app, this would be an API call)
+            MOCK_WAGES_DATA.splice(0, MOCK_WAGES_DATA.length, ...updatedWages);
+            setDeleteConfirm({ isOpen: false, wage: null });
+            fetchWages(currentPage);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteConfirm({ isOpen: false, wage: null });
     };
 
     const sortedWages = React.useMemo(() => {
@@ -874,6 +947,66 @@ function Wages() {
         return sortConfig.direction === 'ascending' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
     };
 
+    const handleEditWage = (wage) => {
+        setEditingWage(wage);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteWage = (wage) => {
+        setWageToDelete(wage);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = () => {
+        if (wageToDelete) {
+            // Update the wages list by removing the deleted wage
+            setWages(prevWages => prevWages.filter(w => w.id !== wageToDelete.id));
+
+            // Also remove from MOCK_WAGES_DATA if needed for persistence in this session
+            const index = MOCK_WAGES_DATA.findIndex(w => w.id === wageToDelete.id);
+            if (index > -1) {
+                MOCK_WAGES_DATA.splice(index, 1);
+            }
+
+            setShowDeleteModal(false);
+            setWageToDelete(null);
+
+            // Refresh the current page
+            fetchWages(currentPage);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setWageToDelete(null);
+    };
+
+    // Calculate KPIs with live updates from MOCK_WAGES_DATA
+    const kpis = useMemo(() => {
+        if (!MOCK_WAGES_DATA || MOCK_WAGES_DATA.length === 0) {
+            return {
+                totalWagesPaid: 0,
+                averageWagePerEmployee: 0,
+                totalEmployees: 0,
+                totalDeductions: 0
+            };
+        }
+
+        const totalWagesPaid = MOCK_WAGES_DATA.reduce((sum, wage) => sum + (wage.amount_paid || 0), 0);
+        const totalDeductions = MOCK_WAGES_DATA.reduce((sum, wage) => sum + (wage.deduction || 0), 0);
+
+        // Count unique employees
+        const uniqueEmployees = new Set(MOCK_WAGES_DATA.map(wage => wage.employee_name)).size;
+        const averageWagePerEmployee = uniqueEmployees > 0 ? totalWagesPaid / uniqueEmployees : 0;
+
+        return {
+            totalWagesPaid,
+            averageWagePerEmployee,
+            totalEmployees: uniqueEmployees,
+            totalDeductions
+        };
+    }, [wages]); // Re-calculate when wages state changes
+
     const renderTableContent = () => {
         if (loading) {
             return (
@@ -908,14 +1041,16 @@ function Wages() {
                     <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
                             <button
-                                onClick={() => alert(`Editing wage for ${wage.employee_name}`)}
+                                onClick={() => handleEditWage(wage)}
                                 className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                title="Edit wage record"
                             >
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button
-                                onClick={() => alert(`Deleting wage for ${wage.employee_name}`)}
+                                onClick={() => handleDeleteWage(wage)}
                                 className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                title="Delete wage record"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -930,44 +1065,68 @@ function Wages() {
 
     return (
         <SideNav>
-            <main className={`${mobilePadding} pt-0`}>
+            <main className={`${mobilePadding} pt-0`} style={{ maxWidth: '100%', overflowX: 'hidden' }}>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">Wages Records Overview</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Card 1: Total Wages Paid */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <DollarSign className="w-4 h-4 mr-1" stroke={CoffeeColors.SUCCESS_GREEN} />
-                                Total Wages Paid (This Period)
+                                Total Wages Paid
                             </p>
-                            <TrendingUpIcon className="w-4 h-4" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.2} />
+                            <div className="p-2 bg-green-50 rounded-lg">
+                                <DollarSign className="w-5 h-5" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(12500000)}</p>
-                        <p className="text-xs text-[#34A853] mt-2 font-medium">+15.3% vs last month</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalWagesPaid)}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">{MOCK_WAGES_DATA.length} wage record(s)</p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                    {/* Card 2: Average Wage Per Employee */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <Wallet className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
                                 Avg. Wage/Employee
                             </p>
-                            <TrendingUpIcon className="w-4 h-4 text-[#EA4335] rotate-180" stroke={CoffeeColors.ERROR_RED} strokeWidth={2.2} />
+                            <div className="p-2 bg-orange-50 rounded-lg">
+                                <Wallet className="w-5 h-5" stroke={CoffeeColors.MEDIUM_BROWN} strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(250000)}</p>
-                        <p className="text-xs text-[#EA4335] mt-2 font-medium">-8.1% from last month</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(Math.round(kpis.averageWagePerEmployee))}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">Per unique employee</p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                    {/* Card 3: Total Employees Paid */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <UserIcon className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                                Total Employees
+                                Employees Paid
                             </p>
-                            <UserIcon className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                                <UserIcon className="w-5 h-5 text-blue-600" strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">50</p>
-                        <p className="text-xs text-gray-500 mt-2 font-medium">Stable over last quarter</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">{kpis.totalEmployees}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">Unique employees</p>
+                    </div>
+
+                    {/* Card 4: Total Deductions */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <MinusCircle className="w-4 h-4 mr-1" stroke={CoffeeColors.ERROR_RED} />
+                                Total Deductions
+                            </p>
+                            <div className="p-2 bg-red-50 rounded-lg">
+                                <MinusCircle className="w-5 h-5" stroke={CoffeeColors.ERROR_RED} strokeWidth={2.5} />
+                            </div>
+                        </div>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalDeductions)}</p>
+                        <p className="text-xs text-[#EA4335] mt-2 font-medium">Total amount deducted</p>
                     </div>
                 </div>
 
@@ -1011,9 +1170,9 @@ function Wages() {
                     </div>
                 </div>
 
-                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
+                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300" style={{ maxWidth: '100%' }}>
+                    <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                        <table className="min-w-full divide-y divide-gray-100" style={{ width: '100%', tableLayout: 'auto' }}>
                             <thead className="sticky top-0 z-10 bg-[#efebe9] text-[#4A3423]">
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
@@ -1051,7 +1210,54 @@ function Wages() {
                     )}
                 </div>
 
-                <WagesModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaveSuccess={handleSaveSuccess} />
+                <WagesModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingWage(null); }} onSaveSuccess={handleSaveSuccess} initialData={editingWage} />
+
+                {/* Delete Confirmation Modal */}
+                {showDeleteModal && (
+                    <div
+                        className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                            zIndex: 1000,
+                        }}
+                        onClick={cancelDelete}
+                    >
+                        <div
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 p-6"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-[#4A3423]">Confirm Delete</h3>
+                                <button
+                                    onClick={cancelDelete}
+                                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <p className="text-gray-700 mb-6">
+                                Are you sure you want to delete the wage record for <strong>{wageToDelete?.employee_name}</strong>?
+                                <br />
+                                <span className="text-sm text-gray-500">This action cannot be undone.</span>
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={cancelDelete}
+                                    className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200"
+                                    style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </SideNav>
     );
