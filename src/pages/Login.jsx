@@ -447,13 +447,12 @@ function Login() {
               marginBottom: '30px',
             }}>
               <img
-                src="/logo.jpg"
+                src="/src/assets/rugyeyo_logo.png"
                 alt="Logo"
                 style={{
-                  width: '80px',
-                  height: '80px',
-                  borderRadius: '50%',
-                  border: '3px solid white',
+                  width: '100px',
+                  height: 'auto',
+                  backgroundColor: 'transparent',
                 }}
               />
             </div>
@@ -843,13 +842,12 @@ function Login() {
             marginBottom: '20px',
           }}>
             <img
-              src="/logo.jpg"
+              src="/src/assets/rugyeyo_logo.png"
               alt="Logo"
               style={{
-                width: '80px',
-                height: '80px',
-                borderRadius: '50%',
-                border: '3px solid white',
+                width: '100px',
+                height: 'auto',
+                backgroundColor: 'transparent',
               }}
             />
           </div>
