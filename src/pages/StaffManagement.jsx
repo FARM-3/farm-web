@@ -773,20 +773,20 @@ const STAFF_API_ENDPOINT = 'https://api-3181.onrender.com/api/staff/';
 const LOCATION_DATA = {
     Wakiso: {
         subcounties: {
-            Kakiri: ['Kibuga Parish', 'Kagoma Parish'],
-            Kira: ['Kyaliwajjala Parish', 'Bweyogerere Parish'],
+            "Kakiri": 
+            "Kira" 
         }
     },
     Mpigi: {
         subcounties: {
-            MpigiTC: ['Central Parish', 'East Parish'],
-            Ggombe: ['North Parish', 'South Parish'],
+            "MpigiTC":
+            "Ggombe" 
         }
     },
     Mbarara: {
         subcounties: {
-            Kakoba: ['Parish A', 'Parish B'],
-            Nyamitanga: ['Parish C', 'Parish D'],
+            "Kakoba": 
+            "Nyamitanga" 
         }
     }
 };
@@ -866,7 +866,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             case 'village':
                 return v.length >= 2;
             case 'employment_status':
-                return ['Full-time', 'Part-time', 'Contract', 'Seasonal', 'Active', 'On Leave', 'Suspended', 'Terminated'].includes(value);
+                return ['Full-time', 'Part-time', 'Contract', 'Seasonal', ].includes(value);
             case 'hire_date':
                 return v.length > 0;
             default:
@@ -1018,7 +1018,6 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                                         <option value="" disabled>-- Select Gender --</option>
                                         <option value="Male">Male</option>
                                         <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
                                     </select>
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
