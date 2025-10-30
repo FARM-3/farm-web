@@ -145,7 +145,7 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogout }) => {
 export const SideNav = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const currentPage = useMemo(() => getCurrentPageKey(), []);
-    const sidebarWidthClass = 'w-64';
+    const sidebarWidthClass = 'w-56';
 
     useEffect(() => {
         const handleResize = () => {
@@ -221,13 +221,13 @@ export const SideNav = ({ children }) => {
 
             {/* Main Content Area */}
             <div 
-                className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-64' : 'md:ml-0'} w-full`} 
+                className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-56' : 'md:ml-0'} w-full`} 
                 style={{ minHeight: '100vh', backgroundColor: CoffeeColors.SCREEN_BG }}
             >
                 
                 {/* Fixed Header Bar (Top right corner icons) */}
                 <header 
-                    className={`fixed top-0 right-0 z-30 p-4 h-20 shadow-sm transition-all duration-300 ${sidebarOpen ? 'md:left-64' : 'md:left-0'} w-full`} 
+                    className={`fixed top-0 right-0 z-30 p-4 h-20 shadow-sm transition-all duration-300 ${sidebarOpen ? 'md:left-56' : 'md:left-0'} w-full`} 
                     style={{ backgroundColor: '#FFFFFF', borderBottom: `1px solid ${CoffeeColors.BORDER_GRAY}` }}
                 >
                     <div className="flex items-center justify-end h-full max-w-7xl mx-auto">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
-import { Users, TrendingUp, Coffee, Eye, Loader2, RefreshCw, ChevronUp } from 'lucide-react';
+import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 
 // API Endpoints
 const API_BASE_URL = 'https://api-3181.onrender.com/api';
@@ -66,7 +66,7 @@ const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
                         className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-50 transition-colors relative group"
                         title="View Details"
                     >
-                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
                             View Details
                         </span>
@@ -159,7 +159,7 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                         className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-50 transition-colors relative group"
                         title="View Details"
                     >
-                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
                             View Details
                         </span>
@@ -375,38 +375,38 @@ const AggregationPage = () => {
                             <tr>
                                 {activeTab === 'farmers' ? (
                                     <>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer ID
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer Name
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Recorded
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Actions
                                         </th>
                                     </>
                                 ) : (
                                     <>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Harvest ID
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-left">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-left">
                                             Farmer Name
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Delivered
                                         </th>
-                                        <th className="px-6 py-3 text-xs font-semibold uppercase tracking-wider text-center">
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Actions
                                         </th>
                                     </>
                                 )}
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 text-xs">
                             {loading ? (
                                 <tr className="h-24">
                                     <td colSpan="4" className="text-center py-6 text-gray-600">

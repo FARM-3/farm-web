@@ -383,9 +383,18 @@
 
 
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, TrendingUpIcon, Eye, Edit, Trash2, FileText } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, FileText } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
+
+const styleElement = document.createElement('style');
+styleElement.innerHTML = `
+    body, html {
+        overflow-x: hidden !important;
+        max-width: 100vw !important;
+    }
+`;
+document.head.appendChild(styleElement);
 
 // --- CONFIGURATION & UTILITIES ---
 
@@ -452,14 +461,15 @@ const Input = ({ type = 'text', name, id, value, onChange, placeholder, classNam
 // =========================================================
 
 const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
+    const safeInitial = initialData || {};
     const [form, setForm] = useState({
-        employee_name: initialData.employee_name || '',
-        date_of_payment: initialData.date_of_payment || new Date().toISOString().substring(0, 10),
-        days_worked: initialData.days_worked || '',
-        monthly_pay: initialData.monthly_pay || '',
-        amount_paid: initialData.amount_paid || '',
-        deduction: initialData.deduction || '0',
-        noted_reason: initialData.noted_reason || '',
+        employee_name: safeInitial.employee_name || '',
+        date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
+        days_worked: safeInitial.days_worked || '',
+        monthly_pay: safeInitial.monthly_pay || '',
+         amount_paid: safeInitial.amount_paid || '',
+         deduction: safeInitial.deduction || '0',
+         noted_reason: safeInitial.noted_reason || '',
     });
 
     const [errors, setErrors] = useState({});
@@ -469,14 +479,15 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
     useEffect(() => {
         if (isOpen) {
+            const safeData = initialData || {};
             setForm({
-                employee_name: initialData.employee_name || '',
-                date_of_payment: initialData.date_of_payment || new Date().toISOString().substring(0, 10),
-                days_worked: initialData.days_worked || '',
-                monthly_pay: initialData.monthly_pay || '',
-                amount_paid: initialData.amount_paid || '',
-                deduction: initialData.deduction || '0',
-                noted_reason: initialData.noted_reason || '',
+                employee_name: safeData.employee_name || '',
+                date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
+                days_worked: safeData.days_worked || '',
+                monthly_pay: safeData.monthly_pay || '',
+                amount_paid: safeData.amount_paid || '',
+                deduction:  safeData.deduction || '0',
+                noted_reason: safeData.noted_reason || '',
             });
             setErrors({});
             setMessage('');
@@ -535,6 +546,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         setMessage('');
 
         const payload = {
+            id: initialData?.id || Date.now(), // Use existing ID for edit, or generate new one
             employee_name: form.employee_name,
             date_of_payment: form.date_of_payment,
             days_worked: Number(form.days_worked) || 0,
@@ -546,8 +558,22 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
         try {
             await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock API POST Success with payload:', payload);
-            setMessage('You have successfully recorded a new wage!');
+
+            if (initialData) {
+                // Edit mode - update existing record
+                const index = MOCK_WAGES_DATA.findIndex(w => w.id === initialData.id);
+                if (index !== -1) {
+                    MOCK_WAGES_DATA[index] = { ...MOCK_WAGES_DATA[index], ...payload };
+                }
+                console.log('Mock API PUT Success with payload:', payload);
+                setMessage('You have successfully updated the wage record!');
+            } else {
+                // Create mode - add new record
+                MOCK_WAGES_DATA.push(payload);
+                console.log('Mock API POST Success with payload:', payload);
+                setMessage('You have successfully recorded a new wage!');
+            }
+
             setTimeout(() => {
                 onSaveSuccess(payload);
             }, 1000);
@@ -688,26 +714,70 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 )}
             </div>
 
-            <div className="p-4 flex justify-end space-x-3 border-t border-gray-200 bg-white">
-                <Button onClick={onClose} type="secondary" htmlType="button" className="w-24">
+            <div className="p-5 flex justify-end space-x-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <button
+                    onClick={onClose}
+                    type="button"
+                    className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
                     Cancel
-                </Button>
+                </button>
 
-                <Button type="primary" htmlType="submit" disabled={submitting} className="w-48 shadow-lg">
-                    {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : 'Submit Wage Record'}
-                </Button>
+                <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-8 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    style={{
+                        background: submitting ? '#795548' : 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
+                    }}
+                >
+                    {submitting ? (
+                        <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            {initialData ? 'Updating...' : 'Submitting...'}
+                        </>
+                    ) : (
+                        initialData ? 'Update Wage Record' : 'Submit Wage Record'
+                    )}
+                </button>
             </div>
         </form>
     );
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex justify-center items-center transition-opacity duration-300">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg lg:max-w-3xl h-full max-h-[90vh] transition-transform duration-300 ease-out transform scale-100 flex flex-col" style={{ maxWidth: '600px' }}>
-                <header className="flex justify-between items-center p-4 rounded-t-xl shadow-md flex-shrink-0" style={{ backgroundColor: CoffeeColors.MODAL_HEADER_BG, borderBottom: '1px solid #eee' }}>
-                    <div className="flex items-center">
-                        <h2 className="text-xl font-bold text-[#4A3423]">Wage Entry</h2>
+        <div
+            className="fixed inset-0 z-50 overflow-y-auto flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+            style={{
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                animation: 'fadeIn 0.3s ease-out'
+            }}
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] transition-all duration-300 ease-out transform scale-100 flex flex-col m-4"
+                style={{
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 15px rgba(139, 69, 19, 0.1)',
+                    animation: 'slideUp 0.3s ease-out'
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <header
+                    className="flex justify-between items-center p-5 rounded-t-2xl flex-shrink-0 border-b-2"
+                    style={{
+                        background: 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
+                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                    }}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                            <DollarSign className="w-6 h-6 text-white" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">{initialData ? 'Edit Wage Record' : 'Wage Entry Form'}</h2>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 transition">
+                    <button
+                        onClick={onClose}
+                        className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200"
+                    >
                         <X className="w-6 h-6" />
                     </button>
                 </header>
@@ -716,6 +786,23 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     {EntryForm}
                 </div>
             </div>
+
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px) scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+            `}</style>
         </div>
     );
 };
@@ -727,10 +814,9 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 const TABLE_HEADERS = [
     { key: 'employee_name', label: 'Employee', icon: User, type: 'string', align: 'left' },
     { key: 'date_of_payment', label: 'Date Paid', icon: Calendar, type: 'date', align: 'center' },
-    { key: 'days_worked', label: 'Days', icon: Calendar, type: 'number', align: 'center' },
-    { key: 'amount_paid', label: 'Total Paid (UGX)', icon: DollarSign, type: 'number', align: 'right' },
-    { key: 'deduction', label: 'Deduction (UGX)', icon: MinusCircle, type: 'number', align: 'right' },
-    { key: 'noted_reason', label: 'Note', icon: null, type: 'string', align: 'left' },
+    { key: 'days_worked', label: 'Days Worked', icon: Calendar, type: 'number', align: 'center' },
+    { key: 'amount_paid', label: 'Amount Paid', icon: DollarSign, type: 'number', align: 'right' },
+    { key: 'deduction', label: 'Deduction', icon: MinusCircle, type: 'number', align: 'right' },
     { key: 'actions', label: 'Actions', icon: null, type: 'actions', align: 'center' },
 ];
 
@@ -742,6 +828,9 @@ function Wages() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingWage, setEditingWage] = useState(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [wageToDelete, setWageToDelete] = useState(null);
     const itemsPerPage = 7;
 
     const fetchWages = useCallback(async (page = 1) => {
@@ -770,10 +859,55 @@ function Wages() {
         fetchWages(currentPage);
     }, [fetchWages, currentPage]);
 
-    const handleSaveSuccess = () => {
+    const handleSaveSuccess = (wageData) => {
+        if (editingWage) {
+            // Update existing wage
+            setWages(prevWages => prevWages.map(w => w.id === editingWage.id ? { ...editingWage, ...wageData } : w));
+
+            // Also update MOCK_WAGES_DATA for persistence
+            const index = MOCK_WAGES_DATA.findIndex(w => w.id === editingWage.id);
+            if (index > -1) {
+                MOCK_WAGES_DATA[index] = { ...MOCK_WAGES_DATA[index], ...wageData };
+            }
+        } else {
+            // Add new wage
+            const newWage = {
+                id: MOCK_WAGES_DATA.length > 0 ? Math.max(...MOCK_WAGES_DATA.map(w => w.id)) + 1 : 1,
+                ...wageData
+            };
+
+            setWages(prevWages => [newWage, ...prevWages]);
+            MOCK_WAGES_DATA.unshift(newWage);
+        }
+
         setIsModalOpen(false);
+        setEditingWage(null);
         setCurrentPage(1);
         fetchWages(1);
+    };
+
+    const handleEdit = (wage) => {
+        setEditingWage(wage);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = (wage) => {
+        setDeleteConfirm({ isOpen: true, wage });
+    };
+
+    const handleDeleteConfirm = () => {
+        if (deleteConfirm.wage) {
+            // Remove from mock data
+            const updatedWages = MOCK_WAGES_DATA.filter(w => w.id !== deleteConfirm.wage.id);
+            // Update the mock data array (in a real app, this would be an API call)
+            MOCK_WAGES_DATA.splice(0, MOCK_WAGES_DATA.length, ...updatedWages);
+            setDeleteConfirm({ isOpen: false, wage: null });
+            fetchWages(currentPage);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteConfirm({ isOpen: false, wage: null });
     };
 
     const sortedWages = React.useMemo(() => {
@@ -813,6 +947,66 @@ function Wages() {
         return sortConfig.direction === 'ascending' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
     };
 
+    const handleEditWage = (wage) => {
+        setEditingWage(wage);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteWage = (wage) => {
+        setWageToDelete(wage);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = () => {
+        if (wageToDelete) {
+            // Update the wages list by removing the deleted wage
+            setWages(prevWages => prevWages.filter(w => w.id !== wageToDelete.id));
+
+            // Also remove from MOCK_WAGES_DATA if needed for persistence in this session
+            const index = MOCK_WAGES_DATA.findIndex(w => w.id === wageToDelete.id);
+            if (index > -1) {
+                MOCK_WAGES_DATA.splice(index, 1);
+            }
+
+            setShowDeleteModal(false);
+            setWageToDelete(null);
+
+            // Refresh the current page
+            fetchWages(currentPage);
+        }
+    };
+
+    const cancelDelete = () => {
+        setShowDeleteModal(false);
+        setWageToDelete(null);
+    };
+
+    // Calculate KPIs with live updates from MOCK_WAGES_DATA
+    const kpis = useMemo(() => {
+        if (!MOCK_WAGES_DATA || MOCK_WAGES_DATA.length === 0) {
+            return {
+                totalWagesPaid: 0,
+                averageWagePerEmployee: 0,
+                totalEmployees: 0,
+                totalDeductions: 0
+            };
+        }
+
+        const totalWagesPaid = MOCK_WAGES_DATA.reduce((sum, wage) => sum + (wage.amount_paid || 0), 0);
+        const totalDeductions = MOCK_WAGES_DATA.reduce((sum, wage) => sum + (wage.deduction || 0), 0);
+
+        // Count unique employees
+        const uniqueEmployees = new Set(MOCK_WAGES_DATA.map(wage => wage.employee_name)).size;
+        const averageWagePerEmployee = uniqueEmployees > 0 ? totalWagesPaid / uniqueEmployees : 0;
+
+        return {
+            totalWagesPaid,
+            averageWagePerEmployee,
+            totalEmployees: uniqueEmployees,
+            totalDeductions
+        };
+    }, [wages]); // Re-calculate when wages state changes
+
     const renderTableContent = () => {
         if (loading) {
             return (
@@ -836,22 +1030,28 @@ function Wages() {
         }
 
         return sortedWages.map((wage, index) => {
-            const dateStr = wage.date_of_payment ? new Date(wage.date_of_payment).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'N/A';
+            const dateStr = wage.date_of_payment ? new Date(wage.date_of_payment).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
             return (
-                <tr key={index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-[#efebe9]/40">
-                    <td className="px-6 py-3 text-left font-medium text-[#4A3423] text-sm max-w-[200px] truncate">{wage.employee_name || 'N/A'}</td>
-                    <td className="px-6 py-3 text-center text-gray-600">{dateStr}</td>
-                    <td className="px-6 py-3 text-center text-gray-600">{wage.days_worked || 0}</td>
-                    <td className="px-6 py-3 text-right text-[#4A3423] font-semibold whitespace-nowrap">{formatUGX(wage.monthly_pay)}</td>
-                    <td className="px-6 py-3 text-right text-[#34A853] font-bold whitespace-nowrap">{formatUGX(wage.amount_paid)}</td>
-                    <td className="px-6 py-3 text-right text-[#EA4335] whitespace-nowrap">{formatUGX(wage.deduction)}</td>
-                    <td className="px-6 py-3 text-left text-xs italic text-gray-500 max-w-xs truncate">{wage.noted_reason || '-'}</td>
-                    <td className="px-6 py-3 text-center">
+                <tr key={index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-[#efebe9]/30">
+                    <td className="px-6 py-4 text-left font-semibold text-[#4A3423]">{wage.employee_name || 'N/A'}</td>
+                    <td className="px-6 py-4 text-center text-gray-700">{dateStr}</td>
+                    <td className="px-6 py-4 text-center text-gray-700 font-medium">{wage.days_worked || 0}</td>
+                    <td className="px-6 py-4 text-right text-[#34A853] font-bold whitespace-nowrap">UGX {formatUGX(wage.amount_paid)}</td>
+                    <td className="px-6 py-4 text-right text-[#EA4335] font-semibold whitespace-nowrap">UGX {formatUGX(wage.deduction)}</td>
+                    <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
-                            <button onClick={() => alert(`Editing wage for ${wage.employee_name}`)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
+                            <button
+                                onClick={() => handleEditWage(wage)}
+                                className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                title="Edit wage record"
+                            >
                                 <Edit className="w-4 h-4" />
                             </button>
-                            <button onClick={() => alert(`Deleting wage for ${wage.employee_name}`)} className="text-[#EA4335] hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors">
+                            <button
+                                onClick={() => handleDeleteWage(wage)}
+                                className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                title="Delete wage record"
+                            >
                                 <Trash2 className="w-4 h-4" />
                             </button>
                         </div>
@@ -865,54 +1065,81 @@ function Wages() {
 
     return (
         <SideNav>
-            <main className={`${mobilePadding} pt-0`}>
-                <h1 className="text-3xl sm:text-4xl font-bold text-[#4A3423] mb-2">Welcome Back!</h1>
+            <main className={`${mobilePadding} pt-0`} style={{ maxWidth: '100%', overflowX: 'hidden' }}>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">Wages Records Overview</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Card 1: Total Wages Paid */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <DollarSign className="w-4 h-4 mr-1" stroke={CoffeeColors.SUCCESS_GREEN} />
-                                Total Wages Paid (This Period)
+                                Total Wages Paid
                             </p>
-                            <TrendingUpIcon className="w-4 h-4" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.2} />
+                            <div className="p-2 bg-green-50 rounded-lg">
+                                <DollarSign className="w-5 h-5" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(12500000)}</p>
-                        <p className="text-xs text-[#34A853] mt-2 font-medium">+15.3% vs last month</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalWagesPaid)}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">{MOCK_WAGES_DATA.length} wage record(s)</p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                    {/* Card 2: Average Wage Per Employee */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <Wallet className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
                                 Avg. Wage/Employee
                             </p>
-                            <TrendingUpIcon className="w-4 h-4 text-[#EA4335] rotate-180" stroke={CoffeeColors.ERROR_RED} strokeWidth={2.2} />
+                            <div className="p-2 bg-orange-50 rounded-lg">
+                                <Wallet className="w-5 h-5" stroke={CoffeeColors.MEDIUM_BROWN} strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(250000)}</p>
-                        <p className="text-xs text-[#EA4335] mt-2 font-medium">-8.1% from last month</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(Math.round(kpis.averageWagePerEmployee))}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">Per unique employee</p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
+                    {/* Card 3: Total Employees Paid */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
                         <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-medium text-gray-500 flex items-center">
                                 <UserIcon className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                                Total Employees
+                                Employees Paid
                             </p>
-                            <UserIcon className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+                            <div className="p-2 bg-blue-50 rounded-lg">
+                                <UserIcon className="w-5 h-5 text-blue-600" strokeWidth={2.5} />
+                            </div>
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">50</p>
-                        <p className="text-xs text-gray-500 mt-2 font-medium">Stable over last quarter</p>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">{kpis.totalEmployees}</p>
+                        <p className="text-xs text-gray-500 mt-2 font-medium">Unique employees</p>
+                    </div>
+
+                    {/* Card 4: Total Deductions */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-sm font-medium text-gray-500 flex items-center">
+                                <MinusCircle className="w-4 h-4 mr-1" stroke={CoffeeColors.ERROR_RED} />
+                                Total Deductions
+                            </p>
+                            <div className="p-2 bg-red-50 rounded-lg">
+                                <MinusCircle className="w-5 h-5" stroke={CoffeeColors.ERROR_RED} strokeWidth={2.5} />
+                            </div>
+                        </div>
+                        <p className="text-3xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalDeductions)}</p>
+                        <p className="text-xs text-[#EA4335] mt-2 font-medium">Total amount deducted</p>
                     </div>
                 </div>
 
                 <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
                     <div className="flex gap-3">
-                        <Button onClick={() => setIsModalOpen(true)} className="py-2 px-4 shadow-xl" type="primary">
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
+                            style={{ backgroundColor: '#8B4513' }}
+                        >
                             <Plus className="w-4 h-4 mr-2" />
                             Record New Wage
-                        </Button>
+                        </button>
                         <Button type="secondary" onClick={() => alert('Exporting data...')} className="py-2 px-4 shadow-xl">
                             Export to Excel
                         </Button>
@@ -943,15 +1170,15 @@ function Wages() {
                     </div>
                 </div>
 
-                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
+                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300" style={{ maxWidth: '100%' }}>
+                    <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                        <table className="min-w-full divide-y divide-gray-100" style={{ width: '100%', tableLayout: 'auto' }}>
                             <thead className="sticky top-0 z-10 bg-[#efebe9] text-[#4A3423]">
                                 <tr>
                                     {TABLE_HEADERS.map((header) => (
                                         <th
                                             key={header.key}
-                                            className={`px-6 py-3 text-xs font-semibold uppercase tracking-wider transition-colors duration-150 cursor-pointer ${header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'} hover:bg-[#795548]/90 whitespace-nowrap`}
+                                            className={`px-6 py-3 text-sm font-semibold uppercase tracking-wider ${header.align === 'right' ? 'text-right' : header.align === 'center' ? 'text-center' : 'text-left'} whitespace-nowrap ${header.icon !== null ? 'cursor-pointer' : ''}`}
                                             onClick={() => header.icon !== null && requestSort(header.key)}
                                             scope="col"
                                         >
@@ -964,7 +1191,7 @@ function Wages() {
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="bg-white/80 divide-y divide-gray-100 text-sm text-[#4A3423]">
+                            <tbody className="bg-white/80 divide-y divide-gray-100 text-xs text-[#4A3423]">
                                 {renderTableContent()}
                             </tbody>
                         </table>
@@ -983,7 +1210,54 @@ function Wages() {
                     )}
                 </div>
 
-                <WagesModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSaveSuccess={handleSaveSuccess} />
+                <WagesModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingWage(null); }} onSaveSuccess={handleSaveSuccess} initialData={editingWage} />
+
+                {/* Delete Confirmation Modal */}
+                {showDeleteModal && (
+                    <div
+                        className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                            zIndex: 1000,
+                        }}
+                        onClick={cancelDelete}
+                    >
+                        <div
+                            className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 p-6"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-bold text-[#4A3423]">Confirm Delete</h3>
+                                <button
+                                    onClick={cancelDelete}
+                                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <p className="text-gray-700 mb-6">
+                                Are you sure you want to delete the wage record for <strong>{wageToDelete?.employee_name}</strong>?
+                                <br />
+                                <span className="text-sm text-gray-500">This action cannot be undone.</span>
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={cancelDelete}
+                                    className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmDelete}
+                                    className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200"
+                                    style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}
+                                >
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
         </SideNav>
     );
