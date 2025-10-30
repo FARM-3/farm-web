@@ -800,7 +800,10 @@ function SalesPage() {
                 totalSales: 0,
                 averageOrderValue: 0,
                 totalOrders: 0,
-                uniqueCustomers: 0
+                uniqueCustomers: 0,
+                highestSoldItem: null,
+                highestSoldItemValue: 0,
+                weeklySales: 0
             };
         }
 
@@ -816,11 +819,57 @@ function SalesPage() {
         // Count unique customers
         const uniqueCustomers = new Set(sales.map(sale => sale.customer_name).filter(Boolean)).size;
 
+        // Calculate highest sold item by total value
+        const itemTotals = {};
+        sales.forEach(sale => {
+            const item = sale.item || 'Unknown';
+            const quantity = parseFloat(sale.quantity || 0);
+            const rate = parseFloat(sale.rate || 0);
+            const amount = quantity * rate;
+
+            if (!itemTotals[item]) {
+                itemTotals[item] = {
+                    totalValue: 0,
+                    totalQuantity: 0
+                };
+            }
+            itemTotals[item].totalValue += amount;
+            itemTotals[item].totalQuantity += quantity;
+        });
+
+        // Find the item with the highest total value
+        let highestSoldItem = null;
+        let highestSoldItemValue = 0;
+
+        Object.entries(itemTotals).forEach(([item, data]) => {
+            if (data.totalValue > highestSoldItemValue) {
+                highestSoldItem = item;
+                highestSoldItemValue = data.totalValue;
+            }
+        });
+
+        // Calculate weekly sales (last 7 days)
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        const weeklySales = sales.reduce((sum, sale) => {
+            const saleDate = new Date(sale.date_of_payment || sale.date);
+            if (saleDate >= sevenDaysAgo && saleDate <= today) {
+                const amount = parseFloat(sale.total_amount || sale.amount || 0);
+                return sum + amount;
+            }
+            return sum;
+        }, 0);
+
         return {
             totalSales,
             averageOrderValue,
             totalOrders: sales.length,
-            uniqueCustomers
+            uniqueCustomers,
+            highestSoldItem,
+            highestSoldItemValue,
+            weeklySales
         };
     };
 
@@ -851,31 +900,34 @@ function SalesPage() {
             <div className="bg-white p-4 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <Tag className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
-                        Average Order Value
+                        <TrendingUpIcon className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
+                        Highest Sold Item
                     </p>
-                    <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
+                    <Tag className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
                         <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
                         <span className="text-sm text-gray-500">Loading...</span>
                     </div>
-                ) : (
+                ) : kpis.highestSoldItem ? (
                     <>
-                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.averageOrderValue)}</p> */}
-                        <p className="text-xs mt-2 font-medium text-gray-500">Per transaction</p>
+                        <p className="text-2xl font-extrabold text-gray-900 leading-none mb-1">{kpis.highestSoldItem}</p>
+                        <p className="text-xl font-bold text-[#8B4513] leading-none">UGX {formatUGX(kpis.highestSoldItemValue)}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Total value</p>
                     </>
+                ) : (
+                    <p className="text-sm text-gray-400 mt-2">No sales data available</p>
                 )}
             </div>
 
             <div className="bg-white p-4 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <User className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                        Unique Customers
+                        <Calendar className="w-4 h-4 mr-1" stroke={CoffeeColors.SUCCESS_GREEN} />
+                        Weekly Total Sales
                     </p>
-                    <User className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+                    <TrendingUpIcon className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
@@ -884,8 +936,8 @@ function SalesPage() {
                     </div>
                 ) : (
                     <>
-                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.uniqueCustomers}</p> */}
-                        <p className="text-xs mt-2 font-medium text-gray-500">Registered customers</p>
+                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.weeklySales)}</p>
+                        <p className="text-xs mt-2 font-medium text-gray-500">Last 7 days</p>
                     </>
                 )}
             </div>
