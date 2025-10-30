@@ -243,7 +243,7 @@ export const DashboardScreen = () => {
                         onClick={fetchDashboardData}
                         disabled={loading}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition disabled:opacity-50"
-                        style={{ backgroundColor: CoffeeColors.CARD_BROWN, color: '#FFFFFF' }}
+                        style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
