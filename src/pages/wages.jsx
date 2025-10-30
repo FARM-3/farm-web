@@ -465,6 +465,7 @@ const Input = ({ type = 'text', name, id, value, onChange, placeholder, classNam
 const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     const safeInitial = initialData || {};
     const [form, setForm] = useState({
+        employee_id: safeInitial.employee_id || safeInitial.employee_name_id || '',
         employee_name: safeInitial.employee_name || '',
         date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
         days_worked: safeInitial.days_worked || '',
@@ -474,15 +475,35 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
          noted_reason: safeInitial.noted_reason || '',
     });
 
+    const [staff, setStaff] = useState([]);
+    const [loadingStaff, setLoadingStaff] = useState(true);
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState('');
     const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
     useEffect(() => {
+        const fetchStaff = async () => {
+            try {
+                setLoadingStaff(true);
+                const response = await fetch('https://api-3181.onrender.com/api/staff/');
+                if (!response.ok) throw new Error('Failed to fetch staff');
+                const data = await response.json();
+                const staffList = Array.isArray(data) ? data : data.results || [];
+                setStaff(staffList);
+            } catch (err) {
+                console.error('Error fetching staff:', err);
+                setStaff([]);
+            } finally {
+                setLoadingStaff(false);
+            }
+        };
+
         if (isOpen) {
+            fetchStaff();
             const safeData = initialData || {};
             setForm({
+                employee_id: safeData.employee_id || safeData.employee_name_id || '',
                 employee_name: safeData.employee_name || '',
                 date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
                 days_worked: safeData.days_worked || '',
@@ -499,7 +520,14 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
+        if (name === 'employee_id') {
+            // When employee is selected, update both employee_id and employee_name
+            const selectedStaff = staff.find(s => s.staff_id === value);
+            const fullName = selectedStaff ? `${selectedStaff.first_name} ${selectedStaff.last_name}` : '';
+            setForm(prev => ({ ...prev, employee_id: value, employee_name: fullName }));
+        } else {
+            setForm(prev => ({ ...prev, [name]: value }));
+        }
         setMessage('');
         if (attemptedSubmit) {
             const validation = validate({ ...form, [name]: value });
@@ -524,7 +552,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
     const validate = (currentForm = form) => {
         const newErrors = {};
-        if (!currentForm.employee_name.trim()) newErrors.employee_name = 'Employee name is required.';
+        if (!currentForm.employee_id) newErrors.employee_id = 'Employee is required.';
         if (!currentForm.date_of_payment) newErrors.date_of_payment = 'Date of payment is required.';
 
         // Validate days_worked - must be a valid number
@@ -577,7 +605,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         const monthlyPay = String(form.monthly_pay).trim();
 
         const payload = {
-            employee_name: form.employee_name.trim(),
+            employee_name: form.employee_name, // Free-text employee name
+            staff: form.employee_id, // Optional: link to registered staff by staff_id (e.g., "RF001")
             date_of_payment: form.date_of_payment,
             days_worked: parseInt(daysWorked, 10) || 0,
             monthly_pay: monthlyPay === '' ? null : parseInt(monthlyPay, 10),
@@ -666,15 +695,22 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <div className="md:col-span-2">
-                        <label htmlFor="employee_name" className="block mb-1 text-sm font-medium text-gray-700">Full Name</label>
-                        <Input
-                            name="employee_name"
-                            value={form.employee_name}
+                        <label htmlFor="employee_id" className="block mb-1 text-sm font-medium text-gray-700">Employee</label>
+                        <select
+                            name="employee_id"
+                            value={form.employee_id}
                             onChange={handleChange}
-                            placeholder="e.g., RF001 - John Doe"
-                            className={`py-2.5 ${getBorderClass('employee_name')}`}
-                        />
-                        {errors.employee_name && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                            disabled={loadingStaff}
+                            className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium bg-white ${getBorderClass('employee_id')} ${loadingStaff ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                            <option value="">{loadingStaff ? 'Loading staff...' : '-- Select an employee --'}</option>
+                            {staff.map(member => (
+                                <option key={member.staff_id} value={member.staff_id}>
+                                    {member.first_name} {member.last_name} {member.staff_id ? `(${member.staff_id})` : '(No ID)'}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.employee_id && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
                     </div>
 
                     <div>
