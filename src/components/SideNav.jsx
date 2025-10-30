@@ -185,9 +185,13 @@ export const SideNav = ({ children }) => {
                 <div className="flex items-center justify-between p-4 h-20" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
                     <div className="flex items-center gap-2">
                         <img
-                            src="/logo.jpg"
+                            src="/src/assets/rugyeyo_logo.png"
                             alt="Rugyeyo Farm Logo"
-                            className="w-12 h-12 rounded-full object-cover"
+                            style={{
+                                width: '50px',
+                                height: 'auto',
+                                backgroundColor: 'transparent'
+                            }}
                         />
                         <h2 className="text-xl font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Rugyeyo Farm
