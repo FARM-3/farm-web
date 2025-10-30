@@ -1,6 +1,34 @@
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 
+// --- Custom Font Import ---
+const fontStyles = `
+  @font-face {
+    font-family: 'Eina03';
+    src: url('/src/assets/fonts/Eina03-Regular.ttf') format('truetype');
+    font-weight: 400;
+  }
+
+  @font-face {
+    font-family: 'Eina03';
+    src: url('/src/assets/fonts/Eina03-Bold.ttf') format('truetype');
+    font-weight: 700;
+  }
+
+  @font-face {
+    font-family: 'Eina03';
+    src: url('/src/assets/fonts/Eina03-Light.ttf') format('truetype');
+    font-weight: 300;
+  }
+`;
+
+// Inject styles into document
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = fontStyles;
+  document.head.appendChild(style);
+}
+
 // --- Coffee Theme Colors (with brown accents) ---
 const CoffeeColors = {
   SCREEN_BG: '#8B4513',
@@ -254,14 +282,13 @@ function Login() {
             justifyContent: 'center',
           }}>
             <img
-              src="/logo.jpg"
+              src="/src/assets/rugyeyo_logo.png"
               alt="Rugyeyo Farm Logo"
               style={{
-                width: '120px',
-                height: '120px',
-                borderRadius: '50%',
-                border: '4px solid white',
+                maxWidth: '200px',
+                height: 'auto',
                 boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                backgroundColor: 'transparent',
               }}
             />
           </div>
@@ -269,12 +296,13 @@ function Login() {
           {/* Welcome Text */}
           <h1 style={{
             fontSize: 'clamp(26px, 8vw, 58px)',
-            fontWeight: '800',
+            fontWeight: '700',
             color: 'white',
             marginBottom: '20px',
             textShadow: '2px 4px 8px rgba(0, 0, 0, 0.5)',
             letterSpacing: '2px',
             lineHeight: '1.2',
+            fontFamily: 'Eina03, sans-serif',
           }}>
             Welcome to<br />Rugyeyo Farm<br />Management System
           </h1>
@@ -287,6 +315,8 @@ function Login() {
             margin: '0 auto 50px',
             textShadow: '1px 2px 4px rgba(0, 0, 0, 0.5)',
             lineHeight: '1.6',
+            fontFamily: 'Eina03, sans-serif',
+            fontWeight: '400',
           }}>
             Streamline your farm operations with our comprehensive management solution
           </p>
@@ -298,26 +328,27 @@ function Login() {
               padding: '18px 48px',
               fontSize: '20px',
               fontWeight: '700',
-              color: CoffeeColors.DARK_BROWN,
-              background: 'rgba(255, 255, 255, 0.95)',
+              color: '#FFFFFF',
+              background: '#8B4513',
               backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
+              border: '2px solid #8B4513',
               borderRadius: '50px',
               cursor: 'pointer',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
               transition: 'all 0.3s ease',
               textTransform: 'uppercase',
               letterSpacing: '2px',
+              fontFamily: 'Eina03, sans-serif',
             }}
             onMouseEnter={(e) => {
               e.target.style.transform = 'translateY(-5px) scale(1.05)';
               e.target.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.4)';
-              e.target.style.background = 'rgba(255, 255, 255, 1)';
+              e.target.style.background = '#6d3410';
             }}
             onMouseLeave={(e) => {
               e.target.style.transform = 'translateY(0) scale(1)';
               e.target.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
-              e.target.style.background = 'rgba(255, 255, 255, 0.95)';
+              e.target.style.background = '#8B4513';
             }}
           >
             Get Started
