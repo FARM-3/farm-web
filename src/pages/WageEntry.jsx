@@ -60,16 +60,41 @@ function WageEntry() {
         fetchStaff();
     }, []);
 
+    const calculateAmountPaid = (monthlyPay, daysWorked, deduction) => {
+        if (monthlyPay === '' || monthlyPay === 0 || daysWorked === '' || daysWorked === 0) {
+            return '';
+        }
+        const dailyRate = Number(monthlyPay) / 30;
+        const grossAmount = dailyRate * Number(daysWorked);
+        const deductionAmount = Number(deduction) || 0;
+        const netAmount = grossAmount - deductionAmount;
+        return Math.max(0, netAmount).toFixed(2);
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
+        let updatedForm;
+
         if (name === 'employee_id') {
             // When employee is selected, update both employee_id and employee_name
             const selectedStaff = staff.find(s => s.staff_id === value);
             const fullName = selectedStaff ? `${selectedStaff.first_name} ${selectedStaff.last_name}` : '';
-            setForm(prev => ({ ...prev, employee_id: value, employee_name: fullName }));
+            updatedForm = { ...form, employee_id: value, employee_name: fullName };
         } else {
-            setForm(prev => ({ ...prev, [name]: value }));
+            updatedForm = { ...form, [name]: value };
         }
+
+        // Auto-calculate amount_paid if monthly_pay, days_worked, or deduction changes
+        if (name === 'monthly_pay' || name === 'days_worked' || name === 'deduction') {
+            const calculatedAmount = calculateAmountPaid(
+                updatedForm.monthly_pay,
+                updatedForm.days_worked,
+                updatedForm.deduction
+            );
+            updatedForm.amount_paid = calculatedAmount;
+        }
+
+        setForm(updatedForm);
         setMessage(''); // Clear any previous messages
     };
 
@@ -200,8 +225,8 @@ function WageEntry() {
                         <Input type="number" name="monthly_pay" value={form.monthly_pay} onChange={handleChange} placeholder="e.g. 500" style={{ backgroundColor: CUSTOM_COLORS.inputBg, borderColor: CUSTOM_COLORS.inputBorder }} />
                     </div>
                     <div>
-                        <label htmlFor="amount_paid" className="block mb-1 text-sm font-semibold" style={{ color: CUSTOM_COLORS.headerBg }}>Amount Paid</label>
-                        <Input type="number" name="amount_paid" value={form.amount_paid} onChange={handleChange} placeholder="e.g. 450" style={{ backgroundColor: CUSTOM_COLORS.inputBg, borderColor: CUSTOM_COLORS.inputBorder }} />
+                        <label htmlFor="amount_paid" className="block mb-1 text-sm font-semibold" style={{ color: CUSTOM_COLORS.headerBg }}>Amount Paid (Auto-calculated)</label>
+                        <Input type="number" name="amount_paid" value={form.amount_paid} onChange={handleChange} placeholder="e.g. 450" readOnly style={{ backgroundColor: '#f5f5f5', borderColor: CUSTOM_COLORS.inputBorder, cursor: 'not-allowed', opacity: 0.7 }} />
                         {errors.amount_paid && <p className="mt-1 text-xs text-red-600">{errors.amount_paid}</p>}
                     </div>
                     <div>

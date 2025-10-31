@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
+import rugyeyoLogo from '../assets/rugyeyo_logo.png';
 
 // --- Coffee Theme Colors (with brown accents) ---
 const CoffeeColors = {
@@ -323,7 +324,7 @@ function Login() {
             justifyContent: 'center',
           }}>
             <img
-              src="/src/assets/rugyeyo_logo.png"
+              src={rugyeyoLogo}
               alt="Rugyeyo Farm Logo"
               style={{
                 maxWidth: '200px',
@@ -447,7 +448,7 @@ function Login() {
               marginBottom: '30px',
             }}>
               <img
-                src="/src/assets/rugyeyo_logo.png"
+                src={rugyeyoLogo}
                 alt="Logo"
                 style={{
                   width: '100px',
@@ -842,7 +843,7 @@ function Login() {
             marginBottom: '20px',
           }}>
             <img
-              src="/src/assets/rugyeyo_logo.png"
+              src={rugyeyoLogo}
               alt="Logo"
               style={{
                 width: '100px',
