@@ -518,19 +518,44 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         }
     }, [isOpen, initialData]);
 
+    const calculateAmountPaid = (monthlyPay, daysWorked, deduction) => {
+        if (monthlyPay === '' || monthlyPay === 0 || daysWorked === '' || daysWorked === 0) {
+            return '';
+        }
+        const dailyRate = Number(monthlyPay) / 30;
+        const grossAmount = dailyRate * Number(daysWorked);
+        const deductionAmount = Number(deduction) || 0;
+        const netAmount = grossAmount - deductionAmount;
+        return Math.max(0, netAmount).toFixed(2);
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
+        let updatedForm;
+
         if (name === 'employee_id') {
             // When employee is selected, update both employee_id and employee_name
             const selectedStaff = staff.find(s => s.staff_id === value);
             const fullName = selectedStaff ? `${selectedStaff.first_name} ${selectedStaff.last_name}` : '';
-            setForm(prev => ({ ...prev, employee_id: value, employee_name: fullName }));
+            updatedForm = { ...form, employee_id: value, employee_name: fullName };
         } else {
-            setForm(prev => ({ ...prev, [name]: value }));
+            updatedForm = { ...form, [name]: value };
         }
+
+        // Auto-calculate amount_paid if monthly_pay, days_worked, or deduction changes
+        if (name === 'monthly_pay' || name === 'days_worked' || name === 'deduction') {
+            const calculatedAmount = calculateAmountPaid(
+                updatedForm.monthly_pay,
+                updatedForm.days_worked,
+                updatedForm.deduction
+            );
+            updatedForm.amount_paid = calculatedAmount;
+        }
+
+        setForm(updatedForm);
         setMessage('');
         if (attemptedSubmit) {
-            const validation = validate({ ...form, [name]: value });
+            const validation = validate(updatedForm);
             setErrors(validation);
         } else {
             setErrors(prev => ({ ...prev, [name]: '' }));
