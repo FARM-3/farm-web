@@ -182,18 +182,18 @@ export const SideNav = ({ children }) => {
                 style={{ backgroundColor: CoffeeColors.SIDEBAR_BG }}
             >
                 {/* Logo and Title Section */}
-                <div className="flex items-center justify-between p-4 h-20" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between p-4 h-auto py-6" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
+                    <div className="flex items-center gap-3">
                         <img
-                            src="/src/assets/rugyeyo_logo.png"
+                            src={`${import.meta.env.BASE_URL || ''}src/assets/rugyeyo_logo.png`}
                             alt="Rugyeyo Farm Logo"
                             style={{
-                                width: '50px',
+                                width: '80px',
                                 height: 'auto',
                                 backgroundColor: 'transparent'
                             }}
                         />
-                        <h2 className="text-xl font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
+                        <h2 className="text-lg font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Rugyeyo Farm
                         </h2>
                     </div>
@@ -310,10 +310,14 @@ export const SideNav = ({ children }) => {
 
             {/* Logout Confirmation Modal */}
             {showLogoutModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                }}>
                     {/* Backdrop */}
                     <div
-                        className="absolute inset-0 bg-black bg-opacity-50"
+                        className="absolute inset-0"
                         onClick={() => setShowLogoutModal(false)}
                     />
 
