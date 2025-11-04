@@ -132,8 +132,8 @@ function SalesEntry() {
       };
 
       const url = isEditing
-        ? `https://api-3181.onrender.com/api/sales/${editId}/`
-        : 'https://api-3181.onrender.com/api/sales/';
+        ? `http://142.93.94.236:8000/api/sales/${editId}/`
+        : 'http://142.93.94.236:8000/api/sales/';
 
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',

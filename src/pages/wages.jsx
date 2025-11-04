@@ -29,7 +29,7 @@
 //     return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 // };
 
-// const Wage_API_Endpoint = 'https://api-3181.onrender.com/api/wages/';
+// const Wage_API_Endpoint = 'http://142.93.94.236:8000/api/wages/';
 
 // // --- SHARED COMPONENTS ---
 

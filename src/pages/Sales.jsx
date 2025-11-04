@@ -6,7 +6,7 @@ import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, Ar
 import SideNav from '../components/SideNav'; 
 
 // --- API CONFIGURATION ---
-const SALES_API_ENDPOINT = 'https://api-3181.onrender.com/api/sales/';
+const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
 
 // --- MOCK DATA (Fallback) ---
 const MOCK_SALES = [

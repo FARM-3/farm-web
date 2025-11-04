@@ -5,7 +5,7 @@ import Button from '../components/Button.jsx';
 import SideNav from '../components/SideNav.jsx';
 
 // API endpoint for wages
-const WAGES_API_ENDPOINT = 'https://api-3181.onrender.com/api/wages/';
+const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
 
 const CUSTOM_COLORS = {
     headerBg: '#702A0B',
