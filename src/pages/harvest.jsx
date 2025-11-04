@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 // API Endpoints
-const API_BASE_URL = 'http://142.93.94.236/api';
+const API_BASE_URL = 'http://142.93.94.236:8000/api';
 const HARVESTS_API = `${API_BASE_URL}/harvests/harvests/`;
 const BLOCKS_API = `${API_BASE_URL}/harvests/blocks/`;
 

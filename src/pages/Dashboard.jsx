@@ -3,7 +3,7 @@ import { SideNav } from '../components/SideNav';
 import { TrendingUp, TrendingDown, ClipboardCheck, DollarSign, Package, Users, RefreshCw, Loader2 } from 'lucide-react';
 
 // API Endpoints
-const API_BASE_URL = 'http://142.93.94.236/api';
+const API_BASE_URL = 'http://142.93.94.236:8000/api';
 const SALES_API = `${API_BASE_URL}/sales/`;
 const EXPENSES_API = `${API_BASE_URL}/expenses/`;
 const WAGES_API = `${API_BASE_URL}/wages/`;

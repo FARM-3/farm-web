@@ -3,7 +3,7 @@ import { Menu, X, Home, DollarSign, ShoppingCart, Package, Users, CheckCircle } 
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // API endpoint for staff registration
-const STAFF_API_ENDPOINT = 'http://142.93.94.236/api/staff/';
+const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
 
 const CoffeeColors = {
   SCREEN_BG: '#FFF8F6',

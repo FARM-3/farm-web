@@ -17,7 +17,7 @@ const CUSTOM_COLORS = {
 };
 
 // IMPORTANT: This API endpoint is mock and should match your backend setup
-const EXPENSE_API_ENDPOINT = 'http://142.93.94.236/api/expenses/';
+const EXPENSE_API_ENDPOINT = 'http://142.93.94.236:8000/api/expenses/';
 
 // Mock list of common expense categories
 const CATEGORIES = [
