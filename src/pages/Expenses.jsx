@@ -21,7 +21,7 @@
 // };
 
 // // IMPORTANT: Updated to the live API endpoint
-// const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/';
+// const EXPENSE_API_ENDPOINT = 'http://142.93.94.236/api/expenses/';
 
 
 // // --- Helper Components ---
@@ -536,7 +536,7 @@ const CATEGORIES = [
     'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
 ];
 
-const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/';
+const EXPENSE_API_ENDPOINT = 'http://142.93.94.236/api/expenses/';
 
 const TABLE_HEADERS = [
     { key: 'expense_name', label: 'Name', type: 'string' },

@@ -3,7 +3,7 @@ import { SideNav } from '../components/SideNav';
 import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 
 // API Endpoints
-const API_BASE_URL = 'https://api-3181.onrender.com/api';
+const API_BASE_URL = 'http://142.93.94.236/api';
 const FARMERS_API = `${API_BASE_URL}/aggregation/farmer/`;
 const FARMER_HARVEST_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
 

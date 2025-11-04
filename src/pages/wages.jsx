@@ -29,7 +29,7 @@
 //     return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 // };
 
-// const Wage_API_Endpoint = 'https://api-3181.onrender.com/api/wages/';
+// const Wage_API_Endpoint = 'http://142.93.94.236/api/wages/';
 
 // // --- SHARED COMPONENTS ---
 
@@ -408,7 +408,7 @@ const formatUGX = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const WAGES_API_ENDPOINT = 'https://api-3181.onrender.com/api/wages/';
+const WAGES_API_ENDPOINT = 'http://142.93.94.236/api/wages/';
 
 const MOCK_WAGES_DATA = [
     { id: 1, employee_name: 'RF001 - John Doe', date_of_payment: '2025-10-18', days_worked: 22, monthly_pay: 2000000, amount_paid: 2200000, deduction: 0, noted_reason: 'Full attendance, bonus' },
@@ -486,7 +486,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         const fetchStaff = async () => {
             try {
                 setLoadingStaff(true);
-                const response = await fetch('https://api-3181.onrender.com/api/staff/');
+                const response = await fetch('http://142.93.94.236/api/staff/');
                 if (!response.ok) throw new Error('Failed to fetch staff');
                 const data = await response.json();
                 const staffList = Array.isArray(data) ? data : data.results || [];

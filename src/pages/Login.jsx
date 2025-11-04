@@ -19,7 +19,7 @@ const CoffeeColors = {
 };
 
 // --- API Client ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-3181.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://142.93.94.236';
 
 const ApiClient = {
   post: async (url, data) => {
