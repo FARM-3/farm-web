@@ -21,7 +21,7 @@
 // };
 
 // // IMPORTANT: Updated to the live API endpoint
-// const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/';
+// const EXPENSE_API_ENDPOINT = 'http://142.93.94.236:8000/api/expenses/';
 
 
 // // --- Helper Components ---
@@ -310,7 +310,7 @@
 //                     {formatCurrency(expense.amount)}
 //                 </td>
 //                 <td className="px-6 py-3 text-left text-gray-700">{expense.supplier || '-'}</td>
-//                 <td className="px-6 py-3 text-left text-sm italic text-gray-500">{expense.location || '-'}</td>
+//                 <td className="px-6 py-3 text-left text-gray-600">{expense.location || '-'}</td>
 //                 <td className="px-6 py-3 text-center">
 //                     <div className="flex items-center justify-center space-x-2">
 //                         <button
@@ -536,7 +536,7 @@ const CATEGORIES = [
     'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
 ];
 
-const EXPENSE_API_ENDPOINT = 'https://api-3181.onrender.com/api/expenses/';
+const EXPENSE_API_ENDPOINT = 'http://142.93.94.236:8000/api/expenses/';
 
 const TABLE_HEADERS = [
     { key: 'expense_name', label: 'Name', type: 'string' },
@@ -1033,7 +1033,7 @@ export function ExpensesPage() {
                 <td className="px-6 py-3 text-center text-gray-600">{expense.date || 'N/A'}</td>
                 <td className="px-6 py-3 text-right font-bold" style={{ color: ACCENT_COLORS.ACCENT_BROWN }}>{formatCurrency(expense.amount)}</td>
                 <td className="px-6 py-3 text-left text-gray-700">{expense.supplier || '-'}</td>
-                <td className="px-6 py-3 text-left text-sm italic text-gray-500">{expense.location || '-'}</td>
+                <td className="px-6 py-3 text-left text-gray-600">{expense.location || '-'}</td>
                 <td className="px-6 py-3 text-center">
                     <div className="flex items-center justify-center space-x-2">
                         <button onClick={() => handleEditExpense(expense)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
@@ -1060,73 +1060,84 @@ export function ExpensesPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {/* Total Expenses */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-gray-500 flex items-center">
-                                <DollarSign className="w-4 h-4 mr-1" stroke="#EA4335" />
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                                 Total Expenses
-                            </p>
-                            <Calendar className="w-4 h-4" stroke="#8D8D8D" strokeWidth={2.2} />
+                            </h3>
+                            <DollarSign size={20} style={{ color: '#8B5A3C' }} />
                         </div>
                         {loading ? (
                             <div className="flex items-center gap-2 mt-2">
-                                <Loader2 className="w-6 h-6 animate-spin text-[#795548]" />
-                                <span className="text-sm text-gray-500">Loading...</span>
+                                <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                                <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                             </div>
                         ) : (
-                            <>
-                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
-                                    UGX {expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-2 font-medium">Total records: {expenses.length}</p>
-                            </>
+                            <div className="mt-2">
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                                    <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>
+                                        {expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                    </p>
+                                </div>
+                                <div className="mt-3 text-xs">
+                                    <p style={{ color: '#666' }}>Total records: {expenses.length}</p>
+                                </div>
+                            </div>
                         )}
                     </div>
 
                     {/* Average Expense */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-gray-500 flex items-center">
-                                <Tag className="w-4 h-4 mr-1" stroke="#795548" />
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                                 Average Expense
-                            </p>
-                            <Calendar className="w-4 h-4" stroke="#8D8D8D" strokeWidth={2.2} />
+                            </h3>
+                            <Tag size={20} style={{ color: '#8B5A3C' }} />
                         </div>
                         {loading ? (
                             <div className="flex items-center gap-2 mt-2">
-                                <Loader2 className="w-6 h-6 animate-spin text-[#795548]" />
-                                <span className="text-sm text-gray-500">Loading...</span>
+                                <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                                <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                             </div>
                         ) : (
-                            <>
-                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
-                                    UGX {expenses.length > 0 ? (expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0) / expenses.length).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-2 font-medium">Per transaction</p>
-                            </>
+                            <div className="mt-2">
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                                    <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>
+                                        {expenses.length > 0 ? (expenses.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0) / expenses.length).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '0'}
+                                    </p>
+                                </div>
+                                <div className="mt-3 text-xs">
+                                    <p style={{ color: '#666' }}>Per transaction</p>
+                                </div>
+                            </div>
                         )}
                     </div>
 
                     {/* Unique Categories */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-gray-500 flex items-center">
-                                <ShoppingBag className="w-4 h-4 mr-1" stroke="#8D8D8D" />
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                                 Expense Categories
-                            </p>
-                            <ShoppingBag className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+                            </h3>
+                            <ShoppingBag size={20} style={{ color: '#8B5A3C' }} />
                         </div>
                         {loading ? (
                             <div className="flex items-center gap-2 mt-2">
-                                <Loader2 className="w-6 h-6 animate-spin text-[#795548]" />
-                                <span className="text-sm text-gray-500">Loading...</span>
+                                <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                                <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                             </div>
                         ) : (
-                            <>
-                                <p className="text-4xl font-extrabold text-gray-900 leading-none">
-                                    {new Set(expenses.map(exp => exp.category).filter(Boolean)).size}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-2 font-medium">Unique categories</p>
-                            </>
+                            <div className="mt-2">
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>
+                                        {new Set(expenses.map(exp => exp.category).filter(Boolean)).size}
+                                    </p>
+                                </div>
+                                <div className="mt-3 text-xs">
+                                    <p style={{ color: '#666' }}>Unique categories</p>
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>

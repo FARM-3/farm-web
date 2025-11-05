@@ -3,7 +3,7 @@ import { Menu, X, Home, DollarSign, ShoppingCart, Package, Users, CheckCircle } 
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // API endpoint for staff registration
-const STAFF_API_ENDPOINT = 'https://api-3181.onrender.com/api/staff/';
+const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
 
 const CoffeeColors = {
   SCREEN_BG: '#FFF8F6',
@@ -224,7 +224,7 @@ function StaffRegistration() {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: CoffeeColors.SCREEN_BG, fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: CoffeeColors.SCREEN_BG }}>
 
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (

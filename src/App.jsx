@@ -10,7 +10,7 @@ import StaffRegistration from './pages/StaffRegistration.jsx';
 import StaffManagement from './pages/StaffManagement.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Aggregation from './pages/Aggregation.jsx';
-import { HarvestPage } from './pages/Harvest.jsx';
+import { HarvestPage } from './pages/harvest.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
