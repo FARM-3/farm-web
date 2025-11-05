@@ -28,8 +28,8 @@ const navItems = [
     { key: 'expenses', name: 'Expenses', icon: Package, href: '/expenses' },
     { key: 'staff', name: 'Staff', icon: Users, href: '/staff' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
+    { key: 'receipt', name: 'Receipt', icon: ClipboardCheck, href: '/receipt' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
-    { key: 'receipt', name: 'receipt', icon: ClipboardCheck, href: '/receipt' },
 ];
 
 const footerNavItems = [

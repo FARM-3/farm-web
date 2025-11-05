@@ -3,14 +3,14 @@ import React from 'react';
 const Receipt = () => {
   // Sample data
   const receiptData = {
-    farmName: 'Rugyeyo Farm',
-    customerName: 'John Katerega',
-    item: 'Coffee',
-    quantityKg: 100,
-    ratePerKg: 5000,
-    paymentDate: '16/10/2025',
-    paymentMethod: 'Cash',
-    status: 'Paid',
+    farmName:          'Rugyeyo Farm',
+    customerName:      'John Katerega',
+    item:              'Coffee',
+    quantityKg:          100,
+    ratePerKg:           5000,
+    paymentDate:        '16/10/2025',
+    paymentMethod:      'Cash',
+    status:             'Paid',
   };
 
   const totalAmount = receiptData.quantityKg * receiptData.ratePerKg;
