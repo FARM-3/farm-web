@@ -29,6 +29,7 @@ const navItems = [
     { key: 'staff', name: 'Staff', icon: Users, href: '/staff' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
+    { key: 'receipts', name: 'Receipts', icon: ClipboardCheck, href: '/receipts' },
 ];
 
 const footerNavItems = [

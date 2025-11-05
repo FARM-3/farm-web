@@ -11,6 +11,7 @@ import StaffManagement from './pages/StaffManagement.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Aggregation from './pages/Aggregation.jsx';
 import { HarvestPage } from './pages/harvest.jsx';
+import Receipt
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
