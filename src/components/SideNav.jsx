@@ -29,7 +29,7 @@ const navItems = [
     { key: 'staff', name: 'Staff', icon: Users, href: '/staff' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
-    { key: 'receipts', name: 'Receipts', icon: ClipboardCheck, href: '/receipts' },
+    { key: 'receipt', name: 'receipt', icon: ClipboardCheck, href: '/receipt' },
 ];
 
 const footerNavItems = [
@@ -46,6 +46,7 @@ const getCurrentPageKey = () => {
     if (path === 'wagesrecords') return 'wagesrecords';
     if (path.startsWith('wages')) return 'wages';
     if (path.startsWith('profile')) return 'profile';
+    if (path.startsWith('receipt')) return 'receipt';
 
     const item = [...navItems, ...footerNavItems].find(item => item.key === path);
     if (item) return path;

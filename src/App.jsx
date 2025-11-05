@@ -43,6 +43,7 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/aggregation" element={<ProtectedRoute><Aggregation /></ProtectedRoute>} />
           <Route path="/harvest" element={<ProtectedRoute><HarvestPage /></ProtectedRoute>} />
+          <Route path="/receipt" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>
