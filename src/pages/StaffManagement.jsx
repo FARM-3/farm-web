@@ -1428,7 +1428,7 @@ function StaffPage() {
 
         if (missingFields.length > 0) {
             console.error('Missing required fields:', missingFields);
-            alert(`❌ Missing required fields:\n${missingFields.map(f => `• ${f.replace(/_/g, ' ')}`).join('\n')}`);
+            alert(`Missing required fields:\n${missingFields.map(f => `• ${f.replace(/_/g, ' ')}`).join('\n')}`);
             return;
         }
 
@@ -1436,7 +1436,7 @@ function StaffPage() {
         const ninPattern = /^[A-Za-z0-9]{14}$/;
         if (!ninPattern.test(savedStaffData.nin?.trim() || '')) {
             console.error('Invalid NIN format:', savedStaffData.nin);
-            alert('❌ Invalid NIN format\n\nNational ID must be exactly 14 alphanumeric characters (letters and numbers only).');
+            alert('Invalid NIN format\n\nNational ID must be exactly 14 alphanumeric characters (letters and numbers only).');
             return;
         }
 
@@ -1463,9 +1463,9 @@ function StaffPage() {
                         const errorJson = JSON.parse(errorText);
                         console.error('API Error Details:', errorJson);
                         const errorMsg = Object.entries(errorJson).map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`).join('\n');
-                        alert(`❌ Failed to update staff:\n\n${errorMsg}`);
+                        alert(`Failed to update staff:\n\n${errorMsg}`);
                     } catch (e) {
-                        alert(`❌ Failed to update staff\n\nServer responded with status ${response.status}:\n${errorText.substring(0, 200)}`);
+                        alert(`Failed to update staff\n\nServer responded with status ${response.status}:\n${errorText.substring(0, 200)}`);
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -1515,9 +1515,9 @@ function StaffPage() {
                         const errorJson = JSON.parse(errorText);
                         console.error('API Error Details:', errorJson);
                         const errorMsg = Object.entries(errorJson).map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`).join('\n');
-                        alert(`❌ Failed to create staff:\n\n${errorMsg}`);
+                        alert(`Failed to create staff:\n\n${errorMsg}`);
                     } catch (e) {
-                        alert(`❌ Failed to create staff\n\nServer responded with status ${response.status}:\n${errorText.substring(0, 200)}`);
+                        alert(`Failed to create staff\n\nServer responded with status ${response.status}:\n${errorText.substring(0, 200)}`);
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -1549,9 +1549,9 @@ function StaffPage() {
 
             // Check if it's a network error
             if (error.message.includes('fetch') || error.message.includes('Network')) {
-                alert('❌ Network Error\n\nCould not connect to the server. Please check:\n• Your internet connection\n• The server is running at http://142.93.94.236:8000\n• CORS is properly configured on the server\n\nThe record has been saved locally but will not persist to the database.');
+                alert('Network Error\n\nCould not connect to the server. Please check:\n• Your internet connection\n• The server is running at http://142.93.94.236:8000\n• CORS is properly configured on the server\n\nThe record has been saved locally but will not persist to the database.');
             } else {
-                alert(`❌ Failed to save to database\n\nError: ${error.message}\n\nThe record has been saved locally but may not persist.`);
+                alert(`Failed to save to database\n\nError: ${error.message}\n\nThe record has been saved locally but may not persist.`);
             }
 
             // Fallback to localStorage only
