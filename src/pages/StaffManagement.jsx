@@ -753,7 +753,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-   X, RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, UserCircle, MapPin, Users, UserCheck, UserX, TrendingUp
+   X, RefreshCw, Calendar, ArrowUp, ArrowDown, Edit, Trash2, Search, Plus, ChevronsDown, Loader2, UserCircle, MapPin, Users, UserCheck, UserX, TrendingUp, Send
 } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
@@ -859,7 +859,8 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             case 'gender':
                 return ['Male', 'Female'].includes(value);
             case 'nin':
-                return v.length > 0;
+                // Must be exactly 14 characters, alphanumeric only (letters and numbers, no symbols)
+                return v.length === 14 && /^[a-zA-Z0-9]{14}$/.test(v);
             case 'district':
             case 'subcounty':
             case 'parish':
@@ -921,7 +922,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
         }
         setValidation(prev => ({ ...prev, ...newValidation }));
         if (!allValid) {
-            
+
             return;
         }
 
@@ -934,14 +935,11 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             staff_id: staffData?.staff_id || `RF${Math.floor(Math.random() * 900) + 100}`
         };
 
-        await new Promise(resolve => setTimeout(resolve, 600));
-        onSave(resultData);
+        // Call the parent's onSave function and wait for it to complete
+        await onSave(resultData);
         setIsSubmitting(false);
-        setSuccessMsg('Employee record saved successfully.');
-        setTimeout(() => {
-            setSuccessMsg('');
-            onClose();
-        }, 1200);
+
+        // Don't close the modal here - let the parent handle it after showing success message
     };
 
     if (!isOpen) return null;
@@ -954,21 +952,21 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
         : [];
 
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-start md:items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div
-                className="bg-white rounded-xl shadow-2xl w-full max-w-xl md:max-w-2xl transform transition-all duration-300"
-                style={{ maxHeight: '90vh', overflowY: 'auto' }}
+                className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-auto flex flex-col overflow-hidden"
+                style={{ maxHeight: '90vh', height: '80vh' }}
             >
-                <div className="flex items-center justify-between px-6 py-4 border-b">
-                    <h3 className="text-xl md:text-2xl font-semibold" style={{ color: CoffeeColors.DARK_BROWN }}>
-                        {staffData ? 'Edit Employee' : 'Employee Information'}
-                    </h3>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                        <X className="w-5 h-5 text-gray-600" />
+                <div className="flex items-center justify-between p-4 border-b border-gray-200" style={{ backgroundColor: '#FFFFFF' }}>
+                    <h2 className="text-xl font-semibold" style={{ color: CoffeeColors.DARK_BROWN }}>
+                        {staffData ? 'Edit Staff' : 'Staff Entry'}
+                    </h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                        <X className="w-5 h-5 text-gray-500" />
                     </button>
                 </div>
 
-                <form noValidate onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+                <form noValidate onSubmit={handleSubmit} className="flex-1 p-6 space-y-4 overflow-y-auto">
                     {successMsg && (
                         <div className="px-4 py-2 rounded-md bg-green-50 border border-green-200 text-green-700 text-sm">
                             {successMsg}
@@ -1041,9 +1039,11 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                                     value={formData.nin}
                                     onChange={handleChange}
                                     required
+                                    maxLength={14}
+                                    placeholder="14 alphanumeric characters"
                                     className={getInputClass('nin')}
                                 />
-                                {validation.nin === false && <p className="mt-1 text-xs text-red-600">This field is required.</p>}
+                                {validation.nin === false && <p className="mt-1 text-xs text-red-600">NIN must be exactly 14 alphanumeric characters (letters and numbers only, no symbols).</p>}
                             </div>
                         </div>
                     </section>
@@ -1206,13 +1206,12 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                                     value={formData.hire_date}
                                     onChange={handleChange}
                                     required
-                                    max={today} // This prevents future date selection in the date picker
                                     className={getInputClass('hire_date')}
                                 />
                                 {validation.hire_date === false && (
                                     <p className="mt-1 text-xs text-red-600">
-                                        {formData.hire_date && new Date(formData.hire_date) > new Date() 
-                                            ? 'Hire date cannot be in the future.' 
+                                        {formData.hire_date && new Date(formData.hire_date) > new Date()
+                                            ? 'Invalid date — future dates are not accepted.'
                                             : 'This field is required.'
                                         }
                                     </p>
@@ -1221,32 +1220,44 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                         </div>
                     </section>
 
-                    <div className="flex items-center justify-end space-x-3 pt-2 border-t pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                            disabled={isSubmitting}
-                        >
-                            Cancel
-                        </button>
-
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="px-4 py-2 rounded-lg flex items-center text-white disabled:opacity-60"
-                            style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
-                        >
-                            {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{staffData ? 'Updating...' : 'Saving...'}</> : (staffData ? 'Save Changes' : 'Record Employee')}
-                        </button>
-                    </div>
                 </form>
+
+                {/* Modal Footer */}
+                <div className="flex justify-end p-4 border-t border-gray-200 space-x-3" style={{ backgroundColor: '#F8F8F8' }}>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-md"
+                        style={{ backgroundColor: '#E5E7EB', color: '#4B5563' }}
+                        disabled={isSubmitting}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        onClick={handleSubmit}
+                        disabled={isSubmitting}
+                        className="px-4 py-2 text-white rounded-md transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        style={{ backgroundColor: '#9F4A2F' }}
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                {staffData ? 'Updating...' : 'Saving...'}
+                            </>
+                        ) : (
+                            <>
+                                <Send className="w-4 h-4 mr-2" />
+                                {staffData ? 'Save Changes' : 'Record Staff'}
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
         </div>
     );
 };
 
-// ... rest of your code remains exactly the same ...
 
 
 const TABLE_HEADERS = [
@@ -1309,6 +1320,7 @@ function StaffPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [staffToDelete, setStaffToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
     const fetchStaff = useCallback(async () => {
         setLoading(true);
@@ -1399,14 +1411,14 @@ function StaffPage() {
         const apiData = {
             first_name: savedStaffData.first_name?.trim() || '',
             last_name: savedStaffData.last_name?.trim() || '',
-            nin: savedStaffData.nin?.trim().toUpperCase() || '', // API requires uppercase
+            nin: savedStaffData.nin?.trim().toUpperCase() || '', // Convert to uppercase for API
             district: savedStaffData.district?.trim() || '',
             sub_county: (savedStaffData.subcounty || savedStaffData.sub_county || '').trim(),
             parish: savedStaffData.parish?.trim() || '',
             village: savedStaffData.village?.trim() || '',
             gender: savedStaffData.gender?.trim() || '',
             date_hired: savedStaffData.hire_date || savedStaffData.date_hired || '',
-            employment_type: (savedStaffData.employment_status || 'fulltime').toLowerCase(), // Must be lowercase
+            employment_type: savedStaffData.employment_status || 'Full-time', // Use exact value from form
             is_active: true
         };
 
@@ -1416,15 +1428,15 @@ function StaffPage() {
 
         if (missingFields.length > 0) {
             console.error('Missing required fields:', missingFields);
-            alert(`Missing required fields: ${missingFields.join(', ')}`);
+            alert(`❌ Missing required fields:\n${missingFields.map(f => `• ${f.replace(/_/g, ' ')}`).join('\n')}`);
             return;
         }
 
-        // Validate NIN pattern (uppercase letters and numbers only)
-        const ninPattern = /^[A-Z0-9]+$/;
-        if (!ninPattern.test(apiData.nin)) {
-            console.error('Invalid NIN format:', apiData.nin);
-            alert('National ID Number must contain only uppercase letters and numbers (e.g., CM12345)');
+        // Validate NIN pattern (alphanumeric only, no symbols)
+        const ninPattern = /^[A-Za-z0-9]{14}$/;
+        if (!ninPattern.test(savedStaffData.nin?.trim() || '')) {
+            console.error('Invalid NIN format:', savedStaffData.nin);
+            alert('❌ Invalid NIN format\n\nNational ID must be exactly 14 alphanumeric characters (letters and numbers only).');
             return;
         }
 
@@ -1450,9 +1462,10 @@ function StaffPage() {
                     try {
                         const errorJson = JSON.parse(errorText);
                         console.error('API Error Details:', errorJson);
-                        alert(`Failed to update staff: ${JSON.stringify(errorJson)}`);
+                        const errorMsg = Object.entries(errorJson).map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`).join('\n');
+                        alert(`❌ Failed to update staff:\n\n${errorMsg}`);
                     } catch (e) {
-                        alert(`Failed to update staff: ${response.status} - ${errorText}`);
+                        alert(`❌ Failed to update staff\n\nServer responded with status ${response.status}:\n${errorText.substring(0, 200)}`);
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -1470,6 +1483,18 @@ function StaffPage() {
 
                 // Save to localStorage as backup
                 saveStaffDataToStorage(MOCK_STAFF_DATA);
+
+                // Close modal first
+                setIsStaffModalOpen(false);
+                setStaffToEdit(null);
+
+                // Then show success message
+                setTimeout(() => {
+                    setShowSuccessMessage(true);
+                    setTimeout(() => {
+                        setShowSuccessMessage(false);
+                    }, 3000);
+                }, 100);
             } else {
                 // Add new staff via POST request
                 console.log('Creating new staff via API');
@@ -1489,9 +1514,10 @@ function StaffPage() {
                     try {
                         const errorJson = JSON.parse(errorText);
                         console.error('API Error Details:', errorJson);
-                        alert(`Failed to create staff: ${JSON.stringify(errorJson, null, 2)}`);
+                        const errorMsg = Object.entries(errorJson).map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`).join('\n');
+                        alert(`❌ Failed to create staff:\n\n${errorMsg}`);
                     } catch (e) {
-                        alert(`Failed to create staff: ${response.status} - ${errorText}`);
+                        alert(`❌ Failed to create staff\n\nServer responded with status ${response.status}:\n${errorText.substring(0, 200)}`);
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -1505,10 +1531,28 @@ function StaffPage() {
 
                 // Save to localStorage as backup
                 saveStaffDataToStorage(MOCK_STAFF_DATA);
+
+                // Close modal first
+                setIsStaffModalOpen(false);
+                setStaffToEdit(null);
+
+                // Then show success message
+                setTimeout(() => {
+                    setShowSuccessMessage(true);
+                    setTimeout(() => {
+                        setShowSuccessMessage(false);
+                    }, 3000);
+                }, 100);
             }
         } catch (error) {
             console.error('Failed to save staff to API:', error);
-            alert('Failed to save to database. The record has been saved locally but may not persist.');
+
+            // Check if it's a network error
+            if (error.message.includes('fetch') || error.message.includes('Network')) {
+                alert('❌ Network Error\n\nCould not connect to the server. Please check:\n• Your internet connection\n• The server is running at http://142.93.94.236:8000\n• CORS is properly configured on the server\n\nThe record has been saved locally but will not persist to the database.');
+            } else {
+                alert(`❌ Failed to save to database\n\nError: ${error.message}\n\nThe record has been saved locally but may not persist.`);
+            }
 
             // Fallback to localStorage only
             const staffWithDateHired = {
@@ -1760,6 +1804,18 @@ function StaffPage() {
         <SideNav>
             <main className="p-4 sm:p-6 md:p-8 pt-0">
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-6">Staff Management Overview</h2>
+
+                {/* Success Message Banner */}
+                {showSuccessMessage && (
+                    <div className="mb-6 p-4 rounded-lg shadow-lg border-l-4 animate-fade-in" style={{ backgroundColor: '#D4EDDA', borderColor: '#28A745', color: '#155724' }}>
+                        <div className="flex items-center">
+                            <svg className="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-semibold text-base">Staff record saved successfully</span>
+                        </div>
+                    </div>
+                )}
 
                 <KPICards />
 
