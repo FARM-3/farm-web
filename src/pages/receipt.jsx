@@ -37,7 +37,7 @@ const Receipt = () => {
       {/* Customer and Payment Details Section */}
       <div style={styles.headerDetails}>
         <div style={styles.detailRow}>
-          <p style={styles.detailLabel}>**Customer:**</p>
+          <p style={styles.detailLabel}>Customer:</p>
           <p style={styles.detailValue}>{receiptData.customerName}</p>
         </div>
         <div style={styles.detailRow}>
@@ -45,15 +45,15 @@ const Receipt = () => {
           <p style={styles.detailValue}>{receiptData.paymentDate}</p>
         </div>
         <div style={styles.detailRow}>
-          <p style={styles.detailLabel}>**Status:**</p>
+          <p style={styles.detailLabel}>Status:</p>
           <p style={styles.detailValue}>{receiptData.status}</p>
         </div>
         <div style={styles.detailRow}>
-          <p style={styles.detailLabel}>**Payment Method:**</p>
+          <p style={styles.detailLabel}>Payment Method:</p>
           <p style={styles.detailValue}>{receiptData.paymentMethod}</p>
         </div>
         <div style={styles.detailRow}>
-          <p style={styles.detailLabel}>**Batch ID:**</p>
+          <p style={styles.detailLabel}>Batch ID:</p>
           <p style={styles.detailValue}>{receiptData.batchId}</p>
         </div>
       </div>
