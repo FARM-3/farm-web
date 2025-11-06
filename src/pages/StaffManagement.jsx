@@ -1893,7 +1893,7 @@ const CoffeeColors = {
     ERROR_RED: '#EA4335',
 };
 
-const STAFF_API_ENDPOINT = 'https://api-3181.onrender.com/api/staff/';
+const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
 
 const LOCATION_DATA = {
     Wakiso: {

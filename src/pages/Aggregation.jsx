@@ -3,7 +3,7 @@ import { SideNav } from '../components/SideNav';
 import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 
 // API Endpoints
-const API_BASE_URL = 'https://api-3181.onrender.com/api';
+const API_BASE_URL = 'http://142.93.94.236:8000/api';
 const FARMERS_API = `${API_BASE_URL}/aggregation/farmer/`;
 const FARMER_HARVEST_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
 
@@ -296,7 +296,7 @@ const AggregationPage = () => {
             <main className="p-4 sm:p-6 md:p-8 pt-0">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-text-default">
+                    <h1 className="text-3xl font-bold" style={{ color: '#3D2817' }}>
                         Aggregation Overview
                     </h1>
                     <button

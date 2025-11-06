@@ -1,0 +1,45 @@
+name: React Web Client CI Tests
+
+# 1. WHEN to run the workflow
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# 2. WHAT to do
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    # Defaults to the working directory where the repository is checked out
+    # If your code is NOT in the root and is inside a 'web' folder, you might need to add:
+    # defaults:
+    #   run:
+    #     working-directory: ./web 
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 3. Setup Node.js Environment (React/Vite requirement)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use the Node.js version you develop with
+
+      # 4. Install Dependencies
+      - name: Install Node Dependencies
+        run: npm install
+
+      # 5. Run Frontend Tests
+      - name: Run Jest/Vitest Tests
+        # This command runs your configured test script from package.json
+        run: npm run test
+        
+      # 6. Run Build Check (Recommended for Frontend CI)
+      # This ensures the code can successfully compile, catching configuration errors.
+      - name: Check Production Build
+        run: npm run build

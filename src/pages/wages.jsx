@@ -408,7 +408,7 @@ const formatUGX = (amount) => {
     return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const WAGES_API_ENDPOINT = 'https://api-3181.onrender.com/api/wages/';
+const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
 
 const MOCK_WAGES_DATA = [
     { id: 1, employee_name: 'RF001 - John Doe', date_of_payment: '2025-10-18', days_worked: 22, monthly_pay: 2000000, amount_paid: 2200000, deduction: 0, noted_reason: 'Full attendance, bonus' },
