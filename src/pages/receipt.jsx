@@ -91,16 +91,16 @@ const Receipt = () => {
       {/* Totals Section */}
       <div style={styles.totalsSection}>
         <div style={styles.totalRow}>
-          <p style={styles.totalLabel}>**Total Amount:**</p>
+          <p style={styles.totalLabel}>Total Amount:</p>
           <p style={styles.totalValue}>{formatUGX(totalAmount)}</p>
         </div>
         <div style={styles.totalRow}>
-          <p style={styles.totalLabel}>**Balance:**</p>
+          <p style={styles.totalLabel}>Balance:</p>
           <p style={styles.totalValue}>{formatUGX(balance)}</p>
         </div>
       </div>
       
-      <p style={styles.footer}>*Thank you for your business!*</p>
+      <p style={styles.footer}>Thank you for your business!</p>
     </div>
   );
 };
