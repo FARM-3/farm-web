@@ -64,11 +64,11 @@ const Receipt = () => {
       <table style={styles.itemTable}>
         <thead>
           <tr style={styles.tableHeaderRow}>
-            <th>**Product**</th>
-            <th>**Item**</th>
-            <th>**Qty (kg)**</th>
-            <th>**Rate (UGX)**</th>
-            <th>**Total (UGX)**</th>
+            <th>Product</th>
+            <th>Item</th>
+            <th>Qty (kg)</th>
+            <th>Rate (UGX)</th>
+            <th>Total (UGX)</th>
           </tr>
         </thead>
         <tbody>
