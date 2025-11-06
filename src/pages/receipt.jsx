@@ -13,7 +13,7 @@ const Receipt = () => {
     items: [ // Changed to an array for table structure
       {
         product: 'coffee',
-        item: 'Arabica',
+        item: 'Arabica Beans',
         quantityKg: 100,
         ratePerKg: 5000,
       },
