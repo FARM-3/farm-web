@@ -578,9 +578,31 @@ function SalesPage() {
         let sortableItems = [...base];
         if (sortConfig.key !== null) {
             sortableItems.sort((a, b) => {
-                const aValue = a[sortConfig.key];
-                const bValue = b[sortConfig.key];
-                
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+
+                // Handle date field mapping (date -> date_of_payment)
+                if (sortConfig.key === 'date') {
+                    aValue = a.date_of_payment || a.date;
+                    bValue = b.date_of_payment || b.date;
+                }
+
+                // Handle date sorting
+                const header = TABLE_HEADERS.find(h => h.key === sortConfig.key);
+                if (header?.type === 'date') {
+                    const dateA = new Date(aValue || 0);
+                    const dateB = new Date(bValue || 0);
+                    return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+                }
+
+                // Handle number sorting
+                if (header?.type === 'number') {
+                    const numA = parseFloat(aValue || 0);
+                    const numB = parseFloat(bValue || 0);
+                    return sortConfig.direction === 'ascending' ? numA - numB : numB - numA;
+                }
+
+                // Handle string sorting
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;

@@ -1030,6 +1030,13 @@ export function ExpensesPage() {
                 const bValue = b[sortConfig.key];
                 const headerType = TABLE_HEADERS.find(h => h.key === sortConfig.key)?.type;
 
+                // Handle date sorting
+                if (headerType === 'date') {
+                    const dateA = new Date(aValue || 0);
+                    const dateB = new Date(bValue || 0);
+                    return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+                }
+
                 if (headerType === 'number') {
                     const numA = parseFloat(aValue || 0);
                     const numB = parseFloat(bValue || 0);

@@ -165,6 +165,14 @@ export const SideNav = ({ children }) => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Debug: Log state changes
+    useEffect(() => {
+        console.log('📊 SideNav State Update:');
+        console.log('  - profileDropdownOpen:', profileDropdownOpen);
+        console.log('  - showProfileModal:', showProfileModal);
+        console.log('  - showLogoutModal:', showLogoutModal);
+    }, [profileDropdownOpen, showProfileModal, showLogoutModal]);
+
     return (
         <div className="min-h-screen flex w-full" style={{ backgroundColor: CoffeeColors.SCREEN_BG, fontFamily: 'Inter, sans-serif' }}>
             
@@ -232,8 +240,8 @@ export const SideNav = ({ children }) => {
             >
                 
                 {/* Fixed Header Bar (Top right corner icons) */}
-                <header 
-                    className={`fixed top-0 right-0 z-30 p-4 h-20 shadow-sm transition-all duration-300 ${sidebarOpen ? 'md:left-56' : 'md:left-0'} w-full`} 
+                <header
+                    className={`fixed top-0 right-0 z-40 p-4 h-20 shadow-sm transition-all duration-300 ${sidebarOpen ? 'md:left-56' : 'md:left-0'} w-full`}
                     style={{ backgroundColor: '#FFFFFF', borderBottom: `1px solid ${CoffeeColors.BORDER_GRAY}` }}
                 >
                     <div className="flex items-center justify-end h-full max-w-7xl mx-auto">
@@ -253,16 +261,21 @@ export const SideNav = ({ children }) => {
                         {/* User Profile Icon with Dropdown */}
                         <div className="relative flex items-center space-x-3">
                             <button
-                                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                                    onClick={() => {
+                                        console.log('🔵 Profile button clicked!');
+                                        console.log('🔵 Current profileDropdownOpen state:', profileDropdownOpen);
+                                        setProfileDropdownOpen(!profileDropdownOpen);
+                                    }}
                                     className="w-14 h-14 rounded-full flex items-center justify-center font-bold transition-all transform hover:scale-110 animate-pulse"
-                                    style={{ 
-                                        backgroundColor: '#ff3b30', 
-                                        boxShadow: '0 0 40px rgba(255,59,48,0.5), 0 0 20px rgba(255,59,48,0.3)', 
-                                        border: '3px solid white', 
-                                        zIndex: 60,
-                                        animation: 'pulse 2s infinite'
+                                    style={{
+                                        backgroundColor: '#ff3b30',
+                                        boxShadow: '0 0 40px rgba(255,59,48,0.5), 0 0 20px rgba(255,59,48,0.3)',
+                                        border: '3px solid white',
+                                        zIndex: 80,
+                                        position: 'relative'
                                     }}
                                     aria-label="Open profile menu"
+                                    title="Profile Menu"
                                 >
                                     <ProfileIcon size={28} style={{ color: '#FFFFFF' }} />
                                 </button>
@@ -272,14 +285,21 @@ export const SideNav = ({ children }) => {
                                 <>
                                     {/* Backdrop to close dropdown */}
                                     <div
-                                        className="fixed inset-0 z-40"
-                                        onClick={() => setProfileDropdownOpen(false)}
+                                        className="fixed inset-0 z-[60]"
+                                        onClick={() => {
+                                            console.log('🔴 Backdrop clicked, closing dropdown');
+                                            setProfileDropdownOpen(false);
+                                        }}
                                     />
 
                                     {/* Dropdown content */}
                                     <div
-                                        className="absolute right-0 top-12 w-56 rounded-lg shadow-lg z-50 py-2"
-                                        style={{ backgroundColor: '#FFFFFF', border: `1px solid ${CoffeeColors.BORDER_GRAY}` }}
+                                        className="absolute right-0 top-16 w-56 rounded-lg shadow-xl z-[70] py-2"
+                                        style={{
+                                            backgroundColor: '#FFFFFF',
+                                            border: `1px solid ${CoffeeColors.BORDER_GRAY}`,
+                                            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+                                        }}
                                     >
                                         <Link
                                             to="/settings"
@@ -294,6 +314,8 @@ export const SideNav = ({ children }) => {
 
                                         <button
                                             onClick={() => {
+                                                console.log('🟢 View Profile clicked!');
+                                                console.log('🟢 Setting showProfileModal to true');
                                                 setProfileDropdownOpen(false);
                                                 setShowProfileModal(true);
                                             }}
