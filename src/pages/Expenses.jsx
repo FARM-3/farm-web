@@ -488,57 +488,57 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    DollarSign, Send, Loader2, X, RefreshCw, ArrowUp, ArrowDown, Edit, Trash2, Search, ChevronsDown,
-    Tag, Calendar, MapPin, AlignLeft, User, ShoppingBag, Receipt, Home, Plus
+    DollarSign, Send, Loader2, X, RefreshCw, ArrowUp, ArrowDown, Edit, Trash2, Search, ChevronsDown,
+    Tag, Calendar, MapPin, AlignLeft, User, ShoppingBag, Receipt, Home, Plus
 } from 'lucide-react';
 
 // NOTE: Assuming SideNav is imported from '../components/SideNav'
-import { SideNav } from '../components/SideNav'; 
+import { SideNav } from '../components/SideNav';
 
 
 // --- Configuration & Global Styles ---
 
 const ACCENT_COLORS = {
-    NAV_BG: '#FFFFFF', 
-    MAIN_BG: '#F8F8F8', 
-    PRIMARY_TEXT: '#333333',
-    ACCENT_GREEN: '#4CAF50', 
-    ACCENT_BROWN: '#9F4A2F', 
-    TABLE_HEADER_BG: '#F4F4F4', 
+    NAV_BG: '#FFFFFF', 
+    MAIN_BG: '#F8F8F8', 
+    PRIMARY_TEXT: '#333333',
+    ACCENT_GREEN: '#4CAF50', 
+    ACCENT_BROWN: '#9F4A2F', 
+    TABLE_HEADER_BG: '#F4F4F4', 
 };
 
 // Colors derived from Image 2 (Sales Entry) for the modal
 const CUSTOM_COLORS_MODAL = {
-    HEADER_BG: '#FFFFFF', 
-    HEADER_TEXT: '#333333', 
-    HEADER_CLOSE_BTN: '#6B7280', 
-    MODAL_BG: '#F8F8F8', 
-    SECTION_BG: '#FFFFFF', 
-    SECTION_HEADER_TEXT: '#333333', 
-    SECTION_ICON: '#F59E0B', 
-    INPUT_BG: '#F9FAFB', 
-    INPUT_BORDER: '#D1D5DB', 
-    TEXT_PRIMARY: '#333333',
-    TEXT_SECONDARY: '#6B7280', 
-    FOOTER_BG: '#F8F8F8', 
-     
-    BUTTON_PRIMARY_BG: '#9F4A2F', 
-    BUTTON_PRIMARY_TEXT: '#FFFFFF',
-    BUTTON_SECONDARY_BG: '#E5E7EB', 
-    BUTTON_SECONDARY_TEXT: '#4B5563',
-    REQUIRED_ASTERISK: '#EF4444', 
-    VALID_BORDER: '#10B981', // Green-500 for validation success
-    INVALID_BORDER: '#EF4444', // Red-500 for validation failure
+    HEADER_BG: '#FFFFFF', 
+    HEADER_TEXT: '#333333', 
+    HEADER_CLOSE_BTN: '#6B7280', 
+    MODAL_BG: '#F8F8F8', 
+    SECTION_BG: '#FFFFFF', 
+    SECTION_HEADER_TEXT: '#333333', 
+    SECTION_ICON: '#F59E0B', 
+    INPUT_BG: '#F9FAFB', 
+    INPUT_BORDER: '#D1D5DB', 
+    TEXT_PRIMARY: '#333333',
+    TEXT_SECONDARY: '#6B7280', 
+    FOOTER_BG: '#F8F8F8', 
+     
+    BUTTON_PRIMARY_BG: '#9F4A2F', 
+    BUTTON_PRIMARY_TEXT: '#FFFFFF',
+    BUTTON_SECONDARY_BG: '#E5E7EB', 
+    BUTTON_SECONDARY_TEXT: '#4B5563',
+    REQUIRED_ASTERISK: '#EF4444', 
+    VALID_BORDER: '#10B981', // Green-500 for validation success
+    INVALID_BORDER: '#EF4444', // Red-500 for validation failure
 };
 
 const CATEGORIES = [
-    'General Supplies', 'Fuel/Energy', 'Equipment Maintenance',
-    'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
+    'Aggregation', // Added for harvest expenses
+    'General Supplies', 'Fuel/Energy', 'Equipment Maintenance',
+    'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
 ];
 
 const EXPENSE_API_ENDPOINT = 'http://142.93.94.236:8000/api/expenses/';
-
-const TABLE_HEADERS = [
+const FARMER_HARVEST_API = 'http://142.93.94.236:8000/api/aggregation/farmer-harvest/';const TABLE_HEADERS = [
     { key: 'expense_name', label: 'Name', type: 'string' },
     { key: 'category', label: 'Category', type: 'string' },
     { key: 'date', label: 'Date', type: 'date' },
@@ -913,6 +913,7 @@ export function ExpensesPage() {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
+    // profile UI removed from this page; use shared NavBar for profile access
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [expenseToEdit, setExpenseToEdit] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
@@ -920,21 +921,94 @@ export function ExpensesPage() {
     const [expenseToDelete, setExpenseToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
-    const fetchExpenses = useCallback(async (retries = 3) => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(EXPENSE_API_ENDPOINT);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const data = await response.json();
-            const normalized = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-            setExpenses(normalized);
-            setLoading(false);
-        } catch (err) {
-            setError(`Could not load records. Failed reason: ${err.message}`);
-            setLoading(false);
-        }
-    }, []);
+    const fetchExpenses = useCallback(async (retries = 3) => {
+        setLoading(true);
+        setError(null);
+
+        console.log('--- Fetching Both Expense and Harvest Data ---');
+
+        for (let i = 0; i < retries; i++) {
+            try {
+                // Fetch both regular expenses and farmer harvest data in parallel
+                const [expenseResponse, harvestResponse] = await Promise.all([
+                    fetch(EXPENSE_API_ENDPOINT),
+                    fetch(FARMER_HARVEST_API)
+                ]);
+
+                if (!expenseResponse.ok) {
+                    throw new Error(`HTTP error! status: ${expenseResponse.status}`);
+                }
+
+                const expenseData = await expenseResponse.json();
+                const regularExpenses = Array.isArray(expenseData)
+                    ? expenseData
+                    : Array.isArray(expenseData?.results)
+                        ? expenseData.results
+                        : [];
+
+                // Process harvest data if available
+                let harvestExpenses = [];
+                if (harvestResponse.ok) {
+                    const harvestData = await harvestResponse.json();
+                    const normalizedHarvests = Array.isArray(harvestData)
+                        ? harvestData
+                        : Array.isArray(harvestData?.results)
+                            ? harvestData.results
+                            : [];
+
+                    // Convert harvest records to expense format
+                    harvestExpenses = normalizedHarvests.map(harvest => ({
+                        id: `harvest-${harvest.id || Math.random().toString(36).slice(2, 9)}`,
+                        expense_name: `Harvest Payment - ${harvest.crop_type || 'Coffee'}`,
+                        category: 'Aggregation',
+                        item: harvest.crop_type || 'Coffee',
+                        supplier: harvest.farmer_name || 'Unknown Farmer',
+                        description: `Auto-generated from harvest record. Weight: ${harvest.weight_on_delivery || 'N/A'} kg`,
+                        amount: harvest.amount_paid || 0,
+                        date: harvest.date_recorded || new Date().toISOString().split('T')[0],
+                        location: 'Rugyeyo Farm',
+                        _source: 'harvest',
+                        harvestDetails: {
+                            ...harvest,
+                            originalId: harvest.id
+                        }
+                    }));
+                }
+
+                // Combine both types of expenses, placing harvests at the top
+                const combinedExpenses = [...harvestExpenses, ...regularExpenses];
+
+                // Sort by date descending
+                combinedExpenses.sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    return dateB - dateA;
+                });
+
+                setExpenses(combinedExpenses);
+                setError(null);
+                setLoading(false);
+
+                console.log('Data fetched successfully:', {
+                    regularExpenses: regularExpenses.length,
+                    harvestExpenses: harvestExpenses.length,
+                    total: combinedExpenses.length
+                });
+                return;
+
+            } catch (err) {
+                console.error(`Attempt ${i + 1} failed:`, err);
+                if (i === retries - 1) {
+                    setError(`Failed to load expense records: ${err.message}`);
+                    setExpenses([]);
+                    setLoading(false);
+                    return;
+                }
+                // Exponential backoff
+                await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+            }
+        }
+    }, []);
 
     useEffect(() => {
         fetchExpenses();
@@ -1195,6 +1269,7 @@ export function ExpensesPage() {
                         >
                             Export to Excel
                         </button>
+                        {/* Profile is provided by the shared top NavBar; removed in-page profile button */}
                     </div>
                 </div>
 
@@ -1222,8 +1297,7 @@ export function ExpensesPage() {
                     </div>
                 </div>
             </main>
-
-            {/* --- Delete Confirmation Modal --- */}
+            {/* --- Delete Confirmation Modal --- */}
             {showDeleteModal && expenseToDelete && (
                 <div
                     className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
@@ -1279,6 +1353,8 @@ export function ExpensesPage() {
                 </div>
             )}
 
+            {/* Profile is handled by shared NavBar; no in-page modal rendered */}
+
             {/* --- Expense Entry Modal (Internal Component) --- */}
             <ExpenseEntryModal
                 isOpen={showExpenseModal}
@@ -1290,5 +1366,7 @@ export function ExpensesPage() {
         </SideNav>
     );
 }
+
+// Profile modal removed from this page – use shared NavBar modal instead
 
 export default ExpensesPage;

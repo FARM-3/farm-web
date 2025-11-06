@@ -58,6 +58,9 @@ const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
 
 // Expandable Row Component for Farmers
 const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
+    // Use timestamp fields: created_at, timestamp, date_created, or updated_at
+    const recordDate = farmer.created_at || farmer.timestamp || farmer.date_created || farmer.updated_at || farmer.date_of_birth;
+
     return (
         <>
             <tr className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
@@ -65,7 +68,7 @@ const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
                 <td className="px-6 py-3 text-left text-gray-600">
                     {farmer.first_name} {farmer.last_name}
                 </td>
-                <td className="px-6 py-3 text-center text-gray-600">{formatDate(farmer.date_of_birth)}</td>
+                <td className="px-6 py-3 text-center text-gray-600">{formatDate(recordDate)}</td>
                 <td className="px-6 py-3 text-center">
                     <button
                         onClick={onToggle}
@@ -243,10 +246,25 @@ const AggregationPage = () => {
             const normalizedFarmers = Array.isArray(farmersData) ? farmersData : (farmersData.results || []);
             const normalizedHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
 
-            // Debug: Log the first harvest record to see its structure
+            // Debug: Log sample records to see their structure
             if (normalizedHarvests.length > 0) {
                 console.log('Sample harvest record:', normalizedHarvests[0]);
                 console.log('Harvest fields:', Object.keys(normalizedHarvests[0]));
+            }
+            if (normalizedFarmers.length > 0) {
+                console.log('Sample farmer record:', normalizedFarmers[0]);
+                const farmerFields = Object.keys(normalizedFarmers[0]);
+                console.log('Farmer fields:', farmerFields);
+                console.log('🔍 All farmer fields with values:', normalizedFarmers[0]);
+
+                // Find all date-related fields
+                const dateFields = farmerFields.filter(field =>
+                    field.includes('date') || field.includes('time') || field.includes('created') || field.includes('updated')
+                );
+                console.log('📅 Date-related fields:', dateFields);
+                dateFields.forEach(field => {
+                    console.log(`  - ${field}:`, normalizedFarmers[0][field]);
+                });
             }
 
             // Create a farmer lookup map by name for quick access
@@ -275,8 +293,12 @@ const AggregationPage = () => {
                 };
             });
 
-            // Sort by latest first
-            normalizedFarmers.sort((a, b) => new Date(b.date_of_birth || 0) - new Date(a.date_of_birth || 0));
+            // Sort by latest record creation first (using timestamp fields)
+            normalizedFarmers.sort((a, b) => {
+                const dateA = a.created_at || a.timestamp || a.date_created || a.updated_at || a.date_of_birth || 0;
+                const dateB = b.created_at || b.timestamp || b.date_created || b.updated_at || b.date_of_birth || 0;
+                return new Date(dateB) - new Date(dateA);
+            });
             enrichedHarvests.sort((a, b) => {
                 const dateA = a.date_of_delivery || '';
                 const dateB = b.date_of_delivery || '';

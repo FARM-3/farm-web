@@ -32,7 +32,7 @@ const navItems = [
 ];
 
 const footerNavItems = [
-    { key: 'profile', name: 'Profile', icon: ProfileIcon, href: '/profile' },
+    { key: 'settings', name: 'Settings', icon: Settings, href: '/settings' },
     { key: 'logout', name: 'Logout', icon: LogOut, href: '/logout' },
 ];
 
@@ -44,7 +44,7 @@ const getCurrentPageKey = () => {
     if (path.startsWith('staff')) return 'staff';
     if (path === 'wagesrecords') return 'wagesrecords';
     if (path.startsWith('wages')) return 'wages';
-    if (path.startsWith('profile')) return 'profile';
+    if (path.startsWith('settings')) return 'settings';
 
     const item = [...navItems, ...footerNavItems].find(item => item.key === path);
     if (item) return path;
@@ -144,6 +144,7 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
 export const SideNav = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const currentPage = useMemo(() => getCurrentPageKey(), []);
     const sidebarWidthClass = 'w-56';
@@ -252,12 +253,19 @@ export const SideNav = ({ children }) => {
                         {/* User Profile Icon with Dropdown */}
                         <div className="relative flex items-center space-x-3">
                             <button
-                                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                                className="w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all hover:opacity-90"
-                                style={{ backgroundColor: '#8B4513' }}
-                            >
-                                <ProfileIcon size={20} style={{ color: '#FFFFFF' }} />
-                            </button>
+                                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                                    className="w-14 h-14 rounded-full flex items-center justify-center font-bold transition-all transform hover:scale-110 animate-pulse"
+                                    style={{ 
+                                        backgroundColor: '#ff3b30', 
+                                        boxShadow: '0 0 40px rgba(255,59,48,0.5), 0 0 20px rgba(255,59,48,0.3)', 
+                                        border: '3px solid white', 
+                                        zIndex: 60,
+                                        animation: 'pulse 2s infinite'
+                                    }}
+                                    aria-label="Open profile menu"
+                                >
+                                    <ProfileIcon size={28} style={{ color: '#FFFFFF' }} />
+                                </button>
 
                             {/* Dropdown Menu */}
                             {profileDropdownOpen && (
@@ -274,15 +282,28 @@ export const SideNav = ({ children }) => {
                                         style={{ backgroundColor: '#FFFFFF', border: `1px solid ${CoffeeColors.BORDER_GRAY}` }}
                                     >
                                         <Link
-                                            to="/profile"
+                                            to="/settings"
                                             className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                                             onClick={() => setProfileDropdownOpen(false)}
                                         >
                                             <Settings size={18} style={{ color: CoffeeColors.DARK_BROWN }} />
                                             <span style={{ color: CoffeeColors.DARK_BROWN, fontSize: '14px', fontWeight: '500' }}>
-                                                Profile Settings
+                                                Settings
                                             </span>
                                         </Link>
+
+                                        <button
+                                            onClick={() => {
+                                                setProfileDropdownOpen(false);
+                                                setShowProfileModal(true);
+                                            }}
+                                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors w-full text-left"
+                                        >
+                                            <ProfileIcon size={18} style={{ color: CoffeeColors.DARK_BROWN }} />
+                                            <span style={{ color: CoffeeColors.DARK_BROWN, fontSize: '14px', fontWeight: '500' }}>
+                                                View Profile
+                                            </span>
+                                        </button>
 
                                         <button
                                             onClick={() => {
@@ -389,6 +410,40 @@ export const SideNav = ({ children }) => {
                             >
                                 Logout
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Profile Modal (opens from header profile icon) */}
+            {showProfileModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}>
+                    <div className="absolute inset-0" onClick={() => setShowProfileModal(false)} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-2xl font-bold text-[#3D2817]">My Profile</h3>
+                            <button onClick={() => setShowProfileModal(false)} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Profile fields read from localStorage (safe defaults) */}
+                        <div className="space-y-3">
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase">Name</p>
+                                <p className="text-sm text-gray-800 font-medium">{localStorage.getItem('userName') || localStorage.getItem('userProfileName') || 'John Doe'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase">Role</p>
+                                <p className="text-sm text-gray-800 font-medium">{localStorage.getItem('userRole') || 'user'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 uppercase">Contact</p>
+                                <p className="text-sm text-gray-800 font-medium">{localStorage.getItem('userPhone') || 'N/A'}</p>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <button onClick={() => setShowProfileModal(false)} className="px-4 py-2 rounded-xl bg-gray-100 text-gray-800">Close</button>
                         </div>
                     </div>
                 </div>
