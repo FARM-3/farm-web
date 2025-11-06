@@ -7,7 +7,7 @@ import {
 
 // API Endpoints
 const API_BASE_URL = 'http://142.93.94.236:8000/api';
-const HARVESTS_API = `${API_BASE_URL}/harvests/harvests/`;
+const HARVESTS_API = `${API_BASE_URL}/aggregation/farmer-harvest/`; // Updated to use farmer-harvest endpoint
 const BLOCKS_API = `${API_BASE_URL}/harvests/blocks/`;
 
 // Coffee Colors
@@ -73,8 +73,8 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle, blockDetails }) =
         <>
             <tr className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
                 <td className="px-6 py-3 text-left font-medium text-gray-800 text-sm">{harvest.harvest_id || 'N/A'}</td>
-                <td className="px-6 py-3 text-left text-gray-600 text-sm">{harvest.worker_name || 'N/A'}</td>
-                <td className="px-6 py-3 text-center text-gray-600 text-sm">{harvest.block_id || 'N/A'}</td>
+                <td className="px-6 py-3 text-left text-gray-600 text-sm">{harvest.name || harvest.worker_name || 'N/A'}</td>
+                <td className="px-6 py-3 text-center text-gray-600 text-sm">{harvest.coffee_type || harvest.block_id || 'N/A'}</td>
                 <td className="px-6 py-3 text-right text-gray-800 font-semibold text-sm">
                     {formatNumber(harvest.weight_on_delivery)} kg
                 </td>
@@ -108,12 +108,26 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle, blockDetails }) =
                                         <p className="text-sm text-gray-800">{harvest.harvest_id || 'N/A'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase">Worker Name</p>
-                                        <p className="text-sm text-gray-800">{harvest.worker_name || 'N/A'}</p>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase">Farmer Name</p>
+                                        <p className="text-sm text-gray-800">{harvest.name || harvest.worker_name || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase">Coffee Type</p>
+                                        <p className="text-sm text-gray-800">{harvest.coffee_type || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs font-semibold text-gray-500 uppercase">Weight on Delivery</p>
                                         <p className="text-sm text-gray-800 font-semibold">{formatNumber(harvest.weight_on_delivery)} kg</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase">No. of Bags</p>
+                                        <p className="text-sm text-gray-800">{harvest.no_of_bags || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase">Price per Kg</p>
+                                        <p className="text-sm text-gray-800">
+                                            {harvest.price_per_kg ? `UGX ${parseFloat(harvest.price_per_kg).toLocaleString('en-US')}` : 'N/A'}
+                                        </p>
                                     </div>
                                     <div>
                                         <p className="text-xs font-semibold text-gray-500 uppercase">Amount Paid</p>
@@ -128,14 +142,6 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle, blockDetails }) =
                                     <div>
                                         <p className="text-xs font-semibold text-gray-500 uppercase">Paid By</p>
                                         <p className="text-sm text-gray-800">{harvest.paid_by || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase">Created At</p>
-                                        <p className="text-sm text-gray-800">{formatDate(harvest.created_at)}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase">Last Updated</p>
-                                        <p className="text-sm text-gray-800">{formatDate(harvest.updated_at)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -196,6 +202,7 @@ export function HarvestPage() {
     const [expandedRows, setExpandedRows] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [filterBlock, setFilterBlock] = useState('');
+    const [error, setError] = useState(null);
 
     // Calculate KPIs
     const kpis = {
@@ -207,18 +214,33 @@ export function HarvestPage() {
     // Fetch harvests
     const fetchHarvests = useCallback(async () => {
         setLoading(true);
+        setError(null);
         try {
+            console.log('Fetching harvests from:', HARVESTS_API);
             const response = await fetch(HARVESTS_API);
+            console.log('Response status:', response.status);
+            console.log('Response OK:', response.ok);
+
             if (response.ok) {
                 const data = await response.json();
+                console.log('Raw API response:', data);
                 const results = data.results || data;
+                console.log('Processed results:', results);
+                console.log('Is array?', Array.isArray(results));
+                console.log('Results length:', results.length);
                 setHarvests(Array.isArray(results) ? results : []);
+                setError(null);
             } else {
-                console.error('Failed to fetch harvests');
+                const errorText = await response.text();
+                console.error('Failed to fetch harvests. Status:', response.status);
+                console.error('Error response:', errorText);
+                setError(`API Error: ${response.status} - ${errorText}`);
                 setHarvests([]);
             }
         } catch (error) {
             console.error('Error fetching harvests:', error);
+            console.error('Error details:', error.message);
+            setError(`Network Error: ${error.message}`);
             setHarvests([]);
         } finally {
             setLoading(false);
@@ -228,9 +250,13 @@ export function HarvestPage() {
     // Fetch blocks
     const fetchBlocks = useCallback(async () => {
         try {
+            console.log('Fetching blocks from:', BLOCKS_API);
             const response = await fetch(BLOCKS_API);
+            console.log('Blocks response status:', response.status);
+
             if (response.ok) {
                 const data = await response.json();
+                console.log('Blocks API response:', data);
                 const results = data.results || data;
                 const blocksMap = {};
                 if (Array.isArray(results)) {
@@ -238,10 +264,16 @@ export function HarvestPage() {
                         blocksMap[block.block_id] = block;
                     });
                 }
+                console.log('Blocks map:', blocksMap);
                 setBlocks(blocksMap);
+            } else {
+                const errorText = await response.text();
+                console.error('Failed to fetch blocks. Status:', response.status);
+                console.error('Error response:', errorText);
             }
         } catch (error) {
             console.error('Error fetching blocks:', error);
+            console.error('Error details:', error.message);
         }
     }, []);
 
@@ -258,18 +290,20 @@ export function HarvestPage() {
         }));
     };
 
-    // Get unique block IDs for filter
-    const uniqueBlocks = [...new Set(harvests.map(h => h.block_id).filter(Boolean))];
+    // Get unique coffee types for filter (using coffee_type instead of block_id)
+    const uniqueBlocks = [...new Set(harvests.map(h => h.coffee_type || h.block_id).filter(Boolean))];
 
     // Filter harvests
     const filteredHarvests = harvests.filter(harvest => {
         const matchesSearch =
             !searchTerm ||
+            (harvest.name && harvest.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (harvest.worker_name && harvest.worker_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (harvest.harvest_id && harvest.harvest_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (harvest.coffee_type && harvest.coffee_type.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (harvest.block_id && harvest.block_id.toLowerCase().includes(searchTerm.toLowerCase()));
 
-        const matchesBlock = !filterBlock || harvest.block_id === filterBlock;
+        const matchesBlock = !filterBlock || harvest.coffee_type === filterBlock || harvest.block_id === filterBlock;
 
         return matchesSearch && matchesBlock;
     });
@@ -308,6 +342,24 @@ export function HarvestPage() {
                     />
                 </div>
 
+                {/* Error Alert */}
+                {error && (
+                    <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-red-800">Error Loading Harvest Data</h3>
+                                <p className="text-sm text-red-700 mt-1">{error}</p>
+                                <p className="text-xs text-red-600 mt-2">Check the browser console (F12) for more details.</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Action Bar & Filter */}
                 <div className="mb-4 flex flex-wrap justify-between items-center gap-3">
                     <div className="flex gap-3 items-center w-full sm:w-auto order-2 sm:order-1">
@@ -315,7 +367,7 @@ export function HarvestPage() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                                 type="search"
-                                placeholder="Search by worker, harvest ID, or block..."
+                                placeholder="Search by farmer, harvest ID, or coffee type..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="p-2 pl-10 text-sm w-full sm:w-64 border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg"
@@ -327,7 +379,7 @@ export function HarvestPage() {
                                 onChange={(e) => setFilterBlock(e.target.value)}
                                 className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-accent-btn focus:border-accent-btn shadow-lg transition duration-300 ease-in-out"
                             >
-                                <option value="">All Blocks</option>
+                                <option value="">All Coffee Types</option>
                                 {uniqueBlocks.map(blockId => (
                                     <option key={blockId} value={blockId}>{blockId}</option>
                                 ))}
@@ -359,10 +411,10 @@ export function HarvestPage() {
                                         Harvest ID
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
-                                        Worker Name
+                                        Farmer Name
                                     </th>
                                     <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-700">
-                                        Block ID
+                                        Coffee Type
                                     </th>
                                     <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-700">
                                         Weight (kg)

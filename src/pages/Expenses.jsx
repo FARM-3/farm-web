@@ -483,11 +483,12 @@
 // export default Expenses;
 
 
-// ExpensesPage.jsx (Combined file with Blur Background and Input Validation)
-
+//expenses file with validations
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+    DollarSign, Send, Loader2, X, RefreshCw, ArrowUp, ArrowDown, Edit, Trash2, Search, ChevronsDown,
+    Tag, Calendar, MapPin, AlignLeft, User, ShoppingBag, Receipt, Home, Plus
     DollarSign, Send, Loader2, X, RefreshCw, ArrowUp, ArrowDown, Edit, Trash2, Search, ChevronsDown,
     Tag, Calendar, MapPin, AlignLeft, User, ShoppingBag, Receipt, Home, Plus
 } from 'lucide-react';
@@ -499,6 +500,12 @@ import { SideNav } from '../components/SideNav';
 // --- Configuration & Global Styles ---
 
 const ACCENT_COLORS = {
+    NAV_BG: '#FFFFFF', 
+    MAIN_BG: '#F8F8F8', 
+    PRIMARY_TEXT: '#333333',
+    ACCENT_GREEN: '#4CAF50', 
+    ACCENT_BROWN: '#9F4A2F', 
+    TABLE_HEADER_BG: '#F4F4F4', 
     NAV_BG: '#FFFFFF', 
     MAIN_BG: '#F8F8F8', 
     PRIMARY_TEXT: '#333333',
@@ -550,358 +557,430 @@ const FARMER_HARVEST_API = 'http://142.93.94.236:8000/api/aggregation/farmer-har
 // --- Helper Functions and Components (Modified for Validation) ---
 
 const formatCurrency = (amount) => {
-    const value = parseFloat(amount);
-    if (isNaN(value)) return 'UGX 0';
+    const value = parseFloat(amount);
+    if (isNaN(value)) return 'UGX 0';
 
-    return `UGX ${new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-    }).format(Math.round(value))}`;
+    return `UGX ${new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(Math.round(value))}`;
 };
 
 const ActionButton = ({ children, onClick, className, style, disabled, type = "button" }) => (
-    <button
-        type={type}
-        onClick={onClick}
-        disabled={disabled}
-        className={`px-4 py-2 text-white rounded-lg shadow-md hover:shadow-lg transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm ${className}`}
-        style={style} 
-    >
-        {children}
-    </button>
+    <button
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        className={`px-4 py-2 text-white rounded-lg shadow-md hover:shadow-lg transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm ${className}`}
+        style={style} 
+    >
+        {children}
+    </button>
 );
 
 const ModalSectionHeader = ({ icon: Icon, title }) => (
-    <div className="flex items-center space-x-2 mb-4">
-        <Icon className="w-5 h-5" style={{ color: CUSTOM_COLORS_MODAL.SECTION_ICON }} />
-        <h3 className="text-base font-semibold" style={{ color: CUSTOM_COLORS_MODAL.SECTION_HEADER_TEXT }}>
-            {title}
-        </h3>
-    </div>
+    <div className="flex items-center space-x-2 mb-4">
+        <Icon className="w-5 h-5" style={{ color: CUSTOM_COLORS_MODAL.SECTION_ICON }} />
+        <h3 className="text-base font-semibold" style={{ color: CUSTOM_COLORS_MODAL.SECTION_HEADER_TEXT }}>
+            {title}
+        </h3>
+    </div>
 );
 
-const InputField = ({ label, name, value, onChange, placeholder, required, type = "text", isTextArea = false, status = 'initial' }) => {
-    const borderColor = status === 'valid' 
-        ? CUSTOM_COLORS_MODAL.VALID_BORDER 
-        : status === 'invalid' 
-        ? CUSTOM_COLORS_MODAL.INVALID_BORDER 
-        : CUSTOM_COLORS_MODAL.INPUT_BORDER;
-
-    return (
-        <div className="flex flex-col space-y-1">
-            <label htmlFor={name} className="text-sm font-medium" style={{ color: CUSTOM_COLORS_MODAL.TEXT_SECONDARY }}>
-                {label}
-                {required && <span className="ml-1" style={{ color: CUSTOM_COLORS_MODAL.REQUIRED_ASTERISK }}>*</span>}
-            </label>
-            {isTextArea ? (
-                <textarea
-                    id={name}
-                    name={name}
-                    value={value}
-                    onChange={onChange}
-                    placeholder={placeholder}
-                    required={required}
-                    rows="3" 
-                    className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
-                    style={{
-                        backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
-                        borderColor: borderColor, 
-                        color: CUSTOM_COLORS_MODAL.TEXT_PRIMARY,
-                        resize: 'vertical'
-                    }}
-                />
-            ) : (
-                <input
-                    id={name}
-                    name={name}
-                    value={value}
-                    onChange={onChange}
-                    placeholder={placeholder}
-                    required={required}
-                    type={type}
-                    step={type === 'number' || name === 'amount' ? '0.01' : undefined}
-                    className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
-                    style={{
-                        backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
-                        borderColor: borderColor, 
-                        color: CUSTOM_COLORS_MODAL.TEXT_PRIMARY,
-                    }}
-                />
-            )}
-        </div>
-    );
+// Validation function for field-specific error messages
+const getFieldErrorMessage = (name, value) => {
+    if (name === 'amount') {
+        if (!value || value.trim() === '') return 'Amount is required';
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return 'Must be a valid number';
+        if (numValue <= 0) return 'Must be a positive number';
+        if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Must be a valid currency format';
+        return null; // No error
+    }
+    
+    if (name === 'date') {
+        if (!value) return 'Date is required';
+        const selectedDate = new Date(value);
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        if (selectedDate > today) return 'Date cannot be in the future';
+        return null; // No error
+    }
+    
+    if (name === 'expense_name') {
+        if (!value || !value.toString().trim()) return 'Expense name is required';
+        if (value.trim().length < 2) return 'Must be at least 2 characters';
+        return null; // No error
+    }
+    
+    if (name === 'category') {
+        if (!value || value === '') return 'Category is required';
+        if (!CATEGORIES.includes(value)) return 'Please select a valid category';
+        return null; // No error
+    }
+    
+    if (name === 'supplier' || name === 'item' || name === 'location') {
+        // Only validate length if field has value (since these are optional)
+        if (value && value.trim().length < 2) return 'Must be at least 2 characters';
+        return null; // No error
+    }
+    
+    return null; // Default: no error
 };
 
-const SelectField = ({ label, name, value, onChange, options, required, status = 'initial' }) => {
-     const borderColor = status === 'valid' 
-        ? CUSTOM_COLORS_MODAL.VALID_BORDER 
-        : status === 'invalid' 
-        ? CUSTOM_COLORS_MODAL.INVALID_BORDER 
-        : CUSTOM_COLORS_MODAL.INPUT_BORDER;
+const InputField = ({ label, name, value, onChange, placeholder, required, type = "text", isTextArea = false, status = 'initial', errorMessage = '' }) => {
+    const borderColor = status === 'valid' 
+        ? CUSTOM_COLORS_MODAL.VALID_BORDER 
+        : status === 'invalid' 
+        ? CUSTOM_COLORS_MODAL.INVALID_BORDER 
+        : CUSTOM_COLORS_MODAL.INPUT_BORDER;
 
-    return (
-        <div className="flex flex-col space-y-1">
-            <label htmlFor={name} className="text-sm font-medium" style={{ color: CUSTOM_COLORS_MODAL.TEXT_SECONDARY }}>
-                {label}
-                {required && <span className="ml-1" style={{ color: CUSTOM_COLORS_MODAL.REQUIRED_ASTERISK }}>*</span>}
-            </label>
-            <div className="relative flex items-center">
-                <select
-                    id={name}
-                    name={name}
-                    value={value}
-                    onChange={onChange}
-                    required={required}
-                    className="appearance-none flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 cursor-pointer"
-                    style={{
-                        backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
-                        borderColor: borderColor, 
-                        color: CUSTOM_COLORS_MODAL.TEXT_PRIMARY,
-                    }}
-                >
-                    <option value="" disabled>-- Select Category --</option>
-                    {options.map((option) => (
-                        <option key={option} value={option}>{option}</option>
-                    ))}
-                </select>
-                <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-        </div>
-    );
+    return (
+        <div className="flex flex-col space-y-1">
+            <label htmlFor={name} className="text-sm font-medium" style={{ color: CUSTOM_COLORS_MODAL.TEXT_SECONDARY }}>
+                {label}
+                {required && <span className="ml-1" style={{ color: CUSTOM_COLORS_MODAL.REQUIRED_ASTERISK }}>*</span>}
+            </label>
+            {isTextArea ? (
+                <textarea
+                    id={name}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    required={required}
+                    rows="3" 
+                    className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                    style={{
+                        backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
+                        borderColor: borderColor, 
+                        color: CUSTOM_COLORS_MODAL.TEXT_PRIMARY,
+                        resize: 'vertical'
+                    }}
+                />
+            ) : (
+                <input
+                    id={name}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    required={required}
+                    type={type}
+                    step={type === 'number' || name === 'amount' ? '0.01' : undefined}
+                    className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                    style={{
+                        backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
+                        borderColor: borderColor, 
+                        color: CUSTOM_COLORS_MODAL.TEXT_PRIMARY,
+                    }}
+                />
+            )}
+            {errorMessage && (
+                <p className="text-xs text-red-600 mt-1">{errorMessage}</p>
+            )}
+        </div>
+    );
+};
+
+const SelectField = ({ label, name, value, onChange, options, required, status = 'initial', errorMessage = '' }) => {
+     const borderColor = status === 'valid' 
+        ? CUSTOM_COLORS_MODAL.VALID_BORDER 
+        : status === 'invalid' 
+        ? CUSTOM_COLORS_MODAL.INVALID_BORDER 
+        : CUSTOM_COLORS_MODAL.INPUT_BORDER;
+
+    return (
+        <div className="flex flex-col space-y-1">
+            <label htmlFor={name} className="text-sm font-medium" style={{ color: CUSTOM_COLORS_MODAL.TEXT_SECONDARY }}>
+                {label}
+                {required && <span className="ml-1" style={{ color: CUSTOM_COLORS_MODAL.REQUIRED_ASTERISK }}>*</span>}
+            </label>
+            <div className="relative flex items-center">
+                <select
+                    id={name}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    required={required}
+                    className="appearance-none flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 cursor-pointer"
+                    style={{
+                        backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
+                        borderColor: borderColor, 
+                        color: CUSTOM_COLORS_MODAL.TEXT_PRIMARY,
+                    }}
+                >
+                    <option value="" disabled>-- Select Category --</option>
+                    {options.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                    ))}
+                </select>
+                <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            {errorMessage && (
+                <p className="text-xs text-red-600 mt-1">{errorMessage}</p>
+            )}
+        </div>
+    );
 };
 
 
 // --- ExpenseEntryModal Component (with Subtle Blur and Validation Logic) ---
 
 function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted }) {
-    const initialFormData = {
-        expense_name: '', category: '', item: '', supplier: '', description: '', amount: '',
-        date: new Date().toISOString().substring(0, 10), location: '',
-    };
-    
-    // Tracks form data
-    const [formData, setFormData] = useState(initialFormData);
-    // Tracks validation status: { fieldName: 'initial' | 'valid' | 'invalid' }
-    const [validationStatus, setValidationStatus] = useState({});
+    const initialFormData = {
+        expense_name: '', category: '', item: '', supplier: '', description: '', amount: '',
+        date: new Date().toISOString().substring(0, 10), location: '',
+    };
+    
+    // Tracks form data
+    const [formData, setFormData] = useState(initialFormData);
+    // Tracks validation status: { fieldName: 'initial' | 'valid' | 'invalid' }
+    const [validationStatus, setValidationStatus] = useState({});
+    // Tracks field-specific error messages
+    const [fieldErrors, setFieldErrors] = useState({});
 
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editId, setEditId] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editId, setEditId] = useState(null);
 
-    // Initialization and reset logic
-    useEffect(() => {
-        if (isOpen) {
-            if (editExpense) {
-                setIsEditing(true);
-                setEditId(editExpense.id);
-                setFormData({
-                    expense_name: editExpense.expense_name || '',
-                    category: editExpense.category || '',
-                    item: editExpense.item || '',
-                    supplier: editExpense.supplier || '',
-                    description: editExpense.description || '',
-                    amount: editExpense.amount?.toString() || '',
-                    date: editExpense.date || new Date().toISOString().substring(0, 10),
-                    location: editExpense.location || '',
-                });
-            } else {
-                setIsEditing(false);
-                setEditId(null);
-                setFormData(initialFormData);
-            }
-            setValidationStatus({});
-            setMessage(null);
-        }
-    }, [isOpen, editExpense]);
+    // Initialization and reset logic
+    useEffect(() => {
+        if (isOpen) {
+            if (editExpense) {
+                setIsEditing(true);
+                setEditId(editExpense.id);
+                setFormData({
+                    expense_name: editExpense.expense_name || '',
+                    category: editExpense.category || '',
+                    item: editExpense.item || '',
+                    supplier: editExpense.supplier || '',
+                    description: editExpense.description || '',
+                    amount: editExpense.amount?.toString() || '',
+                    date: editExpense.date || new Date().toISOString().substring(0, 10),
+                    location: editExpense.location || '',
+                });
+            } else {
+                setIsEditing(false);
+                setEditId(null);
+                setFormData(initialFormData);
+            }
+            setValidationStatus({});
+            setFieldErrors({});
+            setMessage(null);
+        }
+    }, [isOpen, editExpense]);
 
-    const validateField = useCallback((name, value, type) => {
-        let isValid = true;
-        if (type === 'required') {
-            isValid = !!value?.trim();
-        } else if (name === 'amount') {
-            isValid = /^\d*\.?\d*$/.test(value) && parseFloat(value) > 0;
-        }
-        return isValid;
-    }, []);
+    const validateField = useCallback((name, value) => {
+        const errorMessage = getFieldErrorMessage(name, value);
+        const isValid = !errorMessage;
+        
+        setFieldErrors(prev => ({
+            ...prev,
+            [name]: errorMessage
+        }));
+        
+        setValidationStatus(prev => ({
+            ...prev,
+            [name]: isValid ? 'valid' : 'invalid'
+        }));
+        
+        return isValid;
+    }, []);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        setMessage(null);
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        setMessage(null);
 
-        // Immediate field validation 
-        const isRequired = ['expense_name', 'category', 'amount', 'date'].includes(name);
-        if (isRequired || name === 'amount') {
-            const validationType = name === 'amount' ? 'amount' : 'required';
-            const isValid = validateField(name, value, validationType);
-            setValidationStatus(prev => ({ ...prev, [name]: isValid ? 'valid' : 'invalid' }));
-        }
-    };
+        // Immediate field validation for all fields
+        validateField(name, value);
+    };
 
-    const handleAmountChange = (e) => {
-        const { value } = e.target;
-        // Only allow valid number format characters
-        if (/^\d*\.?\d*$/.test(value) || value === '') {
-            setFormData(prev => ({ ...prev, amount: value }));
-        }
-        setMessage(null);
+    const handleAmountChange = (e) => {
+        const { value } = e.target;
+        // Only allow valid number format characters
+        if (/^\d*\.?\d*$/.test(value) || value === '') {
+            setFormData(prev => ({ ...prev, amount: value }));
+        }
+        setMessage(null);
 
-        // Immediate amount validation
-        const isValid = validateField('amount', value, 'amount');
-        setValidationStatus(prev => ({ ...prev, amount: isValid ? 'valid' : 'invalid' }));
-    };
+        // Immediate amount validation
+        validateField('amount', value);
+    };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setMessage(null);
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setMessage(null);
 
-        // Final Validation Check
-        const requiredFields = ['expense_name', 'category', 'amount', 'date'];
-        let allValid = true;
-        const newValidationStatus = {};
+        // Final Validation Check for all required fields
+        const requiredFields = ['expense_name', 'category', 'amount', 'date'];
+        let allValid = true;
+        const newValidationStatus = {};
+        const newFieldErrors = {};
 
-        requiredFields.forEach(field => {
-            const value = formData[field];
-            const isValid = field === 'amount' ? validateField(field, value, 'amount') : validateField(field, value, 'required');
-            newValidationStatus[field] = isValid ? 'valid' : 'invalid';
-            if (!isValid) allValid = false;
-        });
+        requiredFields.forEach(field => {
+            const errorMessage = getFieldErrorMessage(field, formData[field]);
+            const isValid = !errorMessage;
+            
+            newValidationStatus[field] = isValid ? 'valid' : 'invalid';
+            newFieldErrors[field] = errorMessage;
+            
+            if (!isValid) allValid = false;
+        });
 
-        setValidationStatus(newValidationStatus);
+        setValidationStatus(newValidationStatus);
+        setFieldErrors(newFieldErrors);
 
-        if (!allValid) {
-            setMessage({ type: 'error', text: 'Please correct the highlighted required fields before submitting.' });
-            setLoading(false);
-            return;
-        }
+        if (!allValid) {
+            setMessage({ type: 'error', text: 'Please correct the highlighted fields before submitting.' });
+            setLoading(false);
+            return;
+        }
 
-        const dataToSend = { ...formData, amount: parseFloat(formData.amount).toFixed(2) };
+        const dataToSend = { ...formData, amount: parseFloat(formData.amount).toFixed(2) };
 
-        try {
-            const url = isEditing ? `${EXPENSE_API_ENDPOINT}${editId}/` : EXPENSE_API_ENDPOINT;
+        try {
+            const url = isEditing ? `${EXPENSE_API_ENDPOINT}${editId}/` : EXPENSE_API_ENDPOINT;
 
-            const response = await fetch(url, {
-                method: isEditing ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataToSend),
-            });
+            const response = await fetch(url, {
+                method: isEditing ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dataToSend),
+            });
 
-            if (response.ok) {
-                setMessage({ type: 'success', text: isEditing ? 'Expense updated successfully!' : 'Expense recorded successfully!' });
-                if (onExpenseSubmitted) onExpenseSubmitted();
-                setTimeout(onClose, 1500);
-            } else {
-                const errorData = await response.json();
-                setMessage({ type: 'error', text: `Failed to ${isEditing ? 'update' : 'save'} expense. Details: ${JSON.stringify(errorData)}` });
-            }
-        } catch (error) {
-            setMessage({ type: 'error', text: `Network error. Could not connect to the server.` });
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (response.ok) {
+                setMessage({ type: 'success', text: isEditing ? 'Expense updated successfully!' : 'Expense recorded successfully!' });
+                if (onExpenseSubmitted) onExpenseSubmitted();
+                setTimeout(onClose, 1500);
+            } else {
+                const errorData = await response.json();
+                setMessage({ type: 'error', text: `Failed to ${isEditing ? 'update' : 'save'} expense. Details: ${JSON.stringify(errorData)}` });
+            }
+        } catch (error) {
+            setMessage({ type: 'error', text: `Network error. Could not connect to the server.` });
+        } finally {
+            setLoading(false);
+        }
+    };
 
-    if (!isOpen) return null;
+    if (!isOpen) return null;
 
-    return (
-        // MODIFIED: Using Tailwind classes 'bg-black/30' and 'backdrop-blur-sm'
-        // to achieve the blurred, dimmed background effect.
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/30 backdrop-blur-sm">
-            <div className="relative w-full max-w-2xl mx-auto rounded-lg shadow-2xl flex flex-col h-[90vh] md:h-[80vh] overflow-hidden"
-                 style={{ backgroundColor: CUSTOM_COLORS_MODAL.MODAL_BG }}>
+    return (
+        // MODIFIED: Using Tailwind classes 'bg-black/30' and 'backdrop-blur-sm'
+        // to achieve the blurred, dimmed background effect.
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/30 backdrop-blur-sm">
+            <div className="relative w-full max-w-2xl mx-auto rounded-lg shadow-2xl flex flex-col h-[90vh] md:h-[80vh] overflow-hidden"
+                 style={{ backgroundColor: CUSTOM_COLORS_MODAL.MODAL_BG }}>
 
-                {/* Modal Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200" style={{ backgroundColor: CUSTOM_COLORS_MODAL.HEADER_BG }}>
-                    <h2 className="text-xl font-semibold" style={{ color: CUSTOM_COLORS_MODAL.HEADER_TEXT }}>
-                        Expense Entry
-                    </h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
-                        <X className="w-5 h-5" style={{ color: CUSTOM_COLORS_MODAL.HEADER_CLOSE_BTN }} />
-                    </button>
-                </div>
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200" style={{ backgroundColor: CUSTOM_COLORS_MODAL.HEADER_BG }}>
+                    <h2 className="text-xl font-semibold" style={{ color: CUSTOM_COLORS_MODAL.HEADER_TEXT }}>
+                        Expense Entry
+                    </h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                        <X className="w-5 h-5" style={{ color: CUSTOM_COLORS_MODAL.HEADER_CLOSE_BTN }} />
+                    </button>
+                </div>
 
-                {/* Modal Body (Scrollable Form Content) */}
-                <div className="flex-1 p-6 space-y-4 overflow-y-auto">
-                    
-                    {/* Expense Information Section - Mimics Customer Information */}
-                    <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: CUSTOM_COLORS_MODAL.SECTION_BG }}>
-                        <ModalSectionHeader icon={User} title="Expense Information" />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputField 
-                                label="Expense Name" name="expense_name" value={formData.expense_name} onChange={handleChange} placeholder="e.g., Tractor Fuel, Seed Purchase" required 
-                                status={validationStatus.expense_name}
-                            />
-                            <SelectField 
-                                label="Category" name="category" value={formData.category} onChange={handleChange} options={CATEGORIES} required 
-                                status={validationStatus.category}
-                            />
-                        </div>
-                    </div>
+                {/* Modal Body (Scrollable Form Content) */}
+                <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+                    
+                    {/* Expense Information Section - Mimics Customer Information */}
+                    <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: CUSTOM_COLORS_MODAL.SECTION_BG }}>
+                        <ModalSectionHeader icon={User} title="Expense Information" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <InputField 
+                                label="Expense Name" name="expense_name" value={formData.expense_name} onChange={handleChange} placeholder="e.g., Tractor Fuel, Seed Purchase" required 
+                                status={validationStatus.expense_name}
+                                errorMessage={fieldErrors.expense_name}
+                            />
+                            <SelectField 
+                                label="Category" name="category" value={formData.category} onChange={handleChange} options={CATEGORIES} required 
+                                status={validationStatus.category}
+                                errorMessage={fieldErrors.category}
+                            />
+                        </div>
+                    </div>
 
-                    {/* Purchase Details Section - Mimics Order Details */}
-                    <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: CUSTOM_COLORS_MODAL.SECTION_BG }}>
-                        <ModalSectionHeader icon={ShoppingBag} title="Purchase Details" />
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <InputField label="Item Purchased" name="item" value={formData.item} onChange={handleChange} placeholder="e.g., Diesel, Tomato Seeds" />
-                            <InputField label="Supplier" name="supplier" value={formData.supplier} onChange={handleChange} placeholder="e.g., Shell Petrol, Agro Distributor Ltd" />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <InputField 
-                                label="Amount (UGX)" name="amount" value={formData.amount} onChange={handleAmountChange} placeholder="0.00" required type="text"
-                                status={validationStatus.amount}
-                            />
-                            <InputField 
-                                label="Date of Expense" name="date" value={formData.date} onChange={handleChange} required type="date"
-                                status={validationStatus.date}
-                            />
-                        </div>
-                    </div>
+                    {/* Purchase Details Section - Mimics Order Details */}
+                    <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: CUSTOM_COLORS_MODAL.SECTION_BG }}>
+                        <ModalSectionHeader icon={ShoppingBag} title="Purchase Details" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <InputField 
+                                label="Item Purchased" name="item" value={formData.item} onChange={handleChange} placeholder="e.g., Diesel, Tomato Seeds" 
+                                errorMessage={fieldErrors.item}
+                            />
+                            <InputField 
+                                label="Supplier" name="supplier" value={formData.supplier} onChange={handleChange} placeholder="e.g., Shell Petrol, Agro Distributor Ltd" 
+                                errorMessage={fieldErrors.supplier}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <InputField 
+                                label="Amount (UGX)" name="amount" value={formData.amount} onChange={handleAmountChange} placeholder="0.00" required type="text"
+                                status={validationStatus.amount}
+                                errorMessage={fieldErrors.amount}
+                            />
+                            <InputField 
+                                label="Date of Expense" name="date" value={formData.date} onChange={handleChange} required type="date"
+                                status={validationStatus.date}
+                                errorMessage={fieldErrors.date}
+                            />
+                        </div>
+                    </div>
 
-                    {/* Additional Details Section - Mimics Payment Information */}
-                    <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: CUSTOM_COLORS_MODAL.SECTION_BG }}>
-                        <ModalSectionHeader icon={Home} title="Farm Specifics" />
-                        <div className="space-y-4">
-                            <InputField label="Location/Farm Section" name="location" value={formData.location} onChange={handleChange} placeholder="e.g., Main Farm, Processing Unit" />
-                            <InputField label="Detailed Description (Optional)" name="description" value={formData.description} onChange={handleChange} placeholder="Provide details about the expense, reason for purchase, or quantity." isTextArea={true} />
-                        </div>
-                    </div>
+                    {/* Additional Details Section - Mimics Payment Information */}
+                    <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: CUSTOM_COLORS_MODAL.SECTION_BG }}>
+                        <ModalSectionHeader icon={Home} title="Farm Specifics" />
+                        <div className="space-y-4">
+                            <InputField 
+                                label="Location/Farm Section" name="location" value={formData.location} onChange={handleChange} placeholder="e.g., Main Farm, Processing Unit" 
+                                errorMessage={fieldErrors.location}
+                            />
+                            <InputField 
+                                label="Detailed Description (Optional)" name="description" value={formData.description} onChange={handleChange} placeholder="Provide details about the expense, reason for purchase, or quantity." 
+                                isTextArea={true} 
+                            />
+                        </div>
+                    </div>
 
-                    {/* Error message (if any) */}
-                    {message && (
-                        <div className={`p-3 text-center text-sm font-medium rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                            {message.text}
-                        </div>
-                    )}
-                </div>
+                    {/* Error message (if any) */}
+                    {message && (
+                        <div className={`p-3 text-center text-sm font-medium rounded-md ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                            {message.text}
+                        </div>
+                    )}
+                </div>
 
-                {/* Modal Footer (Buttons) */}
-                <div className="flex justify-end p-4 border-t border-gray-200 space-x-3" style={{ backgroundColor: CUSTOM_COLORS_MODAL.FOOTER_BG }}>
-                    <ActionButton
-                        onClick={onClose}
-                        className="rounded-md"
-                        style={{ backgroundColor: CUSTOM_COLORS_MODAL.BUTTON_SECONDARY_BG, color: CUSTOM_COLORS_MODAL.BUTTON_SECONDARY_TEXT }}
-                    >
-                        Cancel
-                    </ActionButton>
-                    <ActionButton
-                        type="submit"
-                        onClick={handleSubmit}
-                        disabled={loading}
-                        className="rounded-md"
-                        style={{ backgroundColor: CUSTOM_COLORS_MODAL.BUTTON_PRIMARY_BG, color: CUSTOM_COLORS_MODAL.BUTTON_PRIMARY_TEXT }}
-                    >
-                        {loading ? (
-                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isEditing ? 'Updating...' : 'Submitting...'}</>
-                        ) : (
-                            <><Send className="w-4 h-4 mr-2" />{isEditing ? 'Save Changes' : 'Submit Expense Record'}</>
-                        )}
-                    </ActionButton>
-                </div>
-            </div>
-        </div>
-    );
+                {/* Modal Footer (Buttons) */}
+                <div className="flex justify-end p-4 border-t border-gray-200 space-x-3" style={{ backgroundColor: CUSTOM_COLORS_MODAL.FOOTER_BG }}>
+                    <ActionButton
+                        onClick={onClose}
+                        className="rounded-md"
+                        style={{ backgroundColor: CUSTOM_COLORS_MODAL.BUTTON_SECONDARY_BG, color: CUSTOM_COLORS_MODAL.BUTTON_SECONDARY_TEXT }}
+                    >
+                        Cancel
+                    </ActionButton>
+                    <ActionButton
+                        type="submit"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="rounded-md"
+                        style={{ backgroundColor: CUSTOM_COLORS_MODAL.BUTTON_PRIMARY_BG, color: CUSTOM_COLORS_MODAL.BUTTON_PRIMARY_TEXT }}
+                    >
+                        {loading ? (
+                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isEditing ? 'Updating...' : 'Submitting...'}</>
+                        ) : (
+                            <><Send className="w-4 h-4 mr-2" />{isEditing ? 'Save Changes' : 'Submit Expense Record'}</>
+                        )}
+                    </ActionButton>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 // --- ExpensesPage Component (Main Export) ---
@@ -1010,16 +1089,16 @@ export function ExpensesPage() {
         }
     }, []);
 
-    useEffect(() => {
-        fetchExpenses();
-    }, [fetchExpenses]);
+    useEffect(() => {
+        fetchExpenses();
+    }, [fetchExpenses]);
 
-    const filteredExpenses = useMemo(() => {
-        let filtered = expenses;
-        if (searchTerm) filtered = filtered.filter(e => e.expense_name?.toLowerCase().includes(searchTerm.toLowerCase()) || e.supplier?.toLowerCase().includes(searchTerm.toLowerCase()));
-        if (filterCategory) filtered = filtered.filter(e => e.category === filterCategory);
-        return filtered;
-    }, [expenses, searchTerm, filterCategory]);
+    const filteredExpenses = useMemo(() => {
+        let filtered = expenses;
+        if (searchTerm) filtered = filtered.filter(e => e.expense_name?.toLowerCase().includes(searchTerm.toLowerCase()) || e.supplier?.toLowerCase().includes(searchTerm.toLowerCase()));
+        if (filterCategory) filtered = filtered.filter(e => e.category === filterCategory);
+        return filtered;
+    }, [expenses, searchTerm, filterCategory]);
 
     const sortedExpenses = useMemo(() => {
         const base = Array.isArray(filteredExpenses) ? filteredExpenses : [];
@@ -1037,75 +1116,75 @@ export function ExpensesPage() {
                     return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
                 }
 
-                if (headerType === 'number') {
-                    const numA = parseFloat(aValue || 0);
-                    const numB = parseFloat(bValue || 0);
-                    return sortConfig.direction === 'ascending' ? numA - numB : numB - numA;
-                }
-                
-                if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
-                if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
-                return 0;
-            });
-        }
-        return sortableItems;
-    }, [filteredExpenses, sortConfig]);
+                if (headerType === 'number') {
+                    const numA = parseFloat(aValue || 0);
+                    const numB = parseFloat(bValue || 0);
+                    return sortConfig.direction === 'ascending' ? numA - numB : numB - numA;
+                }
+                
+                if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [filteredExpenses, sortConfig]);
 
-    const requestSort = (key) => {
-        let direction = 'ascending';
-        if (sortConfig.key === key && sortConfig.direction === 'ascending') direction = 'descending';
-        setSortConfig({ key, direction });
-    };
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') direction = 'descending';
+        setSortConfig({ key, direction });
+    };
 
-    const getSortIcon = (key) => {
-        if (sortConfig.key !== key) return null;
-        return sortConfig.direction === 'ascending' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
-    };
+    const getSortIcon = (key) => {
+        if (sortConfig.key !== key) return null;
+        return sortConfig.direction === 'ascending' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+    };
 
-    const uniqueCategories = useMemo(() => {
-        const categories = expenses.map(e => e.category).filter(Boolean);
-        return [...new Set(categories)].sort();
-    }, [expenses]);
+    const uniqueCategories = useMemo(() => {
+        const categories = expenses.map(e => e.category).filter(Boolean);
+        return [...new Set(categories)].sort();
+    }, [expenses]);
 
 
-    const handleEditExpense = (expense) => {
-        setExpenseToEdit(expense);
-        setShowExpenseModal(true);
-    };
+    const handleEditExpense = (expense) => {
+        setExpenseToEdit(expense);
+        setShowExpenseModal(true);
+    };
 
-    const handleAddNewExpense = () => {
-        setExpenseToEdit(null);
-        setShowExpenseModal(true);
-    };
+    const handleAddNewExpense = () => {
+        setExpenseToEdit(null);
+        setShowExpenseModal(true);
+    };
 
-    const handleModalCloseAndRefresh = () => {
-        setShowExpenseModal(false);
-        fetchExpenses();
-    };
+    const handleModalCloseAndRefresh = () => {
+        setShowExpenseModal(false);
+        fetchExpenses();
+    };
 
-    const handleDeleteExpense = async () => {
-        if (!expenseToDelete) return;
-        setDeleting(true);
-        try {
-            const response = await fetch(`${EXPENSE_API_ENDPOINT}${expenseToDelete.id}/`, { method: 'DELETE' });
-            if (response.ok) {
-                setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== expenseToDelete.id));
-                setShowDeleteModal(false);
-                setExpenseToDelete(null);
-            } else {
-                console.error('Failed to delete expense');
-            }
-        } catch (error) {
-            console.error('Error deleting expense:', error);
-        } finally {
-            setDeleting(false);
-        }
-    };
+    const handleDeleteExpense = async () => {
+        if (!expenseToDelete) return;
+        setDeleting(true);
+        try {
+            const response = await fetch(`${EXPENSE_API_ENDPOINT}${expenseToDelete.id}/`, { method: 'DELETE' });
+            if (response.ok) {
+                setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== expenseToDelete.id));
+                setShowDeleteModal(false);
+                setExpenseToDelete(null);
+            } else {
+                console.error('Failed to delete expense');
+            }
+        } catch (error) {
+            console.error('Error deleting expense:', error);
+        } finally {
+            setDeleting(false);
+        }
+    };
 
-    const renderTableContent = () => {
-        if (loading) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-600"><Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: ACCENT_COLORS.ACCENT_BROWN }} />Loading expense records...</td></tr>;
-        if (error) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-red-600 font-medium">{error}</td></tr>;
-        if (sortedExpenses.length === 0) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-500 italic">No expense records found matching your criteria.</td></tr>;
+    const renderTableContent = () => {
+        if (loading) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-600"><Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: ACCENT_COLORS.ACCENT_BROWN }} />Loading expense records...</td></tr>;
+        if (error) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-red-600 font-medium">{error}</td></tr>;
+        if (sortedExpenses.length === 0) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-500 italic">No expense records found matching your criteria.</td></tr>;
 
         return sortedExpenses.map((expense, index) => (
             <tr key={expense.id || index} className="border-b transition-colors duration-150 hover:bg-gray-50">
@@ -1120,18 +1199,18 @@ export function ExpensesPage() {
                         <button onClick={() => handleEditExpense(expense)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors">
                             <Edit className="w-4 h-4" />
 </button>
-                        <button onClick={() => { setExpenseToDelete(expense); setShowDeleteModal(true); }} className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors">
+                        <button onClick={() => { setExpenseToDelete(expense); setShowDeleteModal(true); }} className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors">
                             <Trash2 className="w-4 h-4" />
 </button>
-                    </div>
-                </td>
-            </tr>
-        ));
-    };
+                    </div>
+                </td>
+            </tr>
+        ));
+    };
 
-    return (
-        <SideNav>
-            <main className="p-4 sm:p-6 md:p-8 pt-0">
+    return (
+        <SideNav>
+            <main className="p-4 sm:p-6 md:p-8 pt-0">
 
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">
                     Expense Records Overview
@@ -1281,26 +1360,26 @@ export function ExpensesPage() {
                 </div>
 
 
-                {/* --- Expense Records Table --- */}
-                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300"><div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
-                            <tr>
-                                {TABLE_HEADERS.map((header) => (
-                                    <th key={header.key} onClick={() => requestSort(header.key)} scope="col" className="px-6 py-3 text-sm font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150">
-                                        <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
-                                            {header.label}
-                                            {getSortIcon(header.key)}
-                                        </div>
-                                    </th>
-                                ))}
-                                <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center text-gray-700">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white/80 divide-y divide-gray-100 text-xs">
-                            {renderTableContent()}
-                        </tbody>
-                    </table>
+                {/* --- Expense Records Table --- */}
+                <div className="max-w-full w-full mx-auto p-0 shadow-xl rounded-2xl overflow-hidden bg-white transition-all duration-300"><div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
+                            <tr>
+                                {TABLE_HEADERS.map((header) => (
+                                    <th key={header.key} onClick={() => requestSort(header.key)} scope="col" className="px-6 py-3 text-sm font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150">
+                                        <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
+                                            {header.label}
+                                            {getSortIcon(header.key)}
+                                        </div>
+                                    </th>
+                                ))}
+                                <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center text-gray-700">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white/80 divide-y divide-gray-100 text-xs">
+                            {renderTableContent()}
+                        </tbody>
+                    </table>
                     </div>
                 </div>
             </main>
@@ -1370,8 +1449,8 @@ export function ExpensesPage() {
                 onExpenseSubmitted={fetchExpenses}
             />
 
-        </SideNav>
-    );
+        </SideNav>
+    );
 }
 
 // Profile modal removed from this page – use shared NavBar modal instead
