@@ -899,7 +899,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 <header
                     className="flex justify-between items-center p-5 rounded-t-2xl flex-shrink-0 border-b-2"
                     style={{
-                        background: 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
+                        backgroundColor: '#8B5A3C',
                         borderColor: 'rgba(255, 255, 255, 0.1)'
                     }}
                 >
