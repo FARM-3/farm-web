@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
-import { Users, TrendingUp, Coffee, Eye, Loader2, RefreshCw, ChevronUp } from 'lucide-react';
+import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 
 // API Endpoints
-const API_BASE_URL = 'https://api-3181.onrender.com/api';
+const API_BASE_URL = 'http://142.93.94.236:8000/api';
 const FARMERS_API = `${API_BASE_URL}/aggregation/farmer/`;
 const FARMER_HARVEST_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
 
@@ -30,22 +30,28 @@ const formatDate = (dateString) => {
 // KPI Card Component
 const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
     <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
-        <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-gray-500 flex items-center">
-                <Icon className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
+        <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                 {title}
-            </p>
+            </h3>
+            <Icon size={20} style={{ color: '#8B5A3C' }} />
         </div>
         {loading ? (
             <div className="flex items-center gap-2 mt-2">
-                <Loader2 className="w-6 h-6 animate-spin" style={{ color: CoffeeColors.MEDIUM_BROWN }} />
-                <span className="text-sm text-gray-500">Loading...</span>
+                <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
             </div>
         ) : (
-            <>
-                <p className="text-4xl font-extrabold text-gray-900 leading-none">{value}</p>
-                {subtitle && <p className="text-xs text-gray-500 mt-2 font-medium">{subtitle}</p>}
-            </>
+            <div className="mt-2">
+                <div className="flex flex-col gap-1">
+                    <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{value}</p>
+                </div>
+                {subtitle && (
+                    <div className="mt-3 text-xs">
+                        <p style={{ color: '#666' }}>{subtitle}</p>
+                    </div>
+                )}
+            </div>
         )}
     </div>
 );
@@ -66,7 +72,7 @@ const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
                         className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-50 transition-colors relative group"
                         title="View Details"
                     >
-                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
                             View Details
                         </span>
@@ -159,7 +165,7 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                         className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-50 transition-colors relative group"
                         title="View Details"
                     >
-                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                         <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
                             View Details
                         </span>

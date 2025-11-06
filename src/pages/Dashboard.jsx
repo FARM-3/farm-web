@@ -3,7 +3,7 @@ import { SideNav } from '../components/SideNav';
 import { TrendingUp, TrendingDown, ClipboardCheck, DollarSign, Package, Users, RefreshCw, Loader2 } from 'lucide-react';
 
 // API Endpoints
-const API_BASE_URL = 'https://api-3181.onrender.com/api';
+const API_BASE_URL = 'http://142.93.94.236:8000/api';
 const SALES_API = `${API_BASE_URL}/sales/`;
 const EXPENSES_API = `${API_BASE_URL}/expenses/`;
 const WAGES_API = `${API_BASE_URL}/wages/`;
@@ -33,7 +33,6 @@ const DashboardCard = ({ title, value, unit, subtitle, icon: Icon, iconColor, lo
         className="p-6 rounded-2xl shadow-lg flex-1 min-w-[220px] hover:shadow-xl transition-shadow"
         style={{
             backgroundColor: '#FFFFFF',
-            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}
     >
@@ -75,7 +74,7 @@ const TransactionItem = ({ type, description, amount, date }) => {
     const textColor = isSale ? '#2E7D32' : '#C62828';
 
     return (
-        <div className="grid grid-cols-12 gap-4 py-4 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY, fontFamily: "'Inter', sans-serif" }}>
+        <div className="grid grid-cols-12 gap-4 py-4 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
             <div className="col-span-2 flex items-center">
                 <span
                     className="px-3 py-1 rounded-md text-xs font-medium"
@@ -234,7 +233,7 @@ export const DashboardScreen = () => {
 
     return (
         <SideNav>
-            <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+            <div>
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>
                         Financial Dashboard
@@ -243,7 +242,7 @@ export const DashboardScreen = () => {
                         onClick={fetchDashboardData}
                         disabled={loading}
                         className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition disabled:opacity-50"
-                        style={{ backgroundColor: CoffeeColors.CARD_BROWN, color: '#FFFFFF' }}
+                        style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         Refresh

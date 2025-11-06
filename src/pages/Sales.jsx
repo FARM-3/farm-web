@@ -5,7 +5,10 @@ import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, Ar
 // 💡 IMPORTANT: ADJUST THE PATH BELOW TO YOUR ACTUAL SideNav COMPONENT
 import SideNav from '../components/SideNav'; 
 
-// --- MOCK DATA ---
+// --- API CONFIGURATION ---
+const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
+
+// --- MOCK DATA (Fallback) ---
 const MOCK_SALES = [
     { id: 1, customer_name: 'Richard Mac', item: 'Coffee', quantity: 70, rate: 5000, payment_method: 'Cash', date: '2025-10-22' },
     { id: 2, customer_name: 'Winnie Daisy', item: 'Coffee', quantity: 100, rate: 5000, payment_method: 'Cash', date: '2025-10-16' },
@@ -21,25 +24,48 @@ const MOCK_SALES = [
 // --- CONFIGURATION & UTILITIES ---
 
 const CoffeeColors = {
-    SCREEN_BG: '#FFF8F6', 
-    ACTIVE_LINK_BG: '#efebe9', 
-    ACTIVE_LINK_TEXT: '#783A1E', 
-    DARK_BROWN: '#4A3423', 
-    MEDIUM_BROWN: '#795548', 
+    SCREEN_BG: '#FFF8F6',
+    ACTIVE_LINK_BG: '#efebe9',
+    ACTIVE_LINK_TEXT: '#783A1E',
+    DARK_BROWN: '#4A3423',
+    MEDIUM_BROWN: '#795548',
     // MODAL BUTTON COLORS
     BUTTON_PRIMARY: '#6B2E0F', // Coffee Brown
-    BUTTON_HOVER: '#5A260D', 
-    BUTTON_SECONDARY: '#EBEAE6', 
+    BUTTON_HOVER: '#5A260D',
+    BUTTON_SECONDARY: '#EBEAE6',
     BUTTON_SECONDARY_TEXT: '#4A3423',
-    GRAY_TEXT: '#8D8D8D', 
-    SUCCESS_GREEN: '#34A853', 
+    GRAY_TEXT: '#8D8D8D',
+    SUCCESS_GREEN: '#34A853',
     ERROR_RED: '#EA4335',
-    INPUT_BORDER: '#E0E0E0', 
+    INPUT_BORDER: '#E0E0E0',
     FORM_BG: '#F5F5F5', // Background for the modal itself
     FORM_CARD_BG: '#FFFFFF', // Background for each section card
-    MODAL_TITLE_TEXT: '#2C3E50', 
+    MODAL_TITLE_TEXT: '#2C3E50',
     INPUT_BG: '#FFFFFF',
     WHITE: '#FFFFFF',
+};
+
+// Modal-specific colors matching Expense design
+const MODAL_COLORS = {
+    HEADER_BG: '#FFFFFF',
+    HEADER_TEXT: '#333333',
+    HEADER_CLOSE_BTN: '#6B7280',
+    MODAL_BG: '#F8F8F8',
+    SECTION_BG: '#FFFFFF',
+    SECTION_HEADER_TEXT: '#333333',
+    SECTION_ICON: '#F59E0B',
+    INPUT_BG: '#F9FAFB',
+    INPUT_BORDER: '#D1D5DB',
+    TEXT_PRIMARY: '#333333',
+    TEXT_SECONDARY: '#6B7280',
+    FOOTER_BG: '#F8F8F8',
+    BUTTON_PRIMARY_BG: '#9F4A2F',
+    BUTTON_PRIMARY_TEXT: '#FFFFFF',
+    BUTTON_SECONDARY_BG: '#E5E7EB',
+    BUTTON_SECONDARY_TEXT: '#4B5563',
+    REQUIRED_ASTERISK: '#EF4444',
+    VALID_BORDER: '#10B981',
+    INVALID_BORDER: '#EF4444',
 };
 
 const formatUGX = (amount) => {
@@ -213,23 +239,100 @@ const useSalesForm = (onSuccess, editData = null) => {
     return { formData, errors, touched, items, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit, resetForm };
 };
 
-// --- MODAL SECTION HEADER COMPONENT ---
-const FormSectionHeader = ({ icon: Icon, title }) => (
-    <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        marginBottom: '10px', 
-        paddingBottom: '5px',
-    }}>
-        <Icon className="w-4 h-4 mr-2" style={{ color: CoffeeColors.DARK_BROWN }} />
-        <h3 style={{ 
-            fontSize: '14px', 
-            fontWeight: 'bold', 
-            color: CoffeeColors.DARK_BROWN 
-        }}>
+// --- MODAL HELPER COMPONENTS ---
+const ModalSectionHeader = ({ icon: Icon, title }) => (
+    <div className="flex items-center space-x-2 mb-4">
+        <Icon className="w-5 h-5" style={{ color: MODAL_COLORS.SECTION_ICON }} />
+        <h3 className="text-base font-semibold" style={{ color: MODAL_COLORS.SECTION_HEADER_TEXT }}>
             {title}
         </h3>
     </div>
+);
+
+const InputField = ({ label, name, value, onChange, onBlur, placeholder, required, type = "text", status = 'initial', error }) => {
+    const borderColor = status === 'valid'
+        ? MODAL_COLORS.VALID_BORDER
+        : status === 'invalid'
+        ? MODAL_COLORS.INVALID_BORDER
+        : MODAL_COLORS.INPUT_BORDER;
+
+    return (
+        <div className="flex flex-col space-y-1">
+            <label htmlFor={name} className="text-sm font-medium" style={{ color: MODAL_COLORS.TEXT_SECONDARY }}>
+                {label}
+                {required && <span className="ml-1" style={{ color: MODAL_COLORS.REQUIRED_ASTERISK }}>*</span>}
+            </label>
+            <input
+                id={name}
+                name={name}
+                value={value}
+                onChange={onChange}
+                onBlur={onBlur}
+                placeholder={placeholder}
+                required={required}
+                type={type}
+                className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                style={{
+                    backgroundColor: MODAL_COLORS.INPUT_BG,
+                    borderColor: borderColor,
+                    color: MODAL_COLORS.TEXT_PRIMARY,
+                }}
+            />
+            {error && <span className="text-xs text-red-500">{error}</span>}
+        </div>
+    );
+};
+
+const SelectField = ({ label, name, value, onChange, onBlur, options, required, status = 'initial', error }) => {
+    const borderColor = status === 'valid'
+        ? MODAL_COLORS.VALID_BORDER
+        : status === 'invalid'
+        ? MODAL_COLORS.INVALID_BORDER
+        : MODAL_COLORS.INPUT_BORDER;
+
+    return (
+        <div className="flex flex-col space-y-1">
+            <label htmlFor={name} className="text-sm font-medium" style={{ color: MODAL_COLORS.TEXT_SECONDARY }}>
+                {label}
+                {required && <span className="ml-1" style={{ color: MODAL_COLORS.REQUIRED_ASTERISK }}>*</span>}
+            </label>
+            <div className="relative flex items-center">
+                <select
+                    id={name}
+                    name={name}
+                    value={value}
+                    onChange={onChange}
+                    onBlur={onBlur}
+                    required={required}
+                    className="appearance-none flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 cursor-pointer"
+                    style={{
+                        backgroundColor: MODAL_COLORS.INPUT_BG,
+                        borderColor: borderColor,
+                        color: MODAL_COLORS.TEXT_PRIMARY,
+                    }}
+                >
+                    <option value="" disabled>-- Select Option --</option>
+                    {options.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                    ))}
+                </select>
+                <svg className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            {error && <span className="text-xs text-red-500">{error}</span>}
+        </div>
+    );
+};
+
+const ActionButton = ({ children, onClick, className, style, disabled, type = "button" }) => (
+    <button
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        className={`px-4 py-2 text-white rounded-md shadow-md hover:shadow-lg transition duration-300 ease-in-out flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm ${className}`}
+        style={style}
+    >
+        {children}
+    </button>
 );
 
 // =========================================================
@@ -237,207 +340,166 @@ const FormSectionHeader = ({ icon: Icon, title }) => (
 // =========================================================
 
 const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
-    const { formData, errors, items, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit } = useSalesForm(onSubmit, editData);
+    const { formData, errors, touched, items, paymentMethods, handleChange, handleBlur, handleSubmit } = useSalesForm(onSubmit, editData);
+    const [loading, setLoading] = useState(false);
+
+    const getFieldStatus = (fieldName) => {
+        if (errors[fieldName]) return 'invalid';
+        if (touched[fieldName] && formData[fieldName]) return 'valid';
+        return 'initial';
+    };
+
+    const handleFormSubmit = async (e) => {
+        setLoading(true);
+        await handleSubmit(e);
+        setLoading(false);
+    };
 
     if (!isOpen) return null;
 
-    const renderInputField = (label, name, type, placeholder, options) => {
-        const value = formData[name] || '';
-        const error = errors[name];
-        const isReadOnly = type === 'readonly';
-
-        const InputComponent = options ? 'select' : 'input';
-
-        const inputStyle = {
-            width: '100%',
-            padding: '8px 10px', 
-            fontSize: '13px', 
-            border: `1px solid ${getBorderColor(name)}`,
-            borderRadius: '4px',
-            backgroundColor: isReadOnly ? CoffeeColors.INPUT_BG : CoffeeColors.FORM_CARD_BG,
-            outline: 'none',
-            color: CoffeeColors.DARK_BROWN,
-            fontWeight: isReadOnly ? '600' : 'normal',
-            boxSizing: 'border-box',
-            transition: 'border-color 0.3s',
-        };
-
-        return (
-            <div>
-                <label style={{ 
-                    fontSize: '12px', 
-                    fontWeight: '500', 
-                    color: CoffeeColors.DARK_BROWN, 
-                    display: 'block', 
-                    marginBottom: '3px', 
-                    whiteSpace: 'nowrap'
-                }}>
-                    {label}
-                </label>
-                <div style={{ position: 'relative' }}>
-                    {InputComponent === 'input' && (
-                        <input
-                            type={type === 'number' ? 'text' : type}
-                            inputMode={type === 'number' ? 'numeric' : undefined}
-                            name={name}
-                            value={value}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            placeholder={placeholder}
-                            readOnly={isReadOnly}
-                            style={inputStyle}
-                        />
-                    )}
-                    {InputComponent === 'select' && (
-                        <select
-                            name={name}
-                            value={value}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            style={inputStyle}
-                        >
-                            <option value="" disabled>{placeholder}</option>
-                            {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                    )}
-                </div>
-                {error && <span style={{ color: CoffeeColors.ERROR_RED, fontSize: '10px', display: 'block', marginTop: '3px' }}>{error}</span>}
-            </div>
-        );
-    };
-
     return (
-        <div
-            className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
-            style={{
-                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
-                zIndex: 1000,
-                overflowY: 'auto',
-                padding: '30px 10px',
-            }}
-            onClick={onClose}
-        >
-            <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col m-4"
-                style={{
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 15px rgba(139, 69, 19, 0.1)',
-                    animation: 'slideUp 0.3s ease-out'
-                }}
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* MODAL HEADER */}
-                <div
-                    className="flex justify-between items-center p-5 rounded-t-2xl flex-shrink-0 border-b-2"
-                    style={{
-                        background: 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
-                        borderColor: 'rgba(255, 255, 255, 0.1)'
-                    }}
-                >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <ShoppingBag className="w-6 h-6 text-white" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-white">Sales Entry Form</h2>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200"
-                    >
-                        <X className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
+            <div className="relative w-full max-w-2xl mx-auto rounded-lg shadow-2xl flex flex-col max-h-[90vh] md:max-h-[85vh] overflow-hidden"
+                 style={{ backgroundColor: MODAL_COLORS.MODAL_BG }}>
+
+                {/* Modal Header */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200" style={{ backgroundColor: MODAL_COLORS.HEADER_BG }}>
+                    <h2 className="text-xl font-semibold" style={{ color: MODAL_COLORS.HEADER_TEXT }}>
+                        Sales Entry
+                    </h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                        <X className="w-5 h-5" style={{ color: MODAL_COLORS.HEADER_CLOSE_BTN }} />
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto">
-                    <form onSubmit={handleSubmit} className="p-6" style={{ display: 'grid', gap: '15px' }}>
+                {/* Modal Body (Scrollable Form Content) */}
+                <form onSubmit={handleFormSubmit} className="flex-1 flex flex-col min-h-0">
+                    <div className="flex-1 p-6 space-y-4 overflow-y-auto min-h-0">
 
-                        {/* 1. Customer & Item Information */}
-                    <div style={{
-                        backgroundColor: CoffeeColors.FORM_CARD_BG,
-                        borderRadius: '6px',
-                        padding: '15px',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
-                        border: `1px solid ${CoffeeColors.INPUT_BORDER}`
-                    }}>
-                        <FormSectionHeader icon={User} title="Customer & Item Information" />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                            {renderInputField('Customer Name', 'customer_name', 'text', 'e.g., John Doe')}
-                            {renderInputField('Item *', 'item', 'select', '-- Select Item', items)}
+                        {/* Customer & Item Information Section */}
+                        <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: MODAL_COLORS.SECTION_BG }}>
+                            <ModalSectionHeader icon={User} title="Customer & Item Information" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputField
+                                    label="Customer Name"
+                                    name="customer_name"
+                                    value={formData.customer_name}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="e.g., John Doe"
+                                    status={getFieldStatus('customer_name')}
+                                    error={errors.customer_name}
+                                />
+                                <InputField
+                                    label="Item"
+                                    name="item"
+                                    value={formData.item}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="e.g., Coffee, Vanilla"
+                                    required
+                                    status={getFieldStatus('item')}
+                                    error={errors.item}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Transaction Details Section */}
+                        <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: MODAL_COLORS.SECTION_BG }}>
+                            <ModalSectionHeader icon={ShoppingBag} title="Transaction Details" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InputField
+                                    label="Quantity (Kgs/Units)"
+                                    name="quantity"
+                                    value={formData.quantity}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="e.g., 50"
+                                    type="number"
+                                    required
+                                    status={getFieldStatus('quantity')}
+                                    error={errors.quantity}
+                                />
+                                <InputField
+                                    label="Rate (UGX/Unit)"
+                                    name="rate"
+                                    value={formData.rate}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="e.g., 5000"
+                                    type="number"
+                                    required
+                                    status={getFieldStatus('rate')}
+                                    error={errors.rate}
+                                />
+                                <InputField
+                                    label="Amount (UGX)"
+                                    name="amount"
+                                    value={formData.amount}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="e.g., 250000"
+                                    type="number"
+                                    required
+                                    status={getFieldStatus('amount')}
+                                    error={errors.amount}
+                                />
+                                <SelectField
+                                    label="Payment Method"
+                                    name="method_of_payment"
+                                    value={formData.method_of_payment}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    options={paymentMethods}
+                                    required
+                                    status={getFieldStatus('method_of_payment')}
+                                    error={errors.method_of_payment}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Payment Date Section */}
+                        <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: MODAL_COLORS.SECTION_BG }}>
+                            <ModalSectionHeader icon={Calendar} title="Payment Information" />
+                            <div className="grid grid-cols-1 gap-4">
+                                <InputField
+                                    label="Date of Payment"
+                                    name="date_of_payment"
+                                    value={formData.date_of_payment}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    type="date"
+                                    required
+                                    status={getFieldStatus('date_of_payment')}
+                                    error={errors.date_of_payment}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* 2. Transaction Details */}
-                    <div style={{
-                        backgroundColor: CoffeeColors.FORM_CARD_BG,
-                        borderRadius: '6px',
-                        padding: '15px',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
-                        border: `1px solid ${CoffeeColors.INPUT_BORDER}`
-                    }}>
-                        <FormSectionHeader icon={ShoppingBag} title="Transaction Details" />
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                            {renderInputField('Quantity (Kgs/Units) *', 'quantity', 'number', 'e.g., 50')}
-                            {renderInputField('Rate (UGX/Unit) *', 'rate', 'number', 'e.g., 5000')}
-                            {renderInputField('Amount (UGX) *', 'amount', 'number', 'e.g., 250000')}
-                            {renderInputField('Payment Method *', 'method_of_payment', 'select', '-- Select Method', paymentMethods)}
-                        </div>
-                    </div>
-
-                    {/* 3. Payment Date */}
-                    <div style={{
-                        backgroundColor: CoffeeColors.FORM_CARD_BG,
-                        borderRadius: '6px',
-                        padding: '15px',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
-                        border: `1px solid ${CoffeeColors.INPUT_BORDER}`
-                    }}>
-                        <FormSectionHeader icon={Calendar} title="Payment Date" />
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-                            {renderInputField('Date of Payment *', 'date_of_payment', 'date', '')}
-                        </div>
-                    </div>
-
-                    {/* MODAL FOOTER */}
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        gap: '10px',
-                        marginTop: '15px',
-                        paddingTop: '15px',
-                        borderTop: `1px solid ${CoffeeColors.INPUT_BORDER}`
-                    }}>
-                        <button
-                            type="button"
+                    {/* Modal Footer (Buttons) */}
+                    <div className="flex justify-end p-4 border-t border-gray-200 space-x-3" style={{ backgroundColor: MODAL_COLORS.FOOTER_BG }}>
+                        <ActionButton
                             onClick={onClose}
-                            className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                            className="rounded-md"
+                            style={{ backgroundColor: MODAL_COLORS.BUTTON_SECONDARY_BG, color: MODAL_COLORS.BUTTON_SECONDARY_TEXT }}
                         >
                             Cancel
-                        </button>
-                        <button
+                        </ActionButton>
+                        <ActionButton
                             type="submit"
-                            className="px-8 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl flex items-center"
-                            style={{
-                                background: 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
-                            }}
+                            disabled={loading}
+                            className="rounded-md"
+                            style={{ backgroundColor: MODAL_COLORS.BUTTON_PRIMARY_BG, color: MODAL_COLORS.BUTTON_PRIMARY_TEXT }}
                         >
-                            <Send className="w-4 h-4 mr-2" />
-                            Submit Sales Record
-                        </button>
+                            {loading ? (
+                                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</>
+                            ) : (
+                                <><Send className="w-4 h-4 mr-2" />Submit Sales Record</>
+                            )}
+                        </ActionButton>
                     </div>
                 </form>
-                </div>
-
-                <style>{`
-                    @keyframes slideUp {
-                        from {
-                            opacity: 0;
-                            transform: translateY(20px) scale(0.95);
-                        }
-                        to {
-                            opacity: 1;
-                            transform: translateY(0) scale(1);
-                        }
-                    }
-                `}</style>
             </div>
         </div>
     );
@@ -475,11 +537,36 @@ function SalesPage() {
     const fetchSales = useCallback(async (page = 1) => {
         setLoading(true);
         setError(null);
-        const startIndex = (page - 1) * itemsPerPage;
-        const paginatedData = MOCK_SALES.slice(startIndex, startIndex + itemsPerPage);
-        setSales(paginatedData);
-        setTotalPages(Math.ceil(MOCK_SALES.length / itemsPerPage));
-        setLoading(false);
+        try {
+            const response = await fetch(`${SALES_API_ENDPOINT}?page=${page}&page_size=${itemsPerPage}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            console.log('Fetched sales from API:', data);
+
+            // Handle paginated response
+            if (data.results) {
+                setSales(data.results);
+                setTotalPages(Math.ceil((data.count || 0) / itemsPerPage));
+            } else if (Array.isArray(data)) {
+                setSales(data);
+                setTotalPages(Math.ceil(data.length / itemsPerPage));
+            } else {
+                setSales([]);
+                setTotalPages(1);
+            }
+            setError(null);
+        } catch (err) {
+            console.warn(`API fetch failed, using mock data: ${err.message}`);
+            // Fallback to mock data
+            const startIndex = (page - 1) * itemsPerPage;
+            const paginatedData = MOCK_SALES.slice(startIndex, startIndex + itemsPerPage);
+            setSales(paginatedData);
+            setTotalPages(Math.ceil(MOCK_SALES.length / itemsPerPage));
+            setError('Using offline data - API unavailable');
+        } finally {
+            setLoading(false);
+        }
     }, [itemsPerPage]);
 
     useEffect(() => {
@@ -519,35 +606,128 @@ function SalesPage() {
         return sortConfig.direction === 'ascending' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
     };
     
-    const handleSalesSubmit = (data) => {
+    const handleSalesSubmit = async (data) => {
         console.log('New Sales Record Submitted:', data);
 
-        if (editingSale) {
-            // Update existing sale
-            setSales(prevSales => prevSales.map(s => s.id === editingSale.id ? { ...editingSale, ...data } : s));
+        // Prepare data for API - convert numbers to strings for decimal fields
+        const apiData = {
+            customer_name: data.customer_name?.trim() || null,
+            item: data.item?.trim() || '',
+            quantity: parseInt(data.quantity) || 0,
+            rate: String(data.rate || '0'), // API expects string for decimal
+            amount: String(data.amount || '0'), // API expects string for decimal
+            date_of_payment: data.date_of_payment || '',
+            method_of_payment: data.method_of_payment?.trim() || ''
+        };
 
-            // Also update MOCK_SALES for persistence
-            const index = MOCK_SALES.findIndex(s => s.id === editingSale.id);
-            if (index > -1) {
-                MOCK_SALES[index] = { ...MOCK_SALES[index], ...data };
+        // Validate required fields
+        const requiredFields = ['item', 'quantity', 'rate', 'amount', 'date_of_payment', 'method_of_payment'];
+        const missingFields = requiredFields.filter(field => !apiData[field] || apiData[field] === '0');
+
+        if (missingFields.length > 0) {
+            console.error('Missing required fields:', missingFields);
+            alert(`Missing required fields: ${missingFields.join(', ')}`);
+            return;
+        }
+
+        console.log('Sending to API:', JSON.stringify(apiData, null, 2));
+
+        try {
+            if (editingSale) {
+                // Update existing sale via PUT request
+                console.log('Updating existing sale via API');
+                const response = await fetch(`${SALES_API_ENDPOINT}${editingSale.id}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(apiData)
+                });
+
+                console.log('API Response Status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        console.error('API Error Details:', errorJson);
+                        alert(`Failed to update sale: ${JSON.stringify(errorJson, null, 2)}`);
+                    } catch (e) {
+                        alert(`Failed to update sale: ${response.status} - ${errorText}`);
+                    }
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const updatedSale = await response.json();
+                console.log('Sale updated successfully:', updatedSale);
+
+                // Update local state
+                setSales(prevSales => prevSales.map(s => s.id === editingSale.id ? updatedSale : s));
+
+                // Also update MOCK_SALES for persistence
+                const index = MOCK_SALES.findIndex(s => s.id === editingSale.id);
+                if (index > -1) {
+                    MOCK_SALES[index] = updatedSale;
+                }
+            } else {
+                // Add new sale via POST request
+                console.log('Creating new sale via API');
+                const response = await fetch(SALES_API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(apiData)
+                });
+
+                console.log('API Response Status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('API Error Response:', errorText);
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        console.error('API Error Details:', errorJson);
+                        alert(`Failed to create sale: ${JSON.stringify(errorJson, null, 2)}`);
+                    } catch (e) {
+                        alert(`Failed to create sale: ${response.status} - ${errorText}`);
+                    }
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                const newSale = await response.json();
+                console.log('Sale created successfully:', newSale);
+
+                // Update local state with API-generated data
+                setSales(prevSales => [newSale, ...prevSales]);
+                MOCK_SALES.unshift(newSale);
             }
-        } else {
-            // Add new sale
+
+            setIsModalOpen(false);
+            setEditingSale(null);
+
+            // Refresh the current page
+            fetchSales(currentPage);
+        } catch (error) {
+            console.error('Failed to save sale to API:', error);
+            alert('Failed to save to database. Please check your connection and try again.');
+
+            // Optional: Fallback to local storage only
+            // You can uncomment this if you want to save locally when API fails
+            /*
             const newSale = {
                 id: MOCK_SALES.length > 0 ? Math.max(...MOCK_SALES.map(s => s.id)) + 1 : 1,
                 ...data,
                 payment_method: data.method_of_payment
             };
-
             setSales(prevSales => [newSale, ...prevSales]);
             MOCK_SALES.unshift(newSale);
+            setIsModalOpen(false);
+            setEditingSale(null);
+            fetchSales(currentPage);
+            */
         }
-
-        setIsModalOpen(false);
-        setEditingSale(null);
-
-        // Refresh the current page
-        fetchSales(currentPage);
     }
 
     const handleEditSale = (sale) => {
@@ -560,22 +740,51 @@ function SalesPage() {
         setShowDeleteModal(true);
     };
 
-    const confirmDelete = () => {
-        if (saleToDelete) {
-            // Update the sales list by removing the deleted sale
-            setSales(prevSales => prevSales.filter(s => s.id !== saleToDelete.id));
+    const confirmDelete = async () => {
+        if (!saleToDelete) return;
 
-            // Also remove from MOCK_SALES if needed for persistence in this session
+        try {
+            console.log('Deleting sale via API:', saleToDelete.id);
+            const response = await fetch(`${SALES_API_ENDPOINT}${saleToDelete.id}/`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok || response.status === 404) {
+                console.log('Sale deleted successfully from API');
+
+                // Update the sales list by removing the deleted sale
+                setSales(prevSales => prevSales.filter(s => s.id !== saleToDelete.id));
+
+                // Also remove from MOCK_SALES if needed for persistence in this session
+                const index = MOCK_SALES.findIndex(s => s.id === saleToDelete.id);
+                if (index > -1) {
+                    MOCK_SALES.splice(index, 1);
+                }
+
+                setShowDeleteModal(false);
+                setSaleToDelete(null);
+
+                // Refresh the current page
+                fetchSales(currentPage);
+            } else {
+                throw new Error(`API Error: ${response.status}`);
+            }
+        } catch (err) {
+            console.error('Failed to delete from API:', err);
+            alert('Failed to delete from database. Please try again.');
+
+            // Optional: Still delete locally even if API fails
+            // Uncomment if you want to proceed with local deletion on API failure
+            /*
+            setSales(prevSales => prevSales.filter(s => s.id !== saleToDelete.id));
             const index = MOCK_SALES.findIndex(s => s.id === saleToDelete.id);
             if (index > -1) {
                 MOCK_SALES.splice(index, 1);
             }
-
             setShowDeleteModal(false);
             setSaleToDelete(null);
-
-            // Refresh the current page
             fetchSales(currentPage);
+            */
         }
     };
 
@@ -591,7 +800,10 @@ function SalesPage() {
                 totalSales: 0,
                 averageOrderValue: 0,
                 totalOrders: 0,
-                uniqueCustomers: 0
+                uniqueCustomers: 0,
+                highestSoldItem: null,
+                highestSoldItemValue: 0,
+                weeklySales: 0
             };
         }
 
@@ -607,77 +819,134 @@ function SalesPage() {
         // Count unique customers
         const uniqueCustomers = new Set(sales.map(sale => sale.customer_name).filter(Boolean)).size;
 
+        // Calculate highest sold item by total value
+        const itemTotals = {};
+        sales.forEach(sale => {
+            const item = sale.item || 'Unknown';
+            const quantity = parseFloat(sale.quantity || 0);
+            const rate = parseFloat(sale.rate || 0);
+            const amount = quantity * rate;
+
+            if (!itemTotals[item]) {
+                itemTotals[item] = {
+                    totalValue: 0,
+                    totalQuantity: 0
+                };
+            }
+            itemTotals[item].totalValue += amount;
+            itemTotals[item].totalQuantity += quantity;
+        });
+
+        // Find the item with the highest total value
+        let highestSoldItem = null;
+        let highestSoldItemValue = 0;
+
+        Object.entries(itemTotals).forEach(([item, data]) => {
+            if (data.totalValue > highestSoldItemValue) {
+                highestSoldItem = item;
+                highestSoldItemValue = data.totalValue;
+            }
+        });
+
+        // Calculate weekly sales (last 7 days)
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        const weeklySales = sales.reduce((sum, sale) => {
+            const saleDate = new Date(sale.date_of_payment || sale.date);
+            if (saleDate >= sevenDaysAgo && saleDate <= today) {
+                const amount = parseFloat(sale.total_amount || sale.amount || 0);
+                return sum + amount;
+            }
+            return sum;
+        }, 0);
+
         return {
             totalSales,
             averageOrderValue,
             totalOrders: sales.length,
-            uniqueCustomers
+            uniqueCustomers,
+            highestSoldItem,
+            highestSoldItemValue,
+            weeklySales
         };
     };
 
     const kpis = KPIs();
     const  KPICards = () => (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <DollarSign className="w-4 h-4 mr-1" stroke={CoffeeColors.SUCCESS_GREEN} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                         Total Sales
-                    </p>
-                    <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
+                    </h3>
+                    <DollarSign size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                     </div>
                 ) : (
-                    <>
-                         <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.totalSales)}</p> 
-                         <p className="text-xs text-success mt-2 font-medium text-gray-500">Total orders: {kpis.totalOrders}</p> 
-                    </>
-                )}
-            </div>
-            
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <Tag className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
-                        Average Order Value
-                    </p>
-                    <Calendar className="w-4 h-4" stroke={CoffeeColors.GRAY_TEXT} strokeWidth={2.2} />
-                </div>
-                {loading ? (
-                    <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.totalSales)}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>Total orders: {kpis.totalOrders}</p>
+                        </div>
                     </div>
-                ) : (
-                    <>
-                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(kpis.averageOrderValue)}</p> */}
-                        <p className="text-xs mt-2 font-medium text-gray-500">Per transaction</p>
-                    </>
                 )}
             </div>
 
-            <div className="bg-white p-4 rounded-2xl shadow-lg">
-                <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-gray-500 flex items-center">
-                        <User className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                        Unique Customers
-                    </p>
-                    <User className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
+                        Average Order Value
+                    </h3>
+                    <Tag size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-accent-btn" />
-                        <span className="text-sm text-gray-500">Loading...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
                     </div>
                 ) : (
-                    <>
-                        {/* <p className="text-4xl font-extrabold text-gray-900 leading-none">{kpis.uniqueCustomers}</p> */}
-                        <p className="text-xs mt-2 font-medium text-gray-500">Registered customers</p>
-                    </>
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.averageOrderValue)}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>Per transaction</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
+                        Unique Customers
+                    </h3>
+                    <User size={20} style={{ color: '#8B5A3C' }} />
+                </div>
+                {loading ? (
+                    <div className="flex items-center gap-2 mt-2">
+                        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#8B5A3C' }} />
+                        <span className="text-sm" style={{ color: '#888' }}>Loading...</span>
+                    </div>
+                ) : (
+                    <div className="mt-2">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.uniqueCustomers}</p>
+                        </div>
+                        <div className="mt-3 text-xs">
+                            <p style={{ color: '#666' }}>Registered customers</p>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
@@ -706,9 +975,12 @@ function SalesPage() {
         }
 
         return sortedSales.map((sale, index) => {
-            const dateStr = sale.date ? new Date(sale.date).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'N/A';
-            const isCash = sale.payment_method?.toLowerCase() === 'cash';
-            
+            // Support both field names: date_of_payment (from API) and date (from mock data)
+            const saleDate = sale.date_of_payment || sale.date;
+            const dateStr = saleDate ? new Date(saleDate).toLocaleDateString('en-US', { year: '2-digit', month: '2-digit', day: '2-digit' }) : 'N/A';
+            // Support both field names: method_of_payment (from API) and payment_method (from mock data)
+            const paymentMethod = sale.method_of_payment || sale.payment_method || 'N/A';
+
             return (
                 <tr key={sale.id || index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
                     <td className="px-3 py-2 text-left font-medium text-text-default text-xs">{sale.customer_name || 'N/A'}</td>
@@ -721,8 +993,8 @@ function SalesPage() {
                         {(parseFloat(sale.quantity || 0) * parseFloat(sale.rate || 0)).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                     </td>
                     <td className="px-3 py-2 text-left font-medium">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isCash ? 'bg-green-100 text-success' : 'bg-red-100 text-error'}`}>
-                            {sale.payment_method || 'N/A'}
+                        <span className="text-xs text-gray-600">
+                            {paymentMethod}
                         </span>
                     </td>
                     <td className="px-3 py-2 text-right text-gray-600 text-xs">{dateStr}</td>

@@ -29,7 +29,7 @@
 //     return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 // };
 
-// const Wage_API_Endpoint = 'https://api-3181.onrender.com/api/wages/';
+// const Wage_API_Endpoint = 'http://142.93.94.236:8000/api/wages/';
 
 // // --- SHARED COMPONENTS ---
 
@@ -383,8 +383,8 @@
 
 
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, TrendingUpIcon, Eye, Edit, Trash2, FileText } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, FileText, Search } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
 const styleElement = document.createElement('style');
@@ -407,6 +407,8 @@ const formatUGX = (amount) => {
     if (typeof amount !== 'number') return amount || '0';
     return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
+
+const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
 
 const MOCK_WAGES_DATA = [
     { id: 1, employee_name: 'RF001 - John Doe', date_of_payment: '2025-10-18', days_worked: 22, monthly_pay: 2000000, amount_paid: 2200000, deduction: 0, noted_reason: 'Full attendance, bonus' },
@@ -463,6 +465,7 @@ const Input = ({ type = 'text', name, id, value, onChange, placeholder, classNam
 const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     const safeInitial = initialData || {};
     const [form, setForm] = useState({
+        employee_id: safeInitial.employee_id || safeInitial.employee_name_id || '',
         employee_name: safeInitial.employee_name || '',
         date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
         days_worked: safeInitial.days_worked || '',
@@ -472,15 +475,35 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
          noted_reason: safeInitial.noted_reason || '',
     });
 
+    const [staff, setStaff] = useState([]);
+    const [loadingStaff, setLoadingStaff] = useState(true);
     const [errors, setErrors] = useState({});
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState('');
     const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
     useEffect(() => {
+        const fetchStaff = async () => {
+            try {
+                setLoadingStaff(true);
+                const response = await fetch('http://142.93.94.236:8000/api/staff/');
+                if (!response.ok) throw new Error('Failed to fetch staff');
+                const data = await response.json();
+                const staffList = Array.isArray(data) ? data : data.results || [];
+                setStaff(staffList);
+            } catch (err) {
+                console.error('Error fetching staff:', err);
+                setStaff([]);
+            } finally {
+                setLoadingStaff(false);
+            }
+        };
+
         if (isOpen) {
+            fetchStaff();
             const safeData = initialData || {};
             setForm({
+                employee_id: safeData.employee_id || safeData.employee_name_id || '',
                 employee_name: safeData.employee_name || '',
                 date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
                 days_worked: safeData.days_worked || '',
@@ -495,12 +518,44 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         }
     }, [isOpen, initialData]);
 
+    const calculateAmountPaid = (monthlyPay, daysWorked, deduction) => {
+        if (monthlyPay === '' || monthlyPay === 0 || daysWorked === '' || daysWorked === 0) {
+            return '';
+        }
+        const dailyRate = Number(monthlyPay) / 30;
+        const grossAmount = dailyRate * Number(daysWorked);
+        const deductionAmount = Number(deduction) || 0;
+        const netAmount = grossAmount - deductionAmount;
+        return Math.max(0, netAmount).toFixed(2);
+    };
+
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
+        let updatedForm;
+
+        if (name === 'employee_id') {
+            // When employee is selected, update both employee_id and employee_name
+            const selectedStaff = staff.find(s => s.staff_id === value);
+            const fullName = selectedStaff ? `${selectedStaff.first_name} ${selectedStaff.last_name}` : '';
+            updatedForm = { ...form, employee_id: value, employee_name: fullName };
+        } else {
+            updatedForm = { ...form, [name]: value };
+        }
+
+        // Auto-calculate amount_paid if monthly_pay, days_worked, or deduction changes
+        if (name === 'monthly_pay' || name === 'days_worked' || name === 'deduction') {
+            const calculatedAmount = calculateAmountPaid(
+                updatedForm.monthly_pay,
+                updatedForm.days_worked,
+                updatedForm.deduction
+            );
+            updatedForm.amount_paid = calculatedAmount;
+        }
+
+        setForm(updatedForm);
         setMessage('');
         if (attemptedSubmit) {
-            const validation = validate({ ...form, [name]: value });
+            const validation = validate(updatedForm);
             setErrors(validation);
         } else {
             setErrors(prev => ({ ...prev, [name]: '' }));
@@ -522,12 +577,35 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
     const validate = (currentForm = form) => {
         const newErrors = {};
-        if (!currentForm.employee_name.trim()) newErrors.employee_name = 'Employee name is required.';
+        if (!currentForm.employee_id) newErrors.employee_id = 'Employee is required.';
         if (!currentForm.date_of_payment) newErrors.date_of_payment = 'Date of payment is required.';
-        if (currentForm.days_worked === '' || isNaN(Number(currentForm.days_worked)) || Number(currentForm.days_worked) < 0) newErrors.days_worked = 'Valid days worked required.';
-        if (currentForm.amount_paid === '' || isNaN(Number(currentForm.amount_paid)) || Number(currentForm.amount_paid) < 0) newErrors.amount_paid = 'Valid amount paid required.';
-        if (currentForm.deduction === '' || isNaN(Number(currentForm.deduction)) || Number(currentForm.deduction) < 0) newErrors.deduction = 'Valid deduction required.';
-        if (currentForm.monthly_pay !== '' && (isNaN(Number(currentForm.monthly_pay)) || Number(currentForm.monthly_pay) < 0)) newErrors.monthly_pay = 'Monthly pay must be a valid number.';
+
+        // Validate days_worked - must be a valid number
+        const daysWorked = String(currentForm.days_worked).trim();
+        if (daysWorked === '' || isNaN(Number(daysWorked)) || Number(daysWorked) < 0) {
+            newErrors.days_worked = 'Valid days worked required.';
+        }
+
+        // Validate amount_paid - must be a valid number
+        const amountPaid = String(currentForm.amount_paid).trim();
+        if (amountPaid === '' || isNaN(Number(amountPaid)) || Number(amountPaid) < 0) {
+            newErrors.amount_paid = 'Valid amount paid required.';
+        }
+
+        // Validate deduction - must be a valid number (can be 0)
+        const deduction = String(currentForm.deduction).trim();
+        if (deduction === '' || isNaN(Number(deduction)) || Number(deduction) < 0) {
+            newErrors.deduction = 'Valid deduction required.';
+        }
+
+        // Validate monthly_pay if provided
+        if (currentForm.monthly_pay !== '' && currentForm.monthly_pay !== null) {
+            const monthlyPay = String(currentForm.monthly_pay).trim();
+            if (isNaN(Number(monthlyPay)) || Number(monthlyPay) < 0) {
+                newErrors.monthly_pay = 'Monthly pay must be a valid number.';
+            }
+        }
+
         return newErrors;
     };
 
@@ -545,26 +623,87 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         setSubmitting(true);
         setMessage('');
 
+        // Convert string values to proper numbers, ensuring no NaN values
+        const daysWorked = String(form.days_worked).trim();
+        const amountPaid = String(form.amount_paid).trim();
+        const deduction = String(form.deduction).trim();
+        const monthlyPay = String(form.monthly_pay).trim();
+
         const payload = {
-            employee_name: form.employee_name,
+            employee_name: form.employee_name, // Free-text employee name
+            staff: form.employee_id, // Optional: link to registered staff by staff_id (e.g., "RF001")
             date_of_payment: form.date_of_payment,
-            days_worked: Number(form.days_worked) || 0,
-            monthly_pay: form.monthly_pay === '' ? null : Number(form.monthly_pay),
-            amount_paid: Number(form.amount_paid) || 0,
-            deduction: Number(form.deduction) || 0,
-            noted_reason: form.noted_reason || '',
+            days_worked: parseInt(daysWorked, 10) || 0,
+            monthly_pay: monthlyPay === '' ? null : parseInt(monthlyPay, 10),
+            amount_paid: parseInt(amountPaid, 10) || 0,
+            deduction: parseInt(deduction, 10) || 0,
+            noted_reason: form.noted_reason.trim() || '',
         };
 
+        console.log('Submitting payload:', JSON.stringify(payload, null, 2));
+
         try {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            console.log('Mock API POST Success with payload:', payload);
-            setMessage('You have successfully recorded a new wage!');
-            setTimeout(() => {
-                onSaveSuccess(payload);
-            }, 1000);
+            // Get auth token from localStorage or sessionStorage
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+
+            // Add authorization header if token exists
+            if (token) {
+                headers['Authorization'] = `Token ${token}`;
+            }
+
+            let response;
+            if (initialData?.id) {
+                // Edit mode - update existing record
+                response = await fetch(`${WAGES_API_ENDPOINT}${initialData.id}/`, {
+                    method: 'PUT',
+                    headers: headers,
+                    body: JSON.stringify(payload),
+                });
+            } else {
+                // Create mode - add new record
+                response = await fetch(WAGES_API_ENDPOINT, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(payload),
+                });
+            }
+
+            if (response.ok) {
+                const savedData = await response.json();
+                console.log('API Success with payload:', savedData);
+                setMessage(initialData ? 'You have successfully updated the wage record!' : 'You have successfully recorded a new wage!');
+
+                setTimeout(() => {
+                    onSaveSuccess();
+                }, 1000);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('API Error Response:', response.status);
+                console.error('Error details:', JSON.stringify(errorData, null, 2));
+                console.error('Payload sent:', JSON.stringify(payload, null, 2));
+
+                // Show detailed error message
+                let errorMsg = `Failed to save wage (${response.status}). `;
+                if (errorData.detail) {
+                    errorMsg += errorData.detail;
+                } else if (typeof errorData === 'object' && Object.keys(errorData).length > 0) {
+                    // Show field-specific errors if available
+                    const fieldErrors = Object.entries(errorData)
+                        .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+                        .join('; ');
+                    errorMsg += fieldErrors;
+                } else {
+                    errorMsg += 'Please check the console for more details.';
+                }
+                setMessage(errorMsg);
+            }
         } catch (err) {
-            console.error('Network error/Mock failure:', err);
-            setMessage('Mock network error. Wage was NOT saved.');
+            console.error('Network error:', err);
+            setMessage('Network error. Please check your connection and try again.');
         } finally {
             setSubmitting(false);
         }
@@ -581,15 +720,22 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <div className="md:col-span-2">
-                        <label htmlFor="employee_name" className="block mb-1 text-sm font-medium text-gray-700">Full Name</label>
-                        <Input
-                            name="employee_name"
-                            value={form.employee_name}
+                        <label htmlFor="employee_id" className="block mb-1 text-sm font-medium text-gray-700">Employee</label>
+                        <select
+                            name="employee_id"
+                            value={form.employee_id}
                             onChange={handleChange}
-                            placeholder="e.g., RF001 - John Doe"
-                            className={`py-2.5 ${getBorderClass('employee_name')}`}
-                        />
-                        {errors.employee_name && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                            disabled={loadingStaff}
+                            className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium bg-white ${getBorderClass('employee_id')} ${loadingStaff ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                            <option value="">{loadingStaff ? 'Loading staff...' : '-- Select an employee --'}</option>
+                            {staff.map(member => (
+                                <option key={member.staff_id} value={member.staff_id}>
+                                    {member.first_name} {member.last_name} {member.staff_id ? `(${member.staff_id})` : '(No ID)'}
+                                </option>
+                            ))}
+                        </select>
+                        {errors.employee_id && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
                     </div>
 
                     <div>
@@ -607,7 +753,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     <div>
                         <label htmlFor="days_worked" className="block mb-1 text-sm font-medium text-gray-700">Days Worked</label>
                         <Input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             name="days_worked"
                             value={form.days_worked}
                             onChange={handleChange}
@@ -628,7 +775,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     <div>
                         <label htmlFor="monthly_pay" className="block mb-1 text-sm font-medium text-gray-700">Monthly Base Pay (UGX)</label>
                         <Input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             name="monthly_pay"
                             value={form.monthly_pay}
                             onChange={handleChange}
@@ -641,7 +789,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     <div>
                         <label htmlFor="deduction" className="block mb-1 text-sm font-medium text-gray-700">Deduction (UGX)</label>
                         <Input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             name="deduction"
                             value={form.deduction}
                             onChange={handleChange}
@@ -654,7 +803,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     <div className="md:col-span-2">
                         <label htmlFor="amount_paid" className="block mb-1 text-sm font-medium text-gray-700">Total Amount Paid (UGX)</label>
                         <Input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
                             name="amount_paid"
                             value={form.amount_paid}
                             onChange={handleChange}
@@ -719,10 +869,10 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     {submitting ? (
                         <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Submitting...
+                            {initialData ? 'Updating...' : 'Submitting...'}
                         </>
                     ) : (
-                        'Submit Wage Record'
+                        initialData ? 'Update Wage Record' : 'Submit Wage Record'
                     )}
                 </button>
             </div>
@@ -757,7 +907,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                         <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                             <DollarSign className="w-6 h-6 text-white" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white">Wage Entry Form</h2>
+                        <h2 className="text-2xl font-bold text-white">{initialData ? 'Edit Wage Record' : 'Wage Entry Form'}</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -816,25 +966,71 @@ function Wages() {
     const [editingWage, setEditingWage] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [wageToDelete, setWageToDelete] = useState(null);
+    const [allWagesForKPI, setAllWagesForKPI] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const itemsPerPage = 7;
 
     const fetchWages = useCallback(async (page = 1) => {
         setLoading(true);
         setError(null);
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            const startIndex = (page - 1) * itemsPerPage;
-            const paginatedData = MOCK_WAGES_DATA.slice(startIndex, startIndex + itemsPerPage);
-            setWages(paginatedData);
-            setTotalPages(Math.ceil(MOCK_WAGES_DATA.length / itemsPerPage));
+            // Get auth token
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Token ${token}`;
+            }
+
+            const response = await fetch(`${WAGES_API_ENDPOINT}?page=${page}&page_size=${itemsPerPage}`, {
+                headers: headers
+            });
+
+            if (!response.ok) {
+                throw new Error(`API returned status ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            // Handle both paginated and non-paginated responses
+            if (data.results) {
+                // Paginated response
+                setWages(data.results);
+                setTotalPages(Math.ceil((data.count || 0) / itemsPerPage));
+
+                // Fetch all wages for KPI calculation
+                if (data.count > itemsPerPage) {
+                    const allResponse = await fetch(`${WAGES_API_ENDPOINT}?page_size=${data.count}`, {
+                        headers: headers
+                    });
+                    if (allResponse.ok) {
+                        const allData = await allResponse.json();
+                        setAllWagesForKPI(allData.results || allData);
+                    } else {
+                        setAllWagesForKPI(data.results);
+                    }
+                } else {
+                    setAllWagesForKPI(data.results);
+                }
+            } else if (Array.isArray(data)) {
+                // Non-paginated response (array)
+                const startIndex = (page - 1) * itemsPerPage;
+                const paginatedData = data.slice(startIndex, startIndex + itemsPerPage);
+                setWages(paginatedData);
+                setTotalPages(Math.ceil(data.length / itemsPerPage));
+                setAllWagesForKPI(data);
+            } else {
+                setWages([]);
+                setTotalPages(1);
+                setAllWagesForKPI([]);
+            }
+
             setError(null);
         } catch (err) {
-            console.warn(`API fetch failed, using mock data: ${err.message}`);
-            const startIndex = (page - 1) * itemsPerPage;
-            const paginatedData = MOCK_WAGES_DATA.slice(startIndex, startIndex + itemsPerPage);
-            setWages(paginatedData);
-            setTotalPages(Math.ceil(MOCK_WAGES_DATA.length / itemsPerPage));
-            setError(null);
+            console.error('API fetch failed:', err.message);
+            setError('Failed to load wages from server.');
+            setWages([]);
+            setTotalPages(1);
+            setAllWagesForKPI([]);
         } finally {
             setLoading(false);
         }
@@ -844,36 +1040,53 @@ function Wages() {
         fetchWages(currentPage);
     }, [fetchWages, currentPage]);
 
-    const handleSaveSuccess = (wageData) => {
-        if (editingWage) {
-            // Update existing wage
-            setWages(prevWages => prevWages.map(w => w.id === editingWage.id ? { ...editingWage, ...wageData } : w));
-
-            // Also update MOCK_WAGES_DATA for persistence
-            const index = MOCK_WAGES_DATA.findIndex(w => w.id === editingWage.id);
-            if (index > -1) {
-                MOCK_WAGES_DATA[index] = { ...MOCK_WAGES_DATA[index], ...wageData };
-            }
-        } else {
-            // Add new wage
-            const newWage = {
-                id: MOCK_WAGES_DATA.length > 0 ? Math.max(...MOCK_WAGES_DATA.map(w => w.id)) + 1 : 1,
-                ...wageData
-            };
-
-            setWages(prevWages => [newWage, ...prevWages]);
-            MOCK_WAGES_DATA.unshift(newWage);
-        }
-
+    const handleSaveSuccess = () => {
         setIsModalOpen(false);
         setEditingWage(null);
         setCurrentPage(1);
+        // Simply refresh the data - the modal already updated MOCK_WAGES_DATA
         fetchWages(1);
+    };
+
+    const handleEdit = (wage) => {
+        setEditingWage(wage);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = (wage) => {
+        setDeleteConfirm({ isOpen: true, wage });
+    };
+
+    const handleDeleteConfirm = () => {
+        if (deleteConfirm.wage) {
+            // Remove from mock data
+            const updatedWages = MOCK_WAGES_DATA.filter(w => w.id !== deleteConfirm.wage.id);
+            // Update the mock data array (in a real app, this would be an API call)
+            MOCK_WAGES_DATA.splice(0, MOCK_WAGES_DATA.length, ...updatedWages);
+            setDeleteConfirm({ isOpen: false, wage: null });
+            fetchWages(currentPage);
+        }
+    };
+
+    const handleDeleteCancel = () => {
+        setDeleteConfirm({ isOpen: false, wage: null });
     };
 
     const sortedWages = React.useMemo(() => {
         const base = Array.isArray(wages) ? wages : [];
-        let sortableItems = [...base];
+
+        // First, filter by search term
+        let filteredItems = base;
+        if (searchTerm.trim()) {
+            const searchLower = searchTerm.toLowerCase();
+            filteredItems = base.filter(wage => {
+                const employeeName = (wage.employee_name || '').toLowerCase();
+                return employeeName.includes(searchLower);
+            });
+        }
+
+        // Then, sort the filtered results
+        let sortableItems = [...filteredItems];
         if (sortConfig.key !== null) {
             sortableItems.sort((a, b) => {
                 const aValue = a[sortConfig.key];
@@ -891,7 +1104,7 @@ function Wages() {
             });
         }
         return sortableItems;
-    }, [wages, sortConfig]);
+    }, [wages, sortConfig, searchTerm]);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -918,22 +1131,35 @@ function Wages() {
         setShowDeleteModal(true);
     };
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         if (wageToDelete) {
-            // Update the wages list by removing the deleted wage
-            setWages(prevWages => prevWages.filter(w => w.id !== wageToDelete.id));
+            try {
+                // Get auth token
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Token ${token}`;
+                }
 
-            // Also remove from MOCK_WAGES_DATA if needed for persistence in this session
-            const index = MOCK_WAGES_DATA.findIndex(w => w.id === wageToDelete.id);
-            if (index > -1) {
-                MOCK_WAGES_DATA.splice(index, 1);
+                const response = await fetch(`${WAGES_API_ENDPOINT}${wageToDelete.id}/`, {
+                    method: 'DELETE',
+                    headers: headers,
+                });
+
+                if (response.ok) {
+                    console.log('Wage deleted successfully');
+                    setShowDeleteModal(false);
+                    setWageToDelete(null);
+                    // Refresh the current page
+                    fetchWages(currentPage);
+                } else {
+                    console.error('Failed to delete wage:', response.status);
+                    alert('Failed to delete wage record. Please try again.');
+                }
+            } catch (err) {
+                console.error('Network error during delete:', err);
+                alert('Network error. Please check your connection and try again.');
             }
-
-            setShowDeleteModal(false);
-            setWageToDelete(null);
-
-            // Refresh the current page
-            fetchWages(currentPage);
         }
     };
 
@@ -941,6 +1167,36 @@ function Wages() {
         setShowDeleteModal(false);
         setWageToDelete(null);
     };
+
+    // Calculate KPIs with live updates from all wages (not just current page)
+    const kpis = useMemo(() => {
+        const dataSource = allWagesForKPI.length > 0 ? allWagesForKPI : wages;
+
+        if (!dataSource || dataSource.length === 0) {
+            return {
+                totalWagesPaid: 0,
+                averageWagePerEmployee: 0,
+                totalEmployees: 0,
+                totalDeductions: 0,
+                totalRecords: 0
+            };
+        }
+
+        const totalWagesPaid = dataSource.reduce((sum, wage) => sum + (wage.amount_paid || 0), 0);
+        const totalDeductions = dataSource.reduce((sum, wage) => sum + (wage.deduction || 0), 0);
+
+        // Count unique employees
+        const uniqueEmployees = new Set(dataSource.map(wage => wage.employee_name)).size;
+        const averageWagePerEmployee = uniqueEmployees > 0 ? totalWagesPaid / uniqueEmployees : 0;
+
+        return {
+            totalWagesPaid,
+            averageWagePerEmployee,
+            totalEmployees: uniqueEmployees,
+            totalDeductions,
+            totalRecords: dataSource.length
+        };
+    }, [wages, allWagesForKPI]); // Re-calculate when wages state changes
 
     const renderTableContent = () => {
         if (loading) {
@@ -978,12 +1234,14 @@ function Wages() {
                             <button
                                 onClick={() => handleEditWage(wage)}
                                 className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                title="Edit wage record"
                             >
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => handleDeleteWage(wage)}
                                 className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                title="Delete wage record"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
@@ -1001,46 +1259,85 @@ function Wages() {
             <main className={`${mobilePadding} pt-0`} style={{ maxWidth: '100%', overflowX: 'hidden' }}>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">Wages Records Overview</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-gray-500 flex items-center">
-                                <DollarSign className="w-4 h-4 mr-1" stroke={CoffeeColors.SUCCESS_GREEN} />
-                                Total Wages Paid (This Period)
-                            </p>
-                            <TrendingUpIcon className="w-4 h-4" stroke={CoffeeColors.SUCCESS_GREEN} strokeWidth={2.2} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    {/* Card 1: Total Wages Paid */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
+                                Total Wages Paid
+                            </h3>
+                            <DollarSign size={20} style={{ color: '#8B5A3C' }} />
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(12500000)}</p>
-                        <p className="text-xs text-[#34A853] mt-2 font-medium">+15.3% vs last month</p>
+                        <div className="mt-2">
+                            <div className="flex flex-col gap-1">
+                                <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.totalWagesPaid)}</p>
+                            </div>
+                            <div className="mt-3 text-xs">
+                                <p style={{ color: '#666' }}>{kpis.totalRecords} wage record(s)</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-gray-500 flex items-center">
-                                <Wallet className="w-4 h-4 mr-1" stroke={CoffeeColors.MEDIUM_BROWN} />
+                    {/* Card 2: Average Wage Per Employee */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
                                 Avg. Wage/Employee
-                            </p>
-                            <TrendingUpIcon className="w-4 h-4 text-[#EA4335] rotate-180" stroke={CoffeeColors.ERROR_RED} strokeWidth={2.2} />
+                            </h3>
+                            <Wallet size={20} style={{ color: '#8B5A3C' }} />
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">UGX {formatUGX(250000)}</p>
-                        <p className="text-xs text-[#EA4335] mt-2 font-medium">-8.1% from last month</p>
+                        <div className="mt-2">
+                            <div className="flex flex-col gap-1">
+                                <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(Math.round(kpis.averageWagePerEmployee))}</p>
+                            </div>
+                            <div className="mt-3 text-xs">
+                                <p style={{ color: '#666' }}>Per unique employee</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-gray-500 flex items-center">
-                                <UserIcon className="w-4 h-4 mr-1" stroke={CoffeeColors.GRAY_TEXT} />
-                                Total Employees
-                            </p>
-                            <UserIcon className="w-4 h-4 text-gray-500" strokeWidth={2.2} />
+                    {/* Card 3: Total Employees Paid */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
+                                Employees Paid
+                            </h3>
+                            <UserIcon size={20} style={{ color: '#8B5A3C' }} />
                         </div>
-                        <p className="text-4xl font-extrabold text-gray-900 leading-none">50</p>
-                        <p className="text-xs text-gray-500 mt-2 font-medium">Stable over last quarter</p>
+                        <div className="mt-2">
+                            <div className="flex flex-col gap-1">
+                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.totalEmployees}</p>
+                            </div>
+                            <div className="mt-3 text-xs">
+                                <p style={{ color: '#666' }}>Unique employees</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Card 4: Total Deductions */}
+                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
+                                Total Deductions
+                            </h3>
+                            <MinusCircle size={20} style={{ color: '#8B5A3C' }} />
+                        </div>
+                        <div className="mt-2">
+                            <div className="flex flex-col gap-1">
+                                <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.totalDeductions)}</p>
+                            </div>
+                            <div className="mt-3 text-xs">
+                                <p style={{ color: '#666' }}>Total amount deducted</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div className="mb-6 flex flex-wrap justify-between items-center gap-3">
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap items-center">
                         <button
                             onClick={() => setIsModalOpen(true)}
                             className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
@@ -1054,7 +1351,19 @@ function Wages() {
                         </Button>
                     </div>
 
-                    <div className="flex gap-3 items-center">
+                    <div className="flex gap-3 items-center flex-wrap">
+                        {/* Search Input */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                                type="search"
+                                placeholder="Search by employee name"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-[#795548] focus:border-[#795548] transition-colors shadow-lg"
+                            />
+                        </div>
+
                         <button
                             onClick={() => fetchWages(currentPage)}
                             disabled={loading}
