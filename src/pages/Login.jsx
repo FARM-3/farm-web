@@ -19,13 +19,13 @@ const CoffeeColors = {
 };
 
 // --- API Client ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api-3181.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://142.93.94.236:8000';
 
 const ApiClient = {
   post: async (url, data) => {
-    console.log('🔵 API Called:', url);
-    console.log('📤 Request Data:', data);
-    console.log('🌐 Full URL:', `${API_BASE_URL}/api/users/${url}`);
+    console.log('API Called:', url);
+    console.log('Request Data:', data);
+    console.log('Full URL:', `${API_BASE_URL}/api/users/${url}`);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/users/${url}`, {
@@ -36,10 +36,10 @@ const ApiClient = {
         body: JSON.stringify(data),
       });
 
-      console.log('📥 Response Status:', response.status);
+      console.log('Response Status:', response.status);
 
       const responseData = await response.json();
-      console.log('📥 Response Data:', responseData);
+      console.log('Response Data:', responseData);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -141,7 +141,7 @@ function Login() {
       setMessageType("success");
 
       setTimeout(() => {
-        console.log('🚀 Navigating to dashboard...');
+        console.log('Navigating to dashboard...');
         navigate('/dashboard');
       }, 800);
 

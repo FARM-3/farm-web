@@ -4,6 +4,7 @@ import {
     Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings,
     BarChart3, TreePine, User as ProfileIcon, TrendingUp, TrendingDown, ClipboardCheck
 } from 'lucide-react';
+import rugyeyoLogo from '../assets/rugyeyo_logo.png';
 
 // --- CONFIGURATION: Updated Theme Colors to match the brown sidebar ---
 const CoffeeColors = {
@@ -185,7 +186,7 @@ export const SideNav = ({ children }) => {
                 <div className="flex items-center justify-between p-4 h-auto py-6" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
                     <div className="flex items-center gap-3">
                         <img
-                            src={`${import.meta.env.BASE_URL || ''}src/assets/rugyeyo_logo.png`}
+                            src={rugyeyoLogo}
                             alt="Rugyeyo Farm Logo"
                             style={{
                                 width: '80px',
