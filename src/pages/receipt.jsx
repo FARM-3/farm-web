@@ -7,7 +7,7 @@ const Receipt = () => {
     title: 'Sales Receipt',
     customerName: 'John Katerega', // Updated to match image
     paymentDate: '16/10/2025',
-    status: 'Paid',
+    status: 'paid',
     paymentMethod: 'Cash',
     batchId: 'BATCH-001', // Added
     items: [ // Changed to an array for table structure
