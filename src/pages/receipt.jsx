@@ -8,12 +8,12 @@ const Receipt = () => {
     customerName: 'John Katerega', // Updated to match image
     paymentDate: '16/10/2025',
     status: 'paid',
-    paymentMethod: 'Cash',
+    paymentMethod: 'cash',
     batchId: 'BATCH-001', // Added
     items: [ // Changed to an array for table structure
       {
         product: 'coffee',
-        item: 'Arabica Beans',
+        item: 'Arabica',
         quantityKg: 100,
         ratePerKg: 5000,
       },
