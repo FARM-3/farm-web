@@ -184,7 +184,7 @@ export const SideNav = ({ children }) => {
             >
                 {/* Logo and Title Section */}
                 <div className="flex items-center justify-between p-4 h-auto py-6" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center">
                         <img
                             src={rugyeyoLogo}
                             alt="Rugyeyo Farm Logo"
@@ -194,7 +194,7 @@ export const SideNav = ({ children }) => {
                                 backgroundColor: 'transparent'
                             }}
                         />
-                        <h2 className="text-lg font-extrabold" style={{ color: CoffeeColors.DARK_BROWN }}>
+                        <h2 className="text-lg font-extrabold whitespace-nowrap" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Rugyeyo Farm
                         </h2>
                     </div>

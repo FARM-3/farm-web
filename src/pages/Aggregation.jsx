@@ -153,12 +153,16 @@ const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
 
 // Expandable Row Component for Farmer Harvest
 const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
+    // Use the enriched data from the harvest record
+    const harvestId = harvest.harvest_id || harvest.id || 'Unknown ID';
+    const farmerName = harvest.farmer_name || harvest.name || 'Unknown Farmer';
+
     return (
         <>
             <tr className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
-                <td className="px-6 py-3 text-left font-medium text-gray-800">{harvest.id || 'N/A'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{harvest.name || 'N/A'}</td>
-                <td className="px-6 py-3 text-center text-gray-600">{harvest.date_of_delivery || 'N/A'}</td>
+                <td className="px-6 py-3 text-left font-medium text-gray-800">{harvestId}</td>
+                <td className="px-6 py-3 text-left text-gray-600">{farmerName}</td>
+                <td className="px-6 py-3 text-center text-gray-600">{formatDate(harvest.date_of_delivery)}</td>
                 <td className="px-6 py-3 text-center">
                     <button
                         onClick={onToggle}
@@ -239,16 +243,48 @@ const AggregationPage = () => {
             const normalizedFarmers = Array.isArray(farmersData) ? farmersData : (farmersData.results || []);
             const normalizedHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
 
+            // Debug: Log the first harvest record to see its structure
+            if (normalizedHarvests.length > 0) {
+                console.log('Sample harvest record:', normalizedHarvests[0]);
+                console.log('Harvest fields:', Object.keys(normalizedHarvests[0]));
+            }
+
+            // Create a farmer lookup map by name for quick access
+            const farmerMapByName = {};
+            normalizedFarmers.forEach(farmer => {
+                const fullName = `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim().toLowerCase();
+                farmerMapByName[fullName] = farmer;
+            });
+
+            // Enrich harvest records with farmer details
+            const enrichedHarvests = normalizedHarvests.map(harvest => {
+                // The API returns 'harvest_id' and 'name' (farmer's name)
+                const harvestId = harvest.harvest_id || harvest.id;
+                const farmerName = harvest.name || 'Unknown Farmer';
+
+                // Try to find the farmer by matching the name
+                const farmer = farmerMapByName[farmerName.toLowerCase()];
+
+                return {
+                    ...harvest,
+                    harvest_id: harvestId,
+                    farmer_id: farmer?.farmer_id || 'N/A',
+                    farmer_name: farmerName,
+                    farmer_village: farmer?.village,
+                    farmer_details: farmer
+                };
+            });
+
             // Sort by latest first
             normalizedFarmers.sort((a, b) => new Date(b.date_of_birth || 0) - new Date(a.date_of_birth || 0));
-            normalizedHarvests.sort((a, b) => {
+            enrichedHarvests.sort((a, b) => {
                 const dateA = a.date_of_delivery || '';
                 const dateB = b.date_of_delivery || '';
                 return dateB.localeCompare(dateA);
             });
 
             setFarmers(normalizedFarmers);
-            setHarvests(normalizedHarvests);
+            setHarvests(enrichedHarvests);
         } catch (err) {
             console.error('Error fetching aggregation data:', err);
             setError('Failed to load data. Please try again.');
@@ -439,12 +475,12 @@ const AggregationPage = () => {
                                 )
                             ) : (
                                 harvests.length > 0 ? (
-                                    harvests.map((harvest) => (
+                                    harvests.map((harvest, index) => (
                                         <ExpandableHarvestRow
-                                            key={harvest.id}
+                                            key={harvest.harvest_id || harvest.id || index}
                                             harvest={harvest}
-                                            isExpanded={expandedRows[harvest.id]}
-                                            onToggle={() => toggleRow(harvest.id)}
+                                            isExpanded={expandedRows[harvest.harvest_id || harvest.id || index]}
+                                            onToggle={() => toggleRow(harvest.harvest_id || harvest.id || index)}
                                         />
                                     ))
                                 ) : (

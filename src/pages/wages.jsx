@@ -674,7 +674,10 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
             if (response.ok) {
                 const savedData = await response.json();
-                console.log('API Success with payload:', savedData);
+                console.log('✅ API Success Response:', savedData);
+                console.log('📝 Payload that was sent:', payload);
+                console.log('🔑 Saved record ID:', savedData.id);
+
                 setMessage(initialData ? 'You have successfully updated the wage record!' : 'You have successfully recorded a new wage!');
 
                 setTimeout(() => {
@@ -981,6 +984,7 @@ function Wages() {
                 headers['Authorization'] = `Token ${token}`;
             }
 
+            console.log('🔄 Fetching wages from API (page:', page, ')');
             const response = await fetch(`${WAGES_API_ENDPOINT}?page=${page}&page_size=${itemsPerPage}`, {
                 headers: headers
             });
@@ -990,6 +994,8 @@ function Wages() {
             }
 
             const data = await response.json();
+            console.log('📊 Wages fetched from API:', data);
+            console.log('📈 Number of wage records:', data.results ? data.results.length : (Array.isArray(data) ? data.length : 0));
 
             // Handle both paginated and non-paginated responses
             if (data.results) {
