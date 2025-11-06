@@ -228,7 +228,6 @@ const NavBar = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     zIndex: 1000,
-                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 }}>
                     <div style={{
                         background: 'rgba(255, 255, 255, 0.15)',
