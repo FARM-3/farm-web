@@ -1,6 +1,7 @@
-import React from 'react';
+useEffect(() => {
+  window.print(); 
+}, []);
 
-const Receipt = () => {
   // Sample data updated to better reflect the image structure
   const receiptData = {
     farmName: 'Rugyeyo Farm',
