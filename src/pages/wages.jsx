@@ -563,47 +563,95 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     };
 
     const getBorderClass = (fieldName, required = true) => {
+        // Show red border if there's an error
         if (errors[fieldName]) {
             return `border-2 border-[#EA4335]`;
         }
-        if (attemptedSubmit && required && form[fieldName] && !errors[fieldName]) {
+
+        // Show green border for valid required fields after submit attempt
+        if (attemptedSubmit && required && form[fieldName] && form[fieldName] !== '' && !errors[fieldName]) {
             return `border-2 border-[#34A853]`;
         }
-        if (attemptedSubmit && !required && form[fieldName] && !errors[fieldName]) {
-            return `border-2 border-gray-300`;
+
+        // Show green border for valid optional fields that have values
+        if (attemptedSubmit && !required && form[fieldName] && form[fieldName] !== '' && !errors[fieldName]) {
+            return `border-2 border-[#34A853]`;
         }
-        return '';
+
+        // Default border
+        return 'border border-gray-300';
+    };
+
+    // Get today's date in YYYY-MM-DD format
+    const getTodayDate = () => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
     };
 
     const validate = (currentForm = form) => {
         const newErrors = {};
-        if (!currentForm.employee_id) newErrors.employee_id = 'Employee is required.';
-        if (!currentForm.date_of_payment) newErrors.date_of_payment = 'Date of payment is required.';
 
-        // Validate days_worked - must be a valid number
+        // Employee validation
+        if (!currentForm.employee_id || currentForm.employee_id.trim() === '') {
+            newErrors.employee_id = 'Employee is required';
+        }
+
+        // Date validation
+        if (!currentForm.date_of_payment) {
+            newErrors.date_of_payment = 'Payment date is required';
+        } else {
+            const selectedDate = new Date(currentForm.date_of_payment);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
+
+            if (selectedDate > today) {
+                newErrors.date_of_payment = 'Cannot select a future date';
+            }
+        }
+
+        // Days worked validation
         const daysWorked = String(currentForm.days_worked).trim();
-        if (daysWorked === '' || isNaN(Number(daysWorked)) || Number(daysWorked) < 0) {
-            newErrors.days_worked = 'Valid days worked required.';
+        if (daysWorked === '') {
+            newErrors.days_worked = 'Days worked is required';
+        } else if (isNaN(Number(daysWorked))) {
+            newErrors.days_worked = 'Days worked must be a valid number';
+        } else if (Number(daysWorked) < 0) {
+            newErrors.days_worked = 'Days worked cannot be negative';
+        } else if (Number(daysWorked) > 31) {
+            newErrors.days_worked = 'Days worked cannot exceed 31 days';
         }
 
-        // Validate amount_paid - must be a valid number
-        const amountPaid = String(currentForm.amount_paid).trim();
-        if (amountPaid === '' || isNaN(Number(amountPaid)) || Number(amountPaid) < 0) {
-            newErrors.amount_paid = 'Valid amount paid required.';
-        }
-
-        // Validate deduction - must be a valid number (can be 0)
-        const deduction = String(currentForm.deduction).trim();
-        if (deduction === '' || isNaN(Number(deduction)) || Number(deduction) < 0) {
-            newErrors.deduction = 'Valid deduction required.';
-        }
-
-        // Validate monthly_pay if provided
+        // Monthly pay validation (optional)
         if (currentForm.monthly_pay !== '' && currentForm.monthly_pay !== null) {
             const monthlyPay = String(currentForm.monthly_pay).trim();
-            if (isNaN(Number(monthlyPay)) || Number(monthlyPay) < 0) {
-                newErrors.monthly_pay = 'Monthly pay must be a valid number.';
+            if (isNaN(Number(monthlyPay))) {
+                newErrors.monthly_pay = 'Monthly pay must be a valid number';
+            } else if (Number(monthlyPay) < 0) {
+                newErrors.monthly_pay = 'Monthly pay cannot be negative';
+            } else if (Number(monthlyPay) < 1000) {
+                newErrors.monthly_pay = 'Monthly pay seems too low (minimum 1,000 UGX)';
             }
+        }
+
+        // Amount paid validation
+        const amountPaid = String(currentForm.amount_paid).trim();
+        if (amountPaid === '') {
+            newErrors.amount_paid = 'Amount paid is required';
+        } else if (isNaN(Number(amountPaid))) {
+            newErrors.amount_paid = 'Amount paid must be a valid number';
+        } else if (Number(amountPaid) < 0) {
+            newErrors.amount_paid = 'Amount paid cannot be negative';
+        }
+
+        // Deduction validation
+        const deduction = String(currentForm.deduction).trim();
+        if (deduction === '') {
+            newErrors.deduction = 'Deduction is required (enter 0 if none)';
+        } else if (isNaN(Number(deduction))) {
+            newErrors.deduction = 'Deduction must be a valid number';
+        } else if (Number(deduction) < 0) {
+            newErrors.deduction = 'Deduction cannot be negative';
         }
 
         return newErrors;
@@ -735,7 +783,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                                 </option>
                             ))}
                         </select>
-                        {errors.employee_id && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.employee_id && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.employee_id}</p>}
                     </div>
 
                     <div>
@@ -745,9 +793,10 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             name="date_of_payment"
                             value={form.date_of_payment}
                             onChange={handleChange}
+                            max={getTodayDate()}
                             className={`py-2.5 ${getBorderClass('date_of_payment')}`}
                         />
-                        {errors.date_of_payment && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.date_of_payment && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.date_of_payment}</p>}
                     </div>
 
                     <div>
@@ -761,7 +810,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             placeholder="e.g. 22"
                             className={`py-2.5 ${getBorderClass('days_worked')}`}
                         />
-                        {errors.days_worked && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.days_worked && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.days_worked}</p>}
                     </div>
                 </div>
 
@@ -797,7 +846,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             placeholder="e.g. 0 or 800000"
                             className={`py-2.5 ${getBorderClass('deduction')}`}
                         />
-                        {errors.deduction && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.deduction && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.deduction}</p>}
                     </div>
 
                     <div className="md:col-span-2">
@@ -811,7 +860,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             placeholder="e.g. 2200000"
                             className={`py-2.5 font-bold ${getBorderClass('amount_paid')}`}
                         />
-                        {errors.amount_paid && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.amount_paid && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.amount_paid}</p>}
                     </div>
                 </div>
 
@@ -897,23 +946,19 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 onClick={(e) => e.stopPropagation()}
             >
                 <header
-                    className="flex justify-between items-center p-5 rounded-t-2xl flex-shrink-0 border-b-2"
+                    className="flex items-center justify-between p-4 border-b border-gray-200"
                     style={{
-                        backgroundColor: '#8B5A3C',
-                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                        backgroundColor: '#FFFFFF'
                     }}
                 >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <DollarSign className="w-6 h-6 text-white" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-white">{initialData ? 'Edit Wage Record' : 'Wage Entry Form'}</h2>
-                    </div>
+                    <h2 className="text-xl font-semibold" style={{ color: '#333333' }}>
+                        {initialData ? 'Edit Wage Record' : 'Wage Entry Form'}
+                    </h2>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200"
+                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
                     >
-                        <X className="w-6 h-6" />
+                        <X className="w-5 h-5" style={{ color: '#6B7280' }} />
                     </button>
                 </header>
 
@@ -959,7 +1004,7 @@ function Wages() {
     const [wages, setWages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'ascending' });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1092,6 +1137,13 @@ function Wages() {
                 const aValue = a[sortConfig.key];
                 const bValue = b[sortConfig.key];
 
+                // Special handling for date fields to ensure proper date comparison
+                if (sortConfig.key === 'date_of_payment') {
+                    const dateA = new Date(aValue);
+                    const dateB = new Date(bValue);
+                    return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+                }
+
                 if (TABLE_HEADERS.find(h => h.key === sortConfig.key)?.type === 'number') {
                     const numA = parseFloat(aValue || 0);
                     const numB = parseFloat(bValue || 0);
@@ -1101,6 +1153,13 @@ function Wages() {
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
+            });
+        } else {
+            // Default sort: most recent wages first (by date_of_payment descending)
+            sortableItems.sort((a, b) => {
+                const dateA = new Date(a.date_of_payment);
+                const dateB = new Date(b.date_of_payment);
+                return dateB - dateA;
             });
         }
         return sortableItems;

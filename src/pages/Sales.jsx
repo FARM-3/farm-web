@@ -600,7 +600,7 @@ const TABLE_HEADERS = [
     { key: 'rate', label: 'Rate (UGX)', type: 'number', align: 'right' },
     { key: 'amount', label: 'Amount (UGX)', type: 'number', align: 'right' },
     { key: 'payment_method', label: 'Payment Method', type: 'string', align: 'left' },
-    { key: 'date', label: 'Date', type: 'date', align: 'right' },
+    { key: 'date_of_payment', label: 'Date', type: 'date', align: 'right' },
     { key: 'actions', label: 'Actions', type: 'actions', align: 'center' },
 ];
 
@@ -609,7 +609,7 @@ function SalesPage() {
     const [sales, setSales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'descending' });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);

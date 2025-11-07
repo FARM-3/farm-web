@@ -244,7 +244,7 @@ const AggregationPage = () => {
             normalizedHarvests.sort((a, b) => {
                 const dateA = a.date_of_delivery || '';
                 const dateB = b.date_of_delivery || '';
-                return dateB.localeCompare(dateA);
+                return dateA.localeCompare(dateB);
             });
 
             setFarmers(normalizedFarmers);
