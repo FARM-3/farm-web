@@ -146,6 +146,9 @@ export const SideNav = ({ children }) => {
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    // Profile state fetched from backend
+    const [userProfileData, setUserProfileData] = useState({ name: '', phone: '', email: '', rawPassword: null });
+    const [revealPassword, setRevealPassword] = useState(false);
     const currentPage = useMemo(() => getCurrentPageKey(), []);
     const sidebarWidthClass = 'w-56';
 
@@ -172,6 +175,49 @@ export const SideNav = ({ children }) => {
         console.log('  - showProfileModal:', showProfileModal);
         console.log('  - showLogoutModal:', showLogoutModal);
     }, [profileDropdownOpen, showProfileModal, showLogoutModal]);
+
+    // Fetch user profile from backend (best-effort). Falls back to localStorage if API is unavailable.
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                if (!token) return;
+
+                const res = await fetch('http://localhost:8000/api/users/me/', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // OpenAPI YAML uses Bearer JWT for /api/users/me/
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+
+                if (!res.ok) {
+                    // try fallback host if local API is not reachable
+                    throw new Error('Profile fetch failed');
+                }
+
+                const data = await res.json();
+                // Normalize possible field names
+                const name = data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.name || data.username || localStorage.getItem('userName');
+                const phone = data.phone || data.contact || data.mobile || localStorage.getItem('userPhone');
+                const email = data.email || localStorage.getItem('userEmail');
+                const rawPassword = data.password || null; // most backends won't return this for security
+
+                setUserProfileData({ name, phone, email, rawPassword });
+            } catch (err) {
+                // Fallback: use any locally stored values
+                setUserProfileData({
+                    name: localStorage.getItem('userName') || 'User',
+                    phone: localStorage.getItem('userPhone') || '',
+                    email: localStorage.getItem('userEmail') || '',
+                    rawPassword: null
+                });
+            }
+        };
+
+        fetchProfile();
+    }, []);
 
     return (
         <div className="min-h-screen flex w-full" style={{ backgroundColor: CoffeeColors.SCREEN_BG, fontFamily: 'Inter, sans-serif' }}>
@@ -281,67 +327,84 @@ export const SideNav = ({ children }) => {
                                 </button>
 
                             {/* Dropdown Menu */}
-                            {profileDropdownOpen && (
-                                <>
-                                    {/* Backdrop to close dropdown */}
-                                    <div
-                                        className="fixed inset-0 z-[60]"
-                                        onClick={() => {
-                                            console.log('🔴 Backdrop clicked, closing dropdown');
-                                            setProfileDropdownOpen(false);
-                                        }}
-                                    />
-
-                                    {/* Dropdown content */}
-                                    <div
-                                        className="absolute right-0 top-16 w-56 rounded-lg shadow-xl z-[70] py-2"
-                                        style={{
-                                            backgroundColor: '#FFFFFF',
-                                            border: `1px solid ${CoffeeColors.BORDER_GRAY}`,
-                                            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-                                        }}
-                                    >
-                                        <Link
-                                            to="/settings"
-                                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
-                                            onClick={() => setProfileDropdownOpen(false)}
-                                        >
-                                            <Settings size={18} style={{ color: CoffeeColors.DARK_BROWN }} />
-                                            <span style={{ color: CoffeeColors.DARK_BROWN, fontSize: '14px', fontWeight: '500' }}>
-                                                Settings
-                                            </span>
-                                        </Link>
-
-                                        <button
-                                            onClick={() => {
-                                                console.log('🟢 View Profile clicked!');
-                                                console.log('🟢 Setting showProfileModal to true');
-                                                setProfileDropdownOpen(false);
-                                                setShowProfileModal(true);
-                                            }}
-                                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors w-full text-left"
-                                        >
-                                            <ProfileIcon size={18} style={{ color: CoffeeColors.DARK_BROWN }} />
-                                            <span style={{ color: CoffeeColors.DARK_BROWN, fontSize: '14px', fontWeight: '500' }}>
-                                                View Profile
-                                            </span>
-                                        </button>
-
-                                        <button
+                                {profileDropdownOpen && (
+                                    <>
+                                        {/* Backdrop to close dropdown */}
+                                        <div
+                                            className="fixed inset-0 z-[60]"
                                             onClick={() => {
                                                 setProfileDropdownOpen(false);
-                                                setShowLogoutModal(true);
                                             }}
-                                            className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors w-full text-left"
+                                        />
+
+                                        {/* Dropdown content - show user credentials fetched from backend */}
+                                        <div
+                                            className="absolute right-0 top-16 w-72 rounded-lg shadow-xl z-[70] py-2"
+                                            style={{
+                                                backgroundColor: '#FFFFFF',
+                                                border: `1px solid ${CoffeeColors.BORDER_GRAY}`,
+                                                boxShadow: '0 10px 40px rgba(0,0,0,0.12)'
+                                            }}
                                         >
-                                            <LogOut size={18} style={{ color: CoffeeColors.DARK_BROWN }} />
-                                            <span style={{ color: CoffeeColors.DARK_BROWN, fontSize: '14px', fontWeight: '500' }}>
-                                                Logout
-                                            </span>
-                                        </button>
-                                    </div>
-                                </>
-                            )}
+                                            <div className="px-4 py-3 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
+                                                <p className="text-sm font-medium text-gray-900">{userProfileData.name || localStorage.getItem('userName') || 'User'}</p>
+                                                <p className="text-xs text-gray-500">{userProfileData.email || localStorage.getItem('userEmail') || ''}</p>
+                                            </div>
+
+                                            <div className="px-4 py-3">
+                                                <div className="text-xs text-gray-500">Phone</div>
+                                                <div className="text-sm text-gray-800 mb-2">{userProfileData.phone || localStorage.getItem('userPhone') || 'N/A'}</div>
+
+                                                <div className="text-xs text-gray-500 flex items-center justify-between">
+                                                    <span>Password</span>
+                                                    <button
+                                                        onClick={() => setRevealPassword(prev => !prev)}
+                                                        className="text-xs text-accent-btn underline ml-2"
+                                                        style={{ color: CoffeeColors.DARK_BROWN, background: 'transparent', border: 'none' }}
+                                                    >
+                                                        {revealPassword ? 'Hide' : 'Reveal'}
+                                                    </button>
+                                                </div>
+                                                <div className="text-sm text-gray-800 mb-3">
+                                                    {/* For security, password is masked by default. We will not fetch or display plaintext password unless backend provides it explicitly (not recommended). */}
+                                                    {revealPassword && userProfileData.rawPassword ? userProfileData.rawPassword : '••••••••'}
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <Link
+                                                        to="/settings"
+                                                            onClick={() => setProfileDropdownOpen(false)}
+                                                            className="flex-1 px-3 py-2 rounded-md text-sm text-center"
+                                                            style={{ backgroundColor: CoffeeColors.ACTIVE_BG, color: '#fff', textDecoration: 'none' }}
+                                                    >
+                                                        Settings
+                                                    </Link>
+
+                                                    <button
+                                                        onClick={() => {
+                                                            // navigate to password reset in settings
+                                                            window.location.href = '/settings#password';
+                                                        }}
+                                                        className="flex-1 px-3 py-2 rounded-md text-sm text-center border"
+                                                    >
+                                                        Reset Password
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="px-4 py-2 border-t" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
+                                                <button
+                                                    onClick={() => {
+                                                        setProfileDropdownOpen(false);
+                                                        setShowLogoutModal(true);
+                                                    }}
+                                                    className="w-full text-left px-2 py-2 text-sm text-red-600 hover:bg-gray-50 rounded"
+                                                >
+                                                    Logout
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                         </div>
                     </div>
                 </header>
