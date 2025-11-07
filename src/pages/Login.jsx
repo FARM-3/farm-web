@@ -877,7 +877,7 @@ function Login() {
                 fontSize: '14px',
                 color: 'white',
                 marginBottom: '8px',
-                fontWeight: '600',
+                fontWeight: '400',
                 display: 'block',
               }}>Phone Number</label>
 
@@ -912,7 +912,7 @@ function Login() {
                 fontSize: '14px',
                 color: 'white',
                 marginBottom: '8px',
-                fontWeight: '600',
+                fontWeight: '400',
                 display: 'block',
               }}>PIN</label>
 
@@ -975,6 +975,7 @@ function Login() {
                 fontSize: '14px',
                 color: 'white',
                 cursor: 'pointer',
+                fontWeight: '400',
               }}>
                 <input
                   type="checkbox"
@@ -1062,9 +1063,18 @@ function Login() {
                   border: 'none',
                   color: 'white',
                   fontSize: '14px',
-                  fontWeight: '600',
+                  fontWeight: '400',
                   cursor: 'pointer',
                   textDecoration: 'underline',
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.color = '#D2A679';
+                  e.target.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'scale(1)';
                 }}
               >
                 ← Back
@@ -1085,9 +1095,18 @@ function Login() {
                   border: 'none',
                   color: 'white',
                   fontSize: '14px',
-                  fontWeight: '600',
+                  fontWeight: '400',
                   cursor: 'pointer',
                   textDecoration: 'underline',
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.color = '#D2A679';
+                  e.target.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'scale(1)';
                 }}
               >
                 Reset PIN

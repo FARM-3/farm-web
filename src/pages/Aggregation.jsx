@@ -205,7 +205,7 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Amount Paid</p>
-                                <p className="text-sm text-gray-800">{harvest.amount_paid ? `UGX ${harvest.amount_paid}` : 'N/A'}</p>
+                                <p className="text-sm text-gray-800">{harvest.amount_paid ? `UGX ${Number(harvest.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: true })}` : 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Paid By</p>
