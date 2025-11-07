@@ -62,7 +62,7 @@ const ApiClient = {
       return responseData;
 
     } catch (error) {
-      console.error('❌ API Error:', error);
+      console.error(' API Error:', error);
 
       if (error.message === "Failed to fetch") {
         throw new Error("Cannot connect to server. Please check your internet connection.");
@@ -120,7 +120,7 @@ function Login() {
         pin: fullPin,
       });
 
-      console.log('✅ Login Response:', response);
+      console.log(' Login Response:', response);
 
       const token = response.access || response.token || response.access_token;
       const refreshToken = response.refresh || response.refresh_token;
@@ -146,7 +146,7 @@ function Login() {
       }, 800);
 
     } catch (err) {
-      console.error('❌ Login Error:', err.message);
+      console.error(' Login Error:', err.message);
 
       if (err.message === "USER_NOT_REGISTERED") {
         setMessage("This phone number is not registered. Please contact support to register.");
@@ -208,7 +208,7 @@ function Login() {
           }, 3000);
         }
       } catch (error) {
-        console.error('❌ Reset PIN Error:', error.message);
+        console.error(' Reset PIN Error:', error.message);
 
         if (error.message === "USER_NOT_REGISTERED" || error.message.includes("not found")) {
           setMessage("Phone number not found in our system. Please contact support.");
@@ -276,7 +276,7 @@ function Login() {
           setShowLoginForm(true);
         }, 3000);
       } catch (error) {
-        console.error('❌ Reset PIN Error:', error.message);
+        console.error(' Reset PIN Error:', error.message);
         setMessage(error.message || "PIN reset failed. Please try again.");
         setMessageType("error");
       } finally {
@@ -661,7 +661,7 @@ function Login() {
                         marginTop: '6px',
                         fontWeight: '500',
                       }}>
-                        ⚠️ PINs do not match
+                         PINs do not match
                       </p>
                     )}
                     {newPin.join("") === confirmPin.join("") && newPin.join("").length === 4 && (
