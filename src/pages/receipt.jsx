@@ -3,6 +3,19 @@ import React, { useEffect, useRef, useState } from 'react';
 // Use lucide-react icons for aesthetics
 import { Printer, CheckCircle } from 'lucide-react';
 
+// SVG representation of the Rugyeyo Farm logo (Black & White style)
+const RugyeyoFarmLogoSvg = `
+<svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="100" height="100" fill="white"/>
+  <path d="M50 5L15 35H85L50 5Z" fill="#1C1C1C"/>
+  <path d="M50 85C50 85 85 80 85 60C85 40 50 35 50 35C50 35 15 40 15 60C15 80 50 85 50 85Z" fill="#1C1C1C"/>
+  <path d="M50 35L50 85" stroke="#F4F4F4" strokeWidth="4" strokeLinecap="round"/>
+  <circle cx="50" cy="40" r="10" fill="#E84F3C"/>
+  <circle cx="35" cy="65" r="10" fill="#E84F3C"/>
+  <circle cx="65" cy="65" r="10" fill="#E84F3C"/>
+  <text x="50" y="62" fontSize="12" fill="white" fontWeight="bold" textAnchor="middle">R</text>
+  <text x="50" y="80" fontSize="12" fill="white" fontWeight="bold" textAnchor="middle">F</text>
+
 // Mock data structure matching the user's provided receipt image
 const mockReceiptData = {
   storeName: "Rugyeyo Farm",
