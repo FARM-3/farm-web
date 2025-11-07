@@ -13,7 +13,7 @@ const mockReceiptData = {
   paymentMethod: "Cash",
   batchId: "BATCH-001",
   items: [
-    { name: "Coffee, item: "Arabica", qty: 100, rate: 5000, total: 500000 },
+    { name: "Coffee", item: "Arabica", qty: 100, rate: 5000, total: 500000 },
   ],
   totalAmount: 500000,
   balance: 0,
