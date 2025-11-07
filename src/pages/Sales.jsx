@@ -1012,6 +1012,13 @@ function SalesPage() {
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
+                            <button
+                                onClick={() => navigate(`/receipt?id=${sale.id}`)}
+                                className="text-green-600 hover:text-green-800 p-1 rounded-md hover:bg-green-50 transition-colors"
+                                title="View Receipt"
+                            >
+                                <ShoppingBag className="w-4 h-4" />
+                            </button>
                         </div>
                     </td>
                 </tr>

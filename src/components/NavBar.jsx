@@ -25,7 +25,7 @@ const NavBar = () => {
     const navigate = useNavigate();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [showSuccessMessage] = useState(false);
 
     const handleLogout = async () => {
         setShowLogoutConfirm(true);
