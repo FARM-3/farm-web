@@ -354,7 +354,7 @@ const AggregationPage = () => {
             <main className="p-4 sm:p-6 md:p-8 pt-0">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-text-default">
+                    <h1 className="text-3xl font-bold" style={{ color: '#3D2817' }}>
                         Aggregation Overview
                     </h1>
                     <button
