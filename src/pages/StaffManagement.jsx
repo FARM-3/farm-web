@@ -1896,24 +1896,76 @@ const CoffeeColors = {
 const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
 
 const LOCATION_DATA = {
-    Wakiso: {
-        subcounties: {
-            "Kakiri": 
-            "Kira" 
-        }
-    },
-    Mpigi: {
-        subcounties: {
-            "MpigiTC":
-            "Ggombe" 
-        }
-    },
-    Mbarara: {
-        subcounties: {
-            "Kakoba": 
-            "Nyamitanga" 
-        }
-    }
+  'Wakiso': ['Bussi Sub-County', 'Kakiri Sub-County', 'Kakiri Town Council', 'Kasanje Sub-County', 'Katabi Town Council', 'Masuliita Sub-County', 'Masulita Town Council', 'Mende Sub-County', 'Namayumba Sub-County', 'Namayumba Town Council', 'Kajjansi Town Council', 'Wakiso Sub-County', 'Wakiso Town Council', 'Wakiso — Division A', 'Wakiso — Division B', 'Bweyogerere Division', 'Kira Division', 'Namugongo Division', 'Kasangati Town Council', 'Bunamwaya Division', 'Masajja Division', 'Ndejje Division', 'Busukuma Division', 'Gombe Division', 'Nabweru Division', 'Nansana Division', 'Kyengera Town Council'],
+  'Kampala': ['Kawempe Division', 'Makindye Division', 'Nakawa Division', 'Rubaga Division', 'Kampala Central Division', 'Lubaga Division'],
+  'Mukono': ['Mukono Municipality', 'Mukono North Sub-County', 'Mukono South Sub-County', 'Seeta Sub-County', 'Ssi Sub-County', 'Goma Sub-County', 'Semyebenye Sub-County'],
+  'Luwero': ['Luwero Municipality', 'Luwero Town Council', 'Luwero Sub-County', 'Wobulenzi Town Council', 'Wahraka Sub-County', 'Katikamu Sub-County', 'Kamira Sub-County', 'Madudu Sub-County'],
+  'Mbale': ['Mbale Municipality', 'Mbale Town Council', 'Mbale Sub-County', 'Busano Sub-County', 'Namwezi Sub-County', 'Bufuka Sub-County'],
+  'Masaka': ['Masaka Municipality', 'Masaka Town Council', 'Masaka East Sub-County', 'Masaka South Sub-County', 'Kiyindi Sub-County', 'Nyendo Sub-County', 'Kasome Sub-County']
+};
+
+const PARISHES_BY_SUB_COUNTY = {
+  'Bussi Sub-County': ['Balabala', 'Bussi', 'Gulwe', 'Tebankiza', 'Zzinga'],
+  'Kakiri Sub-County': ['Kikandwa', 'Luwunga', 'Kamuli', 'Sentema', 'Lubbe', 'Buwanuka', 'Magoggo', 'Nampunge'],
+  'Kakiri Town Council (parishes / wards)': ['Bukalango', 'Busujja', 'Kakiri', 'Kikubampanga', 'Lugeye', 'Nakyelongoosa'],
+  'Kasanje Sub-County': ['Bulumbu', 'Jjungo', 'Kasanje', 'Mako', 'Sokolo', 'Ssazi', 'Zziba'],
+  'Katabi Town Council': ['Kabale', 'Kisubi', 'Kitala', 'Nalugala', 'Nkumba'],
+  'Masuliita Sub-County': ['Bbale Mukwenda', 'Kyengeza', 'Lwemwedde', 'Manze', 'Nakikungube', 'Tumbaali'],
+  'Masulita Town Council': ['Kabale', 'Kanzize', 'Katikamu', 'Lugungudde', 'Masulita'],
+  'Mende Sub-County': ['Bakka', 'Banda', 'Kaliiti', 'Mende', 'Namusera'],
+  'Namayumba Sub-County': ['Bbembe', 'Bukondo', 'Kanziro', 'Kitayita', 'Kyasa', 'Nakedde'],
+  'Namayumba Town Council': ['Kyampisi', 'Kyanuuna', 'Luguzi', 'Luttisi'],
+  'Kajjansi Town Council': ['Bulwanyi', 'Bweya', 'Kitende', 'Nakawuka', 'Namulanda', 'Nankonge', 'Ngongolo', 'Nkungulutale', 'Nsaggu', 'Ssisa', 'Wamala'],
+  'Wakiso Sub-County': ['Bukasa', 'Buloba', 'Kyebando', 'Lukwanga', 'Nakabugo', 'Ssumbwe'],
+  'Wakiso Town Council': ['Gombe', 'Kasengejje', 'Kavumba', 'Kisimbiri', 'Mpunga', 'Naluvule', 'Namusera'],
+  'Wakiso — Division A (Wakiso Town Division A)': ['Central', 'Katabi'],
+  'Wakiso — Division B (Wakiso Town Division B)': ['Kigungu', 'Kiwafu'],
+  'Bweyogerere Division': ['Bweyogerere'],
+  'Kira Division': ['Kimwanyi', 'Kira'],
+  'Namugongo Division': ['Kireka', 'Kyaliwajjala'],
+  'Kasangati Town Council': ['Bulamu', 'Gayaza', 'Kabubbu', 'Katadde', 'Kiteezi', 'Masooli', 'Nangabo', 'Wampeewo', 'Wattuba'],
+  'Bunamwaya Division': ['Bunamwaya', 'Mutundwe'],
+  'Masajja Division': ['Busabala', 'Masajja', 'Namasuba'],
+  'Ndejje Division': ['Mutungo', 'Ndejje', 'Seguku'],
+  'Busukuma Division': ['Busukuma', 'Guluddene'],
+  'Gombe Division': ['Buwambo', 'Gombe', 'Kavule', 'Kiryamuli', 'Matugga', 'Migadde', 'Mwereerwe', 'Nasse', 'Ssanga', 'Tikalu', 'Wambale'],
+  'Nabweru Division': ['Kawanda', 'Maganjo', 'Nakyesanja', 'Wamala'],
+  'Nansana Division': ['Ochieng', 'Kazo', 'Nabweru North', 'Nabweru South', 'Nansana East', 'Nansana West'],
+  'Kyengera Town Council': ['Buddo', 'Kasenge', 'Katereke', 'Kikajjo', 'Kitemu-Kisozi', 'Kyengera Town Board', 'Maya', 'Nabbingo', 'Nanziga', 'Nsangi'],
+  'Kawempe Division': ['Makerere', 'Wandegeya', 'Mulago', 'Nansana'],
+  'Makindye Division': ['Kibuli', 'Makindye', 'Nsambya', 'Mengo'],
+  'Nakawa Division': ['Bugolobi', 'Mbuya', 'Naguru', 'Naalya'],
+  'Rubaga Division': ['Rubaga', 'Kabowa', 'Kabalagala', 'Nateete'],
+  'Kampala Central Division': ['Central', 'Komamboga', 'Kisenyi'],
+  'Lubaga Division': ['Lubaga', 'Kasubi', 'Mulago', 'Wampewo'],
+  'Mukono Municipality': ['Mukono Central', 'Mukono East', 'Mukono West'],
+  'Mukono North Sub-County': ['Buwenda', 'Lugazi', 'Namike'],
+  'Mukono South Sub-County': ['Bukungu', 'Kiwoko', 'Njeru'],
+  'Seeta Sub-County': ['Seeta East', 'Seeta West', 'Balawoli'],
+  'Ssi Sub-County': ['Ssi Central', 'Ssi South'],
+  'Goma Sub-County': ['Goma', 'Nakyesanja'],
+  'Semyebenye Sub-County': ['Semyebenye', 'Kigula'],
+  'Luwero Municipality': ['Luwero Town', 'Luwero Central'],
+  'Luwero Town Council': ['Town East', 'Town West'],
+  'Luwero Sub-County': ['Luwero Central', 'Luwero South'],
+  'Wobulenzi Town Council': ['Wobulenzi Central', 'Wobulenzi West'],
+  'Wahraka Sub-County': ['Wahraka Central', 'Wahraka South'],
+  'Katikamu Sub-County': ['Katikamu Central', 'Katikamu North'],
+  'Kamira Sub-County': ['Kamira East', 'Kamira West'],
+  'Madudu Sub-County': ['Madudu Central', 'Madudu South'],
+  'Mbale Municipality': ['Mbale Central', 'Mbale East'],
+  'Mbale Town Council': ['Mbale Town'],
+  'Mbale Sub-County': ['Mbale North', 'Mbale South'],
+  'Busano Sub-County': ['Busano', 'Simu'],
+  'Namwezi Sub-County': ['Namwezi', 'Buteza'],
+  'Bufuka Sub-County': ['Bufuka', 'Mutoto'],
+  'Masaka Municipality': ['Masaka Central', 'Masaka West'],
+  'Masaka Town Council': ['Masaka Town'],
+  'Masaka East Sub-County': ['Masaka East Central', 'Masaka East South'],
+  'Masaka South Sub-County': ['Masaka South Central', 'Masaka South West'],
+  'Kiyindi Sub-County': ['Kiyindi Central', 'Kiyindi North'],
+  'Nyendo Sub-County': ['Nyendo Central', 'Nyendo East'],
+  'Kasome Sub-County': ['Kasome Central', 'Kasome East']
 };
 
 const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
@@ -2071,9 +2123,9 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
     if (!isOpen) return null;
 
     const districtOptions = Object.keys(LOCATION_DATA);
-    const subcountyOptions = formData.district ? Object.keys(LOCATION_DATA[formData.district].subcounties) : [];
+    const subcountyOptions = formData.district ? (LOCATION_DATA[formData.district] || []) : [];
     const parishOptions = (formData.district && formData.subcounty)
-        ? (LOCATION_DATA[formData.district].subcounties[formData.subcounty] || [])
+        ? (PARISHES_BY_SUB_COUNTY[formData.subcounty] || [])
         : [];
 
     return (

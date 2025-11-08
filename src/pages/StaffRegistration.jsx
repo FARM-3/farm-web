@@ -5,6 +5,86 @@ import { useNavigate, useLocation } from 'react-router-dom';
 // API endpoint for staff registration
 const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
 
+// Comprehensive location data - Districts with Sub-Counties
+const LOCATION_DATA = {
+  'Wakiso': ['Bussi Sub-County', 'Kakiri Sub-County', 'Kakiri Town Council', 'Kasanje Sub-County', 'Katabi Town Council', 'Masuliita Sub-County', 'Masulita Town Council', 'Mende Sub-County', 'Namayumba Sub-County', 'Namayumba Town Council', 'Kajjansi Town Council', 'Wakiso Sub-County', 'Wakiso Town Council', 'Wakiso — Division A', 'Wakiso — Division B', 'Bweyogerere Division', 'Kira Division', 'Namugongo Division', 'Kasangati Town Council', 'Bunamwaya Division', 'Masajja Division', 'Ndejje Division', 'Busukuma Division', 'Gombe Division', 'Nabweru Division', 'Nansana Division', 'Kyengera Town Council'],
+  'Kampala': ['Kawempe Division', 'Makindye Division', 'Nakawa Division', 'Rubaga Division', 'Kampala Central Division', 'Lubaga Division'],
+  'Mukono': ['Mukono Municipality', 'Mukono North Sub-County', 'Mukono South Sub-County', 'Seeta Sub-County', 'Ssi Sub-County', 'Goma Sub-County', 'Semyebenye Sub-County'],
+  'Luwero': ['Luwero Municipality', 'Luwero Town Council', 'Luwero Sub-County', 'Wobulenzi Town Council', 'Wahraka Sub-County', 'Katikamu Sub-County', 'Kamira Sub-County', 'Madudu Sub-County'],
+  'Mbale': ['Mbale Municipality', 'Mbale Town Council', 'Mbale Sub-County', 'Busano Sub-County', 'Namwezi Sub-County', 'Bufuka Sub-County'],
+  'Masaka': ['Masaka Municipality', 'Masaka Town Council', 'Masaka East Sub-County', 'Masaka South Sub-County', 'Kiyindi Sub-County', 'Nyendo Sub-County', 'Kasome Sub-County']
+};
+
+// Parishes by sub-county
+const PARISHES_BY_SUB_COUNTY = {
+  'Bussi Sub-County': ['Balabala', 'Bussi', 'Gulwe', 'Tebankiza', 'Zzinga'],
+  'Kakiri Sub-County': ['Kikandwa', 'Luwunga', 'Kamuli', 'Sentema', 'Lubbe', 'Buwanuka', 'Magoggo', 'Nampunge'],
+  'Kakiri Town Council (parishes / wards)': ['Bukalango', 'Busujja', 'Kakiri', 'Kikubampanga', 'Lugeye', 'Nakyelongoosa'],
+  'Kasanje Sub-County': ['Bulumbu', 'Jjungo', 'Kasanje', 'Mako', 'Sokolo', 'Ssazi', 'Zziba'],
+  'Katabi Town Council': ['Kabale', 'Kisubi', 'Kitala', 'Nalugala', 'Nkumba'],
+  'Masuliita Sub-County': ['Bbale Mukwenda', 'Kyengeza', 'Lwemwedde', 'Manze', 'Nakikungube', 'Tumbaali'],
+  'Masulita Town Council': ['Kabale', 'Kanzize', 'Katikamu', 'Lugungudde', 'Masulita'],
+  'Mende Sub-County': ['Bakka', 'Banda', 'Kaliiti', 'Mende', 'Namusera'],
+  'Namayumba Sub-County': ['Bbembe', 'Bukondo', 'Kanziro', 'Kitayita', 'Kyasa', 'Nakedde'],
+  'Namayumba Town Council': ['Kyampisi', 'Kyanuuna', 'Luguzi', 'Luttisi'],
+  'Kajjansi Town Council': ['Bulwanyi', 'Bweya', 'Kitende', 'Nakawuka', 'Namulanda', 'Nankonge', 'Ngongolo', 'Nkungulutale', 'Nsaggu', 'Ssisa', 'Wamala'],
+  'Wakiso Sub-County': ['Bukasa', 'Buloba', 'Kyebando', 'Lukwanga', 'Nakabugo', 'Ssumbwe'],
+  'Wakiso Town Council': ['Gombe', 'Kasengejje', 'Kavumba', 'Kisimbiri', 'Mpunga', 'Naluvule', 'Namusera'],
+  'Wakiso — Division A (Wakiso Town Division A)': ['Central', 'Katabi'],
+  'Wakiso — Division B (Wakiso Town Division B)': ['Kigungu', 'Kiwafu'],
+  'Bweyogerere Division': ['Bweyogerere'],
+  'Kira Division': ['Kimwanyi', 'Kira'],
+  'Namugongo Division': ['Kireka', 'Kyaliwajjala'],
+  'Kasangati Town Council': ['Bulamu', 'Gayaza', 'Kabubbu', 'Katadde', 'Kiteezi', 'Masooli', 'Nangabo', 'Wampeewo', 'Wattuba'],
+  'Bunamwaya Division': ['Bunamwaya', 'Mutundwe'],
+  'Masajja Division': ['Busabala', 'Masajja', 'Namasuba'],
+  'Ndejje Division': ['Mutungo', 'Ndejje', 'Seguku'],
+  'Busukuma Division': ['Busukuma', 'Guluddene'],
+  'Gombe Division': ['Buwambo', 'Gombe', 'Kavule', 'Kiryamuli', 'Matugga', 'Migadde', 'Mwereerwe', 'Nasse', 'Ssanga', 'Tikalu', 'Wambale'],
+  'Nabweru Division': ['Kawanda', 'Maganjo', 'Nakyesanja', 'Wamala'],
+  'Nansana Division': ['Ochieng', 'Kazo', 'Nabweru North', 'Nabweru South', 'Nansana East', 'Nansana West'],
+  'Kyengera Town Council': ['Buddo', 'Kasenge', 'Katereke', 'Kikajjo', 'Kitemu-Kisozi', 'Kyengera Town Board', 'Maya', 'Nabbingo', 'Nanziga', 'Nsangi'],
+  // Kampala divisions
+  'Kawempe Division': ['Makerere', 'Wandegeya', 'Mulago', 'Nansana'],
+  'Makindye Division': ['Kibuli', 'Makindye', 'Nsambya', 'Mengo'],
+  'Nakawa Division': ['Bugolobi', 'Mbuya', 'Naguru', 'Naalya'],
+  'Rubaga Division': ['Rubaga', 'Kabowa', 'Kabalagala', 'Nateete'],
+  'Kampala Central Division': ['Central', 'Komamboga', 'Kisenyi'],
+  'Lubaga Division': ['Lubaga', 'Kasubi', 'Mulago', 'Wampewo'],
+  // Mukono sub-counties
+  'Mukono Municipality': ['Mukono Central', 'Mukono East', 'Mukono West'],
+  'Mukono North Sub-County': ['Buwenda', 'Lugazi', 'Namike'],
+  'Mukono South Sub-County': ['Bukungu', 'Kiwoko', 'Njeru'],
+  'Seeta Sub-County': ['Seeta East', 'Seeta West', 'Balawoli'],
+  'Ssi Sub-County': ['Ssi Central', 'Ssi South'],
+  'Goma Sub-County': ['Goma', 'Nakyesanja'],
+  'Semyebenye Sub-County': ['Semyebenye', 'Kigula'],
+  // Luwero sub-counties
+  'Luwero Municipality': ['Luwero Town', 'Luwero Central'],
+  'Luwero Town Council': ['Town East', 'Town West'],
+  'Luwero Sub-County': ['Luwero Central', 'Luwero South'],
+  'Wobulenzi Town Council': ['Wobulenzi Central', 'Wobulenzi West'],
+  'Wahraka Sub-County': ['Wahraka Central', 'Wahraka South'],
+  'Katikamu Sub-County': ['Katikamu Central', 'Katikamu North'],
+  'Kamira Sub-County': ['Kamira East', 'Kamira West'],
+  'Madudu Sub-County': ['Madudu Central', 'Madudu South'],
+  // Mbale sub-counties
+  'Mbale Municipality': ['Mbale Central', 'Mbale East'],
+  'Mbale Town Council': ['Mbale Town'],
+  'Mbale Sub-County': ['Mbale North', 'Mbale South'],
+  'Busano Sub-County': ['Busano', 'Simu'],
+  'Namwezi Sub-County': ['Namwezi', 'Buteza'],
+  'Bufuka Sub-County': ['Bufuka', 'Mutoto'],
+  // Masaka sub-counties
+  'Masaka Municipality': ['Masaka Central', 'Masaka West'],
+  'Masaka Town Council': ['Masaka Town'],
+  'Masaka East Sub-County': ['Masaka East Central', 'Masaka East South'],
+  'Masaka South Sub-County': ['Masaka South Central', 'Masaka South West'],
+  'Kiyindi Sub-County': ['Kiyindi Central', 'Kiyindi North'],
+  'Nyendo Sub-County': ['Nyendo Central', 'Nyendo East'],
+  'Kasome Sub-County': ['Kasome Central', 'Kasome East']
+};
+
 const CoffeeColors = {
   SCREEN_BG: '#FFF8F6',
   LIGHT_BG: '#FEEFEA',
@@ -94,7 +174,28 @@ function StaffRegistration() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+
+    // Fix: Reset dependent fields when district changes
+    if (name === 'district') {
+      setForm(prev => ({
+        ...prev,
+        [name]: value,
+        subcounty: '', // Reset subcounty when district changes
+        parish: '' // Reset parish when subcounty changes
+      }));
+    }
+    // Fix: Reset parish when subcounty changes
+    else if (name === 'subcounty') {
+      setForm(prev => ({
+        ...prev,
+        [name]: value,
+        parish: '' // Reset parish when subcounty changes
+      }));
+    }
+    else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
+
     setMessage(''); // Clear any previous messages
 
     if (touched[name]) {
@@ -455,11 +556,10 @@ function StaffRegistration() {
                     className="w-full p-4 rounded-lg focus:outline-none transition-colors text-lg"
                     style={getInputStyle('district')}
                   >
-                    <option value="">Select</option>
-                    <option value="Kampala">Kampala</option>
-                    <option value="Wakiso">Wakiso</option>
-                    <option value="Mukono">Mukono</option>
-                    <option value="Mpigi">Mpigi</option>
+                    <option value="">Select District</option>
+                    {Object.keys(LOCATION_DATA).map((district) => (
+                      <option key={district} value={district}>{district}</option>
+                    ))}
                   </select>
                   {touched.district && errors.district && (
                     <p className="text-sm mt-2" style={{ color: CoffeeColors.ERROR_RED }}>
@@ -476,13 +576,14 @@ function StaffRegistration() {
                     value={form.subcounty}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    className="w-full p-4 rounded-lg focus:outline-none transition-colors text-lg"
+                    disabled={!form.district}
+                    className="w-full p-4 rounded-lg focus:outline-none transition-colors text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     style={getInputStyle('subcounty')}
                   >
-                    <option value="">Select</option>
-                    <option value="Nakawa">Nakawa</option>
-                    <option value="Kawempe">Kawempe</option>
-                    <option value="Makindye">Makindye</option>
+                    <option value="">Select Sub-County</option>
+                    {form.district && LOCATION_DATA[form.district]?.map((subcounty) => (
+                      <option key={subcounty} value={subcounty}>{subcounty}</option>
+                    ))}
                   </select>
                   {touched.subcounty && errors.subcounty && (
                     <p className="text-sm mt-2" style={{ color: CoffeeColors.ERROR_RED }}>
@@ -503,13 +604,14 @@ function StaffRegistration() {
                     value={form.parish}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    className="w-full p-4 rounded-lg focus:outline-none transition-colors text-lg"
+                    disabled={!form.subcounty}
+                    className="w-full p-4 rounded-lg focus:outline-none transition-colors text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     style={getInputStyle('parish')}
                   >
-                    <option value="">Select</option>
-                    <option value="Bugolobi">Bugolobi</option>
-                    <option value="Mbuya">Mbuya</option>
-                    <option value="Naguru">Naguru</option>
+                    <option value="">Select Parish</option>
+                    {form.subcounty && PARISHES_BY_SUB_COUNTY[form.subcounty]?.map((parish) => (
+                      <option key={parish} value={parish}>{parish}</option>
+                    ))}
                   </select>
                   {touched.parish && errors.parish && (
                     <p className="text-sm mt-2" style={{ color: CoffeeColors.ERROR_RED }}>
