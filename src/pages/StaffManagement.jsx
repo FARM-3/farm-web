@@ -43,6 +43,14 @@
 // const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
 //     const today = new Date().toISOString().slice(0, 10);
 
+//     // Helper function to format number with commas
+//     const formatNumberWithCommas = (value) => {
+//         if (!value && value !== 0) return '';
+//         // Remove any existing commas and format
+//         const num = value.toString().replace(/,/g, '');
+//         return Number(num).toLocaleString('en-US');
+//     };
+
 //     const normalizeStaff = (s) => {
 //         if (!s) return {
 //             first_name: '',
@@ -67,9 +75,8 @@
 //             parish: s.parish || '',
 //             village: s.village || '',
 //             employment_status: s.employment_status || '',
-//             // support both keys coming from different sources
 //             hire_date: s.hire_date || s.date_hired || today,
-//             salary: s.salary || '',
+//             salary: s.salary ? formatNumberWithCommas(s.salary) : '',
 //         };
 //     };
 
@@ -111,8 +118,8 @@
 //             case 'gender':
 //                 return ['Male', 'Female'].includes(value);
 //             case 'nin':
-//                 // Must be exactly 14 characters, alphanumeric only (letters and numbers, no symbols)
-//                 return v.length === 14 && /^[a-zA-Z0-9]{14}$/.test(v);
+//                 // Must start with CM or CF (uppercase) and be exactly 14 alphanumeric characters
+//                 return v.length === 14 && /^(CM|CF)[A-Za-z0-9]{12}$/.test(v);
 //             case 'district':
 //             case 'subcounty':
 //             case 'parish':
@@ -120,9 +127,10 @@
 //             case 'village':
 //                 return v.length >= 2;
 //             case 'salary':
-//                 // Salary is required and must be a valid positive number
-//                 if (v === '') return false; // Required field
-//                 const salaryNum = parseFloat(v);
+//                 // Monthly Salary - Remove commas for validation
+//                 const rawSalary = v.replace(/,/g, '');
+//                 if (rawSalary === '') return false;
+//                 const salaryNum = parseFloat(rawSalary);
 //                 return !isNaN(salaryNum) && salaryNum >= 0;
 //             case 'employment_status':
 //                 return ['Full-time', 'Part-time', 'Contract', 'Seasonal', ].includes(value);
@@ -141,8 +149,31 @@
 
 //     const handleChange = (e) => {
 //         const { name, value } = e.target;
+        
 //         setFormData(prev => {
-//             const next = { ...prev, [name]: value };
+//             const next = { ...prev };
+            
+//             if (name === 'salary') {
+//                 // For salary field, format with commas as user types
+//                 let formattedValue = value;
+                
+//                 // Only format if it's a valid number input
+//                 if (value && /^[0-9,]*$/.test(value)) {
+//                     // Remove all commas, then format with commas
+//                     const rawValue = value.replace(/,/g, '');
+//                     if (rawValue === '') {
+//                         formattedValue = '';
+//                     } else {
+//                         formattedValue = Number(rawValue).toLocaleString('en-US');
+//                     }
+//                 }
+                
+//                 next[name] = formattedValue;
+//             } else {
+//                 next[name] = value;
+//             }
+            
+//             // Handle location cascading updates
 //             if (name === 'district') {
 //                 next.subcounty = '';
 //                 next.parish = '';
@@ -150,9 +181,13 @@
 //             if (name === 'subcounty') {
 //                 next.parish = '';
 //             }
+            
 //             return next;
 //         });
-//         setValidation(prev => ({ ...prev, [name]: validateField(name, value) }));
+        
+//         // For validation, use the raw value (without commas)
+//         const rawValue = name === 'salary' ? value.replace(/,/g, '') : value;
+//         setValidation(prev => ({ ...prev, [name]: validateField(name, rawValue) }));
 //     };
 
 //     const getInputClass = (field, withIcon = false, isSelect = false) => {
@@ -173,7 +208,9 @@
 //         const newValidation = {};
 //         let allValid = true;
 //         for (const f of fieldsToCheck) {
-//             const ok = validateField(f, formData[f]);
+//             // For salary, use raw value (without commas) for validation
+//             const value = f === 'salary' ? formData[f].replace(/,/g, '') : formData[f];
+//             const ok = validateField(f, value);
 //             newValidation[f] = ok;
 //             if (!ok) allValid = false;
 //         }
@@ -185,8 +222,11 @@
 
 //         setIsSubmitting(true);
 
+//         // Prepare data for saving - convert salary back to raw number
 //         const resultData = {
 //             ...formData,
+//             // Convert formatted salary back to raw number for storage
+//             salary: formData.salary ? parseFloat(formData.salary.replace(/,/g, '')) : '',
 //             // preserve original id/staff_id when editing (if provided)
 //             id: staffData?.id || Date.now() + Math.random(),
 //             staff_id: staffData?.staff_id || `RF${Math.floor(Math.random() * 900) + 100}`
@@ -300,7 +340,7 @@
 //                                     placeholder="14 alphanumeric characters"
 //                                     className={getInputClass('nin')}
 //                                 />
-//                                 {validation.nin === false && <p className="mt-1 text-xs text-red-600">NIN must be exactly 14 alphanumeric characters (letters and numbers only, no symbols).</p>}
+//                                 {validation.nin === false && <p className="mt-1 text-xs text-red-600">NIN must start with CM or CF and be exactly 14 alphanumeric characters.</p>}
 //                             </div>
 //                         </div>
 //                     </section>
@@ -476,18 +516,16 @@
 //                             </div>
 
 //                             <div>
-//                                 <label className="block text-sm font-medium text-gray-700 mb-1">Salary (UGX)</label>
+//                                 <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Salary (UGX)</label>
 //                                 <input
 //                                     name="salary"
-//                                     type="number"
+//                                     type="text" // Changed from "number" to "text" to allow commas
 //                                     value={formData.salary}
 //                                     onChange={handleChange}
-//                                     placeholder="e.g., 500000"
-//                                     min="0"
-//                                     step="1000"
+//                                     placeholder="e.g., 500,000"
 //                                     className={getInputClass('salary')}
 //                                 />
-//                                 {validation.salary === false && <p className="mt-1 text-xs text-red-600">Salary is required and must be a valid positive number.</p>}
+//                                 {validation.salary === false && <p className="mt-1 text-xs text-red-600">Monthly Salary is required and must be a valid positive number.</p>}
 //                             </div>
 //                         </div>
 //                     </section>
@@ -540,7 +578,7 @@
 //     { key: 'nin', label: 'NIN', type: 'string' },
 //     { key: 'district', label: 'District', type: 'string' },
 //     { key: 'hire_date', label: 'Hire Date', type: 'date' },
-//     { key: 'salary', label: 'Salary (UGX)', type: 'number' },
+//     { key: 'salary', label: 'Monthly Salary (UGX)', type: 'number' },
 //     { key: 'actions', label: 'Actions', type: 'actions' },
 // ];
 
@@ -693,6 +731,7 @@
 //             gender: savedStaffData.gender?.trim() || '',
 //             date_hired: savedStaffData.hire_date || savedStaffData.date_hired || '',
 //             employment_type: savedStaffData.employment_status || 'Full-time', // Use exact value from form
+//             salary: savedStaffData.salary || 0, // Salary is already a number from the modal
 //             is_active: true
 //         };
 
@@ -707,10 +746,10 @@
 //         }
 
 //         // Validate NIN pattern (alphanumeric only, no symbols)
-//         const ninPattern = /^[A-Za-z0-9]{14}$/;
+//         const ninPattern = /^(CM|CF)[A-Za-z0-9]{12}$/;
 //         if (!ninPattern.test(savedStaffData.nin?.trim() || '')) {
 //             console.error('Invalid NIN format:', savedStaffData.nin);
-//             alert('Invalid NIN format\n\nNational ID must be exactly 14 alphanumeric characters (letters and numbers only).');
+//             alert('Invalid NIN format\n\nNational ID must start with CM or CF and be exactly 14 alphanumeric characters.');
 //             return;
 //         }
 
@@ -747,8 +786,12 @@
 //                 const updatedStaff = await response.json();
 //                 console.log('Staff updated successfully:', updatedStaff);
 
-//                 // Update local state
-//                 const staffWithDateHired = { ...updatedStaff, date_hired: updatedStaff.date_hired };
+//                 // Update local state - merge API response with our saved data to ensure salary is included
+//                 const staffWithDateHired = {
+//                     ...updatedStaff,
+//                     date_hired: updatedStaff.date_hired,
+//                     salary: savedStaffData.salary // Ensure salary is preserved from our form data
+//                 };
 //                 const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
 //                 if (index > -1) {
 //                     MOCK_STAFF_DATA[index] = { ...staffWithDateHired };
@@ -799,9 +842,13 @@
 //                 const newStaff = await response.json();
 //                 console.log('Staff created successfully:', newStaff);
 
-//                 // Update local state with API-generated data
-//                 MOCK_STAFF_DATA.unshift(newStaff);
-//                 setStaff(prev => [newStaff, ...prev]);
+//                 // Update local state with API-generated data, ensuring salary is included
+//                 const newStaffWithSalary = {
+//                     ...newStaff,
+//                     salary: savedStaffData.salary // Ensure salary is preserved from our form data
+//                 };
+//                 MOCK_STAFF_DATA.unshift(newStaffWithSalary);
+//                 setStaff(prev => [newStaffWithSalary, ...prev]);
 
 //                 // Save to localStorage as backup
 //                 saveStaffDataToStorage(MOCK_STAFF_DATA);
@@ -937,7 +984,9 @@
 //                 <td className="px-6 py-3 text-left text-gray-600">{staffMember.nin || '-'}</td>
 //                 <td className="px-6 py-3 text-left text-gray-600">{staffMember.district || '-'}</td>
 //                 <td className="px-6 py-3 text-left text-gray-600">{staffMember.hire_date || staffMember.date_hired || 'N/A'}</td>
-//                 <td className="px-6 py-3 text-right text-gray-600">{staffMember.salary ? Number(staffMember.salary).toLocaleString() : '-'}</td>
+//                 <td className="px-6 py-3 text-right text-gray-600">
+//                     {staffMember.salary ? Number(staffMember.salary).toLocaleString() : '-'}
+//                 </td>
 //                 <td className="px-6 py-3 text-center">
 //                     <div className="flex items-center justify-center space-x-2">
 //                         <button onClick={() => handleEditStaff(staffMember)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors" title="Edit Staff Member">
@@ -1354,8 +1403,8 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             case 'gender':
                 return ['Male', 'Female'].includes(value);
             case 'nin':
-                // Must be exactly 14 characters, alphanumeric only (letters and numbers, no symbols)
-                return v.length === 14 && /^[a-zA-Z0-9]{14}$/.test(v);
+                // Must start with CM or CF (uppercase) and be exactly 14 alphanumeric characters
+                return v.length === 14 && /^(CM|CF)[A-Za-z0-9]{12}$/.test(v);
             case 'district':
             case 'subcounty':
             case 'parish':
@@ -1363,7 +1412,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             case 'village':
                 return v.length >= 2;
             case 'salary':
-                // Remove commas for validation
+                // Monthly Salary - Remove commas for validation
                 const rawSalary = v.replace(/,/g, '');
                 if (rawSalary === '') return false;
                 const salaryNum = parseFloat(rawSalary);
@@ -1576,7 +1625,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                                     placeholder="14 alphanumeric characters"
                                     className={getInputClass('nin')}
                                 />
-                                {validation.nin === false && <p className="mt-1 text-xs text-red-600">NIN must be exactly 14 alphanumeric characters (letters and numbers only, no symbols).</p>}
+                                {validation.nin === false && <p className="mt-1 text-xs text-red-600">NIN must start with CM or CF and be exactly 14 alphanumeric characters.</p>}
                             </div>
                         </div>
                     </section>
@@ -1752,7 +1801,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Salary (UGX)</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Salary (UGX)</label>
                                 <input
                                     name="salary"
                                     type="text" // Changed from "number" to "text" to allow commas
@@ -1761,7 +1810,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                                     placeholder="e.g., 500,000"
                                     className={getInputClass('salary')}
                                 />
-                                {validation.salary === false && <p className="mt-1 text-xs text-red-600">Salary is required and must be a valid positive number.</p>}
+                                {validation.salary === false && <p className="mt-1 text-xs text-red-600">Monthly Salary is required and must be a valid positive number.</p>}
                             </div>
                         </div>
                     </section>
@@ -1814,18 +1863,18 @@ const TABLE_HEADERS = [
     { key: 'nin', label: 'NIN', type: 'string' },
     { key: 'district', label: 'District', type: 'string' },
     { key: 'hire_date', label: 'Hire Date', type: 'date' },
-    { key: 'salary', label: 'Salary (UGX)', type: 'number' },
+    { key: 'salary', label: 'Monthly Salary (UGX)', type: 'number' },
     { key: 'actions', label: 'Actions', type: 'actions' },
 ];
 
-// INITIAL MOCK DATA - default staff records
+// FIXED: Added salary field to initial mock data
 const INITIAL_STAFF_DATA = [
-    { id: 1, staff_id: 'RF001', first_name: 'Billy', last_name: 'Banks', gender: 'Male', nin: 'CM004GDT777G88', district: 'Wakiso', date_hired: '2023-06-15' },
-    { id: 2, staff_id: 'RF002', first_name: 'Ivan', last_name: 'Koreta', gender: 'Male', nin: 'CM00566674632A', district: 'Wakiso', date_hired: '2024-11-20' },
-    { id: 3, staff_id: 'RF003', first_name: 'Jackson', last_name: 'Ssemengo', gender: 'Male', nin: 'CM004673H7645F', district: 'Wakiso', date_hired: '2024-05-07' },
-    { id: 4, staff_id: 'RF004', first_name: 'Justine', last_name: 'Natasha', gender: 'Female', nin: 'CF003674F7894A', district: 'Wakiso', date_hired: '2024-10-16' },
-    { id: 5, staff_id: 'RF005', first_name: 'Agnes', last_name: 'Nalubega', gender: 'Female', nin: 'CF003675N876B', district: 'Mpigi', date_hired: '2023-03-22' },
-    { id: 6, staff_id: 'RF006', first_name: 'Peter', last_name: 'Mwesigye', gender: 'Male', nin: 'CM004678P1234C', district: 'Mbarara', date_hired: '2024-01-10' },
+    { id: 1, staff_id: 'RF001', first_name: 'Billy', last_name: 'Banks', gender: 'Male', nin: 'CM004GDT777G88', district: 'Wakiso', date_hired: '2023-06-15', salary: 500000 },
+    { id: 2, staff_id: 'RF002', first_name: 'Ivan', last_name: 'Koreta', gender: 'Male', nin: 'CM00566674632A', district: 'Wakiso', date_hired: '2024-11-20', salary: 450000 },
+    { id: 3, staff_id: 'RF003', first_name: 'Jackson', last_name: 'Ssemengo', gender: 'Male', nin: 'CM004673H7645F', district: 'Wakiso', date_hired: '2024-05-07', salary: 600000 },
+    { id: 4, staff_id: 'RF004', first_name: 'Justine', last_name: 'Natasha', gender: 'Female', nin: 'CF003674F7894A', district: 'Wakiso', date_hired: '2024-10-16', salary: 550000 },
+    { id: 5, staff_id: 'RF005', first_name: 'Agnes', last_name: 'Nalubega', gender: 'Female', nin: 'CF003675N876B', district: 'Mpigi', date_hired: '2023-03-22', salary: 480000 },
+    { id: 6, staff_id: 'RF006', first_name: 'Peter', last_name: 'Mwesigye', gender: 'Male', nin: 'CM004678P1234C', district: 'Mbarara', date_hired: '2024-01-10', salary: 520000 },
 ];
 
 // Helper functions for localStorage persistence
@@ -1878,10 +1927,23 @@ function StaffPage() {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
             const normalized = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-            setStaff(normalized);
+            
+            // FIXED: Ensure all staff records have salary field
+            const staffWithSalary = normalized.map(staff => ({
+                ...staff,
+                salary: staff.salary || 0, // Default to 0 if missing
+                hire_date: staff.hire_date || staff.date_hired // Normalize date field
+            }));
+            
+            setStaff(staffWithSalary);
         } catch (err) {
             setError('Could not load data from API. Displaying mock data.');
-            setStaff(MOCK_STAFF_DATA);
+            // FIXED: Ensure mock data has salary
+            const mockWithSalary = MOCK_STAFF_DATA.map(staff => ({
+                ...staff,
+                salary: staff.salary || 0 // Add default salary if missing
+            }));
+            setStaff(mockWithSalary);
         } finally {
             setLoading(false);
         }
@@ -1917,6 +1979,11 @@ function StaffPage() {
                     const aDate = new Date(a.hire_date || a.date_hired || a[sortConfig.key] || 0);
                     const bDate = new Date(b.hire_date || b.date_hired || b[sortConfig.key] || 0);
                     return sortConfig.direction === 'ascending' ? aDate - bDate : bDate - aDate;
+                }
+                if (headerType === 'number') {
+                    const aNum = Number(aVal) || 0;
+                    const bNum = Number(bVal) || 0;
+                    return sortConfig.direction === 'ascending' ? aNum - bNum : bNum - aNum;
                 }
                 if (aVal < bVal) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aVal > bVal) return sortConfig.direction === 'ascending' ? 1 : -1;
@@ -1982,10 +2049,10 @@ function StaffPage() {
         }
 
         // Validate NIN pattern (alphanumeric only, no symbols)
-        const ninPattern = /^[A-Za-z0-9]{14}$/;
+        const ninPattern = /^(CM|CF)[A-Za-z0-9]{12}$/;
         if (!ninPattern.test(savedStaffData.nin?.trim() || '')) {
             console.error('Invalid NIN format:', savedStaffData.nin);
-            alert('Invalid NIN format\n\nNational ID must be exactly 14 alphanumeric characters (letters and numbers only).');
+            alert('Invalid NIN format\n\nNational ID must start with CM or CF and be exactly 14 alphanumeric characters.');
             return;
         }
 
@@ -2022,13 +2089,19 @@ function StaffPage() {
                 const updatedStaff = await response.json();
                 console.log('Staff updated successfully:', updatedStaff);
 
-                // Update local state
-                const staffWithDateHired = { ...updatedStaff, date_hired: updatedStaff.date_hired };
+                // FIXED: Update local state - ensure salary is properly preserved
+                const staffWithSalary = {
+                    ...updatedStaff,
+                    salary: savedStaffData.salary, // Explicitly preserve salary from form data
+                    hire_date: updatedStaff.hire_date || updatedStaff.date_hired,
+                    date_hired: updatedStaff.hire_date || updatedStaff.date_hired
+                };
+                
                 const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
                 if (index > -1) {
-                    MOCK_STAFF_DATA[index] = { ...staffWithDateHired };
+                    MOCK_STAFF_DATA[index] = { ...staffWithSalary };
                 }
-                setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithDateHired } : s));
+                setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithSalary } : s));
 
                 // Save to localStorage as backup
                 saveStaffDataToStorage(MOCK_STAFF_DATA);
@@ -2074,9 +2147,16 @@ function StaffPage() {
                 const newStaff = await response.json();
                 console.log('Staff created successfully:', newStaff);
 
-                // Update local state with API-generated data
-                MOCK_STAFF_DATA.unshift(newStaff);
-                setStaff(prev => [newStaff, ...prev]);
+                // FIXED: Update local state with API-generated data, ensuring salary is included
+                const newStaffWithSalary = {
+                    ...newStaff,
+                    salary: savedStaffData.salary, // Explicitly include salary from form data
+                    hire_date: newStaff.hire_date || newStaff.date_hired,
+                    date_hired: newStaff.hire_date || newStaff.date_hired
+                };
+                
+                MOCK_STAFF_DATA.unshift(newStaffWithSalary);
+                setStaff(prev => [newStaffWithSalary, ...prev]);
 
                 // Save to localStorage as backup
                 saveStaffDataToStorage(MOCK_STAFF_DATA);
@@ -2104,7 +2184,7 @@ function StaffPage() {
             }
 
             // Fallback to localStorage only
-            const staffWithDateHired = {
+            const staffWithSalary = {
                 ...savedStaffData,
                 date_hired: savedStaffData.hire_date || savedStaffData.date_hired
             };
@@ -2112,12 +2192,12 @@ function StaffPage() {
             if (staffToEdit) {
                 const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
                 if (index > -1) {
-                    MOCK_STAFF_DATA[index] = { ...staffWithDateHired };
+                    MOCK_STAFF_DATA[index] = { ...staffWithSalary };
                 }
-                setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithDateHired } : s));
+                setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithSalary } : s));
             } else {
-                MOCK_STAFF_DATA.unshift(staffWithDateHired);
-                setStaff(prev => [staffWithDateHired, ...prev]);
+                MOCK_STAFF_DATA.unshift(staffWithSalary);
+                setStaff(prev => [staffWithSalary, ...prev]);
             }
 
             saveStaffDataToStorage(MOCK_STAFF_DATA);
@@ -2172,6 +2252,9 @@ function StaffPage() {
     };
 
     const renderTableContent = () => {
+        // Add debug logging to see what data we have
+        console.log('Rendering staff data:', sortedStaff);
+        
         if (loading) {
             return (
                 <tr className='h-24'>
@@ -2203,30 +2286,35 @@ function StaffPage() {
             );
         }
 
-        return sortedStaff.map((staffMember, index) => (
-            <tr key={staffMember.id || index} className="border-b transition-colors duration-150 hover:bg-gray-50">
-                <td className="px-6 py-3 text-left font-medium text-gray-800">{staffMember.staff_id || 'N/A'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{staffMember.first_name || 'N/A'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{staffMember.last_name || 'N/A'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{staffMember.gender || '-'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{staffMember.nin || '-'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{staffMember.district || '-'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{staffMember.hire_date || staffMember.date_hired || 'N/A'}</td>
-                <td className="px-6 py-3 text-right text-gray-600">
-                    {staffMember.salary ? Number(staffMember.salary).toLocaleString() : '-'}
-                </td>
-                <td className="px-6 py-3 text-center">
-                    <div className="flex items-center justify-center space-x-2">
-                        <button onClick={() => handleEditStaff(staffMember)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors" title="Edit Staff Member">
-                            <Edit className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => { setStaffToDelete(staffMember); setShowDeleteModal(true); }} className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors" title="Delete Staff Member">
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        ));
+        return sortedStaff.map((staffMember, index) => {
+            // Debug each staff member's salary
+            console.log(`Staff ${staffMember.first_name} salary:`, staffMember.salary);
+            
+            return (
+                <tr key={staffMember.id || index} className="border-b transition-colors duration-150 hover:bg-gray-50">
+                    <td className="px-6 py-3 text-left font-medium text-gray-800">{staffMember.staff_id || 'N/A'}</td>
+                    <td className="px-6 py-3 text-left text-gray-600">{staffMember.first_name || 'N/A'}</td>
+                    <td className="px-6 py-3 text-left text-gray-600">{staffMember.last_name || 'N/A'}</td>
+                    <td className="px-6 py-3 text-left text-gray-600">{staffMember.gender || '-'}</td>
+                    <td className="px-6 py-3 text-left text-gray-600">{staffMember.nin || '-'}</td>
+                    <td className="px-6 py-3 text-left text-gray-600">{staffMember.district || '-'}</td>
+                    <td className="px-6 py-3 text-left text-gray-600">{staffMember.hire_date || staffMember.date_hired || 'N/A'}</td>
+                    <td className="px-6 py-3 text-right text-gray-600">
+                        {staffMember.salary ? Number(staffMember.salary).toLocaleString() : 'No salary'}
+                    </td>
+                    <td className="px-6 py-3 text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                            <button onClick={() => handleEditStaff(staffMember)} className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors" title="Edit Staff Member">
+                                <Edit className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => { setStaffToDelete(staffMember); setShowDeleteModal(true); }} className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors" title="Delete Staff Member">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            );
+        });
     };
 
     // Calculate KPI metrics
