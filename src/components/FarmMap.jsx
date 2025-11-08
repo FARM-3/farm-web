@@ -27,7 +27,7 @@ function FarmMap() {
 
         <Marker position={center}>
           <Popup>
-            🌾 <strong>My Farm</strong> <br /> Namayumba, Wakiso District
+             <strong>My Farm</strong> <br /> Namayumba, Wakiso District
           </Popup>
         </Marker>
       </MapContainer>
