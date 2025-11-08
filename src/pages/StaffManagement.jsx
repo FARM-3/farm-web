@@ -20,7 +20,7 @@ const CoffeeColors = {
     ERROR_RED: '#EA4335',
 };
 
-const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
+const STAFF_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/staff/`;
 
 const LOCATION_DATA = {
   'Wakiso': ['Bussi Sub-County', 'Kakiri Sub-County', 'Kakiri Town Council', 'Kasanje Sub-County', 'Katabi Town Council', 'Masuliita Sub-County', 'Masulita Town Council', 'Mende Sub-County', 'Namayumba Sub-County', 'Namayumba Town Council', 'Kajjansi Town Council', 'Wakiso Sub-County', 'Wakiso Town Council', 'Wakiso — Division A', 'Wakiso — Division B', 'Bweyogerere Division', 'Kira Division', 'Namugongo Division', 'Kasangati Town Council', 'Bunamwaya Division', 'Masajja Division', 'Ndejje Division', 'Busukuma Division', 'Gombe Division', 'Nabweru Division', 'Nansana Division', 'Kyengera Town Council'],
@@ -126,12 +126,12 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             gender: s.gender || '',
             nin: s.nin || '',
             district: s.district || '',
-            subcounty: s.subcounty || '',
+            subcounty: s.subcounty || s.sub_county || '',
             parish: s.parish || '',
             village: s.village || '',
-            employment_status: s.employment_status || '',
+            employment_status: s.employment_status || s.employment_type || '',
             hire_date: s.hire_date || s.date_hired || today,
-            salary: s.salary ? formatNumberWithCommas(s.salary) : '',
+            salary: s.salary || s.monthly_salary ? formatNumberWithCommas(s.salary || s.monthly_salary) : '',
         };
     };
 
@@ -890,8 +890,11 @@ function StaffPage() {
         };
 
         // Validate required fields
-        const requiredFields = ['first_name', 'last_name', 'nin', 'district', 'sub_county', 'parish', 'village', 'gender', 'date_hired'];
-        const missingFields = requiredFields.filter(field => !apiData[field]);
+        const requiredFields = ['first_name', 'last_name', 'nin', 'district', 'sub_county', 'parish', 'village', 'gender', 'date_hired', 'employment_type', 'monthly_salary'];
+        const missingFields = requiredFields.filter(field => {
+            const value = apiData[field];
+            return value === null || value === undefined || value === '' || (typeof value === 'number' && isNaN(value));
+        });
 
         if (missingFields.length > 0) {
             console.error('Missing required fields:', missingFields);
@@ -925,14 +928,21 @@ function StaffPage() {
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('API Error Response:', errorText);
+                    console.error('API Error Response Status:', response.status);
+                    console.error('API Error Response Body:', errorText);
+                    console.error('Payload sent:', JSON.stringify(apiData, null, 2));
+                    console.error('Response Content-Type:', response.headers.get('content-type'));
+
                     try {
                         const errorJson = JSON.parse(errorText);
                         console.error('API Error Details:', errorJson);
                         const errorMsg = Object.entries(errorJson).map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`).join('\n');
                         alert(`Failed to update staff:\n\n${errorMsg}`);
-                    } catch (e) {
-                        alert(`Failed to update staff\n\nServer responded with status ${response.status}:\n${errorText.substring(0, 200)}`);
+                    } catch (parseError) {
+                        console.error('Failed to parse error as JSON:', parseError);
+                        // If it's not JSON, show the raw error (probably HTML)
+                        const shortError = errorText.substring(0, 500);
+                        alert(`Failed to update staff\n\nServer Error ${response.status}:\n${shortError}`);
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
@@ -984,14 +994,21 @@ function StaffPage() {
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('API Error Response:', errorText);
+                    console.error('API Error Response Status:', response.status);
+                    console.error('API Error Response Body:', errorText);
+                    console.error('Payload sent:', JSON.stringify(apiData, null, 2));
+                    console.error('Response Content-Type:', response.headers.get('content-type'));
+
                     try {
                         const errorJson = JSON.parse(errorText);
                         console.error('API Error Details:', errorJson);
                         const errorMsg = Object.entries(errorJson).map(([key, val]) => `${key}: ${Array.isArray(val) ? val.join(', ') : val}`).join('\n');
                         alert(`Failed to create staff:\n\n${errorMsg}`);
-                    } catch (e) {
-                        alert(`Failed to create staff\n\nServer responded with status ${response.status}:\n${errorText.substring(0, 200)}`);
+                    } catch (parseError) {
+                        console.error('Failed to parse error as JSON:', parseError);
+                        // If it's not JSON, show the raw error (probably HTML)
+                        const shortError = errorText.substring(0, 500);
+                        alert(`Failed to create staff\n\nServer Error ${response.status}:\n${shortError}`);
                     }
                     throw new Error(`API Error: ${response.status}`);
                 }
