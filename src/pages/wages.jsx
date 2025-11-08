@@ -465,7 +465,8 @@ const Input = ({ type = 'text', name, id, value, onChange, placeholder, classNam
 const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     const safeInitial = initialData || {};
     const [form, setForm] = useState({
-        employee_id: safeInitial.employee_id || safeInitial.employee_name_id || '',
+        employee_id: safeInitial.employee_id || safeInitial.staff || '',
+        staff_id: safeInitial.staff_id || '',
         employee_name: safeInitial.employee_name || '',
         date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
         days_missed: safeInitial.days_missed || '',
@@ -494,7 +495,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         const daysWorked = 30 - missed;
         const amountPaid = dailyRate * daysWorked;
 
-        return Math.max(0, Math.round(amountPaid)); // Round to nearest whole number, minimum 0
+        // Round to nearest 100 to avoid remainder figures (e.g., 333,333 -> 333,300)
+        return Math.max(0, Math.round(amountPaid / 100) * 100);
     };
 
     useEffect(() => {
@@ -518,7 +520,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
             fetchStaff();
             const safeData = initialData || {};
             setForm({
-                employee_id: safeData.employee_id || safeData.employee_name_id || '',
+                employee_id: safeData.employee_id || safeData.staff || '',
+                staff_id: safeData.staff_id || '',
                 employee_name: safeData.employee_name || '',
                 date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
                 days_missed: safeData.days_missed || '',
@@ -535,6 +538,12 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     useEffect(() => {
         if (form.monthly_salary && form.days_missed !== '') {
             const calculatedAmount = calculateAmountPaid(form.monthly_salary, form.days_missed);
+            console.log('🧮 Auto-Calculation:', {
+                monthly_salary: form.monthly_salary,
+                days_missed: form.days_missed,
+                calculated_amount: calculatedAmount,
+                type: typeof calculatedAmount
+            });
             setForm(prev => ({ ...prev, amount_paid: calculatedAmount }));
         } else {
             setForm(prev => ({ ...prev, amount_paid: '' }));
@@ -636,15 +645,27 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         // Convert string values to proper numbers, ensuring no NaN values
         const daysMissed = String(form.days_missed).trim();
 
+        // Ensure amount_paid is a number, not a string
+        const amountPaid = typeof form.amount_paid === 'number'
+            ? form.amount_paid
+            : (parseFloat(form.amount_paid) || 0);
+
         const payload = {
             employee_name: form.employee_name, // Free-text employee name
             staff: form.employee_id, // Link to registered staff by staff_id (e.g., "RF001")
             date_of_payment: form.date_of_payment,
             days_missed: parseInt(daysMissed, 10) || 0,
-            amount_paid: form.amount_paid || 0, // Include calculated amount
+            amount_paid: amountPaid, // Include calculated amount (as number)
         };
 
-        console.log('Submitting payload:', JSON.stringify(payload, null, 2));
+        console.log('🔍 Form Data Before Payload:', {
+            monthly_salary: form.monthly_salary,
+            days_missed: form.days_missed,
+            amount_paid: form.amount_paid,
+            amount_paid_type: typeof form.amount_paid
+        });
+        console.log('📤 Submitting payload:', JSON.stringify(payload, null, 2));
+        console.log('💰 Amount Paid Value:', amountPaid, 'Type:', typeof amountPaid);
 
         try {
             // Get auth token from localStorage or sessionStorage
@@ -682,6 +703,14 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 console.log('📝 Payload that was sent:', payload);
                 console.log('🔑 Saved record ID:', savedData.id);
                 console.log('💰 Amount Paid (Frontend Calculated):', payload.amount_paid);
+                console.log('🔴 Amount Paid (Backend Returned):', savedData.amount_paid);
+
+                // Check if backend modified the amount
+                if (savedData.amount_paid !== payload.amount_paid) {
+                    console.warn('⚠️ WARNING: Backend changed amount_paid!');
+                    console.warn('   Sent:', payload.amount_paid);
+                    console.warn('   Received:', savedData.amount_paid);
+                }
 
                 setMessage(initialData ? 'You have successfully updated the wage record!' : 'You have successfully recorded a new wage!');
 
@@ -757,7 +786,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                                                 const monthlySalary = member.monthly_salary || member.base_pay || 0;
                                                 setForm({
                                                     ...form,
-                                                    employee_id: member.staff_id,
+                                                    employee_id: member.id, // Use the integer ID, not staff_id
+                                                    staff_id: member.staff_id, // Keep staff_id for display
                                                     employee_name: fullName,
                                                     monthly_salary: monthlySalary
                                                 });
@@ -968,6 +998,11 @@ function Wages() {
     const [searchTerm, setSearchTerm] = useState('');
     const itemsPerPage = 7;
 
+    // Helper function to round amount_paid to nearest 100
+    const roundAmountToHundred = (amount) => {
+        return Math.round(amount / 100) * 100;
+    };
+
     const fetchWages = useCallback(async (page = 1) => {
         setLoading(true);
         setError(null);
@@ -992,10 +1027,18 @@ function Wages() {
             console.log('📊 Wages fetched from API:', data);
             console.log('📈 Number of wage records:', data.results ? data.results.length : (Array.isArray(data) ? data.length : 0));
 
+            // Helper to round amounts in wage records
+            const roundWageAmounts = (wages) => {
+                return wages.map(wage => ({
+                    ...wage,
+                    amount_paid: roundAmountToHundred(wage.amount_paid)
+                }));
+            };
+
             // Handle both paginated and non-paginated responses
             if (data.results) {
                 // Paginated response
-                setWages(data.results);
+                setWages(roundWageAmounts(data.results));
                 setTotalPages(Math.ceil((data.count || 0) / itemsPerPage));
 
                 // Fetch all wages for KPI calculation
@@ -1005,20 +1048,20 @@ function Wages() {
                     });
                     if (allResponse.ok) {
                         const allData = await allResponse.json();
-                        setAllWagesForKPI(allData.results || allData);
+                        setAllWagesForKPI(roundWageAmounts(allData.results || allData));
                     } else {
-                        setAllWagesForKPI(data.results);
+                        setAllWagesForKPI(roundWageAmounts(data.results));
                     }
                 } else {
-                    setAllWagesForKPI(data.results);
+                    setAllWagesForKPI(roundWageAmounts(data.results));
                 }
             } else if (Array.isArray(data)) {
                 // Non-paginated response (array)
                 const startIndex = (page - 1) * itemsPerPage;
                 const paginatedData = data.slice(startIndex, startIndex + itemsPerPage);
-                setWages(paginatedData);
+                setWages(roundWageAmounts(paginatedData));
                 setTotalPages(Math.ceil(data.length / itemsPerPage));
-                setAllWagesForKPI(data);
+                setAllWagesForKPI(roundWageAmounts(data));
             } else {
                 setWages([]);
                 setTotalPages(1);
