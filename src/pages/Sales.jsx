@@ -69,8 +69,15 @@ const MODAL_COLORS = {
 };
 
 const formatUGX = (amount) => {
-    if (typeof amount !== 'number' || isNaN(amount)) return '0';
-    return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    if (typeof amount !== 'number' || isNaN(amount)) {
+        amount = Number(amount);
+        if (isNaN(amount)) return '0';
+    }
+    return amount.toLocaleString('en-US', { 
+        minimumFractionDigits: 0, 
+        maximumFractionDigits: 0,
+        useGrouping: true 
+    });
 };
 
 // --- SHARED COMPONENTS (Customized Button) ---
@@ -662,9 +669,31 @@ function SalesPage() {
         let sortableItems = [...base];
         if (sortConfig.key !== null) {
             sortableItems.sort((a, b) => {
-                const aValue = a[sortConfig.key];
-                const bValue = b[sortConfig.key];
-                
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+
+                // Handle date field mapping (date -> date_of_payment)
+                if (sortConfig.key === 'date') {
+                    aValue = a.date_of_payment || a.date;
+                    bValue = b.date_of_payment || b.date;
+                }
+
+                // Handle date sorting
+                const header = TABLE_HEADERS.find(h => h.key === sortConfig.key);
+                if (header?.type === 'date') {
+                    const dateA = new Date(aValue || 0);
+                    const dateB = new Date(bValue || 0);
+                    return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+                }
+
+                // Handle number sorting
+                if (header?.type === 'number') {
+                    const numA = parseFloat(aValue || 0);
+                    const numB = parseFloat(bValue || 0);
+                    return sortConfig.direction === 'ascending' ? numA - numB : numB - numA;
+                }
+
+                // Handle string sorting
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
@@ -884,7 +913,11 @@ function SalesPage() {
                 totalSales: 0,
                 averageOrderValue: 0,
                 totalOrders: 0,
-                uniqueCustomers: 0
+                uniqueCustomers: 0,
+                mostSoldItem: null,
+                mostSoldItemValue: 0,
+                weeklySales: 0,
+                weeklyOrderCount: 0
             };
         }
 
@@ -900,11 +933,66 @@ function SalesPage() {
         // Count unique customers
         const uniqueCustomers = new Set(sales.map(sale => sale.customer_name).filter(Boolean)).size;
 
+        // Calculate weekly sales (last 7 days)
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        const weeklySales = sales.reduce((sum, sale) => {
+            const saleDate = new Date(sale.date_of_payment || sale.date);
+            if (saleDate >= sevenDaysAgo && saleDate <= today) {
+                const amount = parseFloat(sale.total_amount || sale.amount || 0);
+                return sum + amount;
+            }
+            return sum;
+        }, 0);
+
+        const weeklyOrderCount = sales.filter(sale => {
+            const saleDate = new Date(sale.date_of_payment || sale.date);
+            return saleDate >= sevenDaysAgo && saleDate <= today;
+        }).length;
+
+        // Calculate most sold item by total value
+        const itemStats = {};
+        sales.forEach(sale => {
+            const item = sale.item;
+            if (!item) return;
+
+            const quantity = parseFloat(sale.quantity || 0);
+            const rate = parseFloat(sale.rate || 0);
+            const totalValue = quantity * rate;
+
+            if (!itemStats[item]) {
+                itemStats[item] = {
+                    totalQuantity: 0,
+                    totalValue: 0
+                };
+            }
+
+            itemStats[item].totalQuantity += quantity;
+            itemStats[item].totalValue += totalValue;
+        });
+
+        // Find the item with the highest total value
+        let mostSoldItem = null;
+        let mostSoldItemValue = 0;
+
+        Object.entries(itemStats).forEach(([item, stats]) => {
+            if (stats.totalValue > mostSoldItemValue) {
+                mostSoldItem = item;
+                mostSoldItemValue = stats.totalValue;
+            }
+        });
+
         return {
             totalSales,
             averageOrderValue,
             totalOrders: sales.length,
-            uniqueCustomers
+            uniqueCustomers,
+            mostSoldItem,
+            mostSoldItemValue,
+            weeklySales,
+            weeklyOrderCount
         };
     };
 
@@ -939,7 +1027,7 @@ function SalesPage() {
             <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
-                        Average Order Value
+                        Most Sold Item
                     </h3>
                     <Tag size={20} style={{ color: '#8B5A3C' }} />
                 </div>
@@ -951,11 +1039,17 @@ function SalesPage() {
                 ) : (
                     <div className="mt-2">
                         <div className="flex flex-col gap-1">
-                            <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
-                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.averageOrderValue)}</p>
+                            <p className="text-sm font-medium" style={{ color: '#888' }}>
+                                {kpis.mostSoldItem || 'N/A'}
+                            </p>
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>
+                                {kpis.mostSoldItem ? formatUGX(kpis.mostSoldItemValue) : '0'}
+                            </p>
                         </div>
                         <div className="mt-3 text-xs">
-                            <p style={{ color: '#666' }}>Per transaction</p>
+                            <p style={{ color: '#666' }}>
+                                {kpis.mostSoldItem ? 'Total value (UGX)' : 'No sales data'}
+                            </p>
                         </div>
                     </div>
                 )}
@@ -964,9 +1058,9 @@ function SalesPage() {
             <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
-                        Unique Customers
+                        Total Weekly Sales
                     </h3>
-                    <User size={20} style={{ color: '#8B5A3C' }} />
+                    <TrendingUpIcon size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
@@ -976,10 +1070,11 @@ function SalesPage() {
                 ) : (
                     <div className="mt-2">
                         <div className="flex flex-col gap-1">
-                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.uniqueCustomers}</p>
+                            <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.weeklySales)}</p>
                         </div>
                         <div className="mt-3 text-xs">
-                            <p style={{ color: '#666' }}>Registered customers</p>
+                            <p style={{ color: '#666' }}>Orders this week: {kpis.weeklyOrderCount}</p>
                         </div>
                     </div>
                 )}
@@ -1046,6 +1141,13 @@ function SalesPage() {
                                 className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
                             >
                                 <Trash2 className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => navigate(`/receipt?id=${sale.id}`)}
+                                className="text-green-600 hover:text-green-800 p-1 rounded-md hover:bg-green-50 transition-colors"
+                                title="View Receipt"
+                            >
+                                <ShoppingBag className="w-4 h-4" />
                             </button>
                         </div>
                     </td>

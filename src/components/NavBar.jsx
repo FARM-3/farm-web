@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { User, LogOut, Settings, Key } from 'lucide-react';
 
 // --- Coffee Theme Colors (matching login page) ---
 const CoffeeColors = {
@@ -26,6 +27,26 @@ const NavBar = () => {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [userProfile, setUserProfile] = useState({
+        name: localStorage.getItem('userName') || '',
+        phone: localStorage.getItem('userPhone') || '',
+        role: localStorage.getItem('userRole') || '',
+    });
+    
+    const profileDropdownRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
+                setShowProfileDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleLogout = async () => {
         setShowLogoutConfirm(true);
@@ -96,14 +117,51 @@ const NavBar = () => {
                     <div className="text-white text-xl font-bold flex items-center">
                         <span className="mr-2 text-3xl">💰</span> Rugyeyo Farm Management
                     </div>
-                    <div className="flex items-center">
-                        <button
-                            onClick={handleLogout}
-                            disabled={isLoggingOut}
-                            className="text-white hover:text-gray-200 px-4 py-2 rounded transition-colors disabled:opacity-50"
-                        >
-                            {isLoggingOut ? 'Logging out...' : 'Logout'}
-                        </button>
+                    <div className="flex items-center space-x-4">
+                        <div className="relative" ref={profileDropdownRef}>
+                            <button
+                                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-4 py-2 rounded transition-colors"
+                            >
+                                <User size={20} />
+                                <span className="hidden md:inline">{userProfile.name || 'Profile'}</span>
+                            </button>
+
+                            {showProfileDropdown && (
+                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-50">
+                                    <div className="px-4 py-3 border-b border-gray-200">
+                                        <p className="text-sm font-medium text-gray-900">{userProfile.name}</p>
+                                        <p className="text-sm text-gray-500">{userProfile.role}</p>
+                                        <p className="text-xs text-gray-500">{userProfile.phone}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowProfileModal(true);
+                                            setShowProfileDropdown(false);
+                                        }}
+                                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                        <User size={16} className="mr-2" />
+                                        View Profile
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/settings')}
+                                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                        <Settings size={16} className="mr-2" />
+                                        Settings
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        disabled={isLoggingOut}
+                                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                    >
+                                        <LogOut size={16} className="mr-2" />
+                                        {isLoggingOut ? 'Logging out...' : 'Logout'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -218,6 +276,43 @@ const NavBar = () => {
             )}
 
             {/* Success Message Modal */}
+            {/* Profile Modal */}
+            {showProfileModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-800">Profile Information</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Name</label>
+                                <p className="mt-1 p-2 w-full rounded-md border border-gray-300 bg-gray-50">
+                                    {userProfile.name}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Role</label>
+                                <p className="mt-1 p-2 w-full rounded-md border border-gray-300 bg-gray-50">
+                                    {userProfile.role}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                <p className="mt-1 p-2 w-full rounded-md border border-gray-300 bg-gray-50">
+                                    {userProfile.phone}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end space-x-3">
+                            <button
+                                onClick={() => setShowProfileModal(false)}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showSuccessMessage && (
                 <div style={{
                     position: 'fixed',

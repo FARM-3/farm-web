@@ -58,6 +58,9 @@ const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
 
 // Expandable Row Component for Farmers
 const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
+    // Use timestamp fields: created_at, timestamp, date_created, or updated_at
+    const recordDate = farmer.created_at || farmer.timestamp || farmer.date_created || farmer.updated_at || farmer.date_of_birth;
+
     return (
         <>
             <tr className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
@@ -65,7 +68,7 @@ const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
                 <td className="px-6 py-3 text-left text-gray-600">
                     {farmer.first_name} {farmer.last_name}
                 </td>
-                <td className="px-6 py-3 text-center text-gray-600">{formatDate(farmer.date_of_birth)}</td>
+                <td className="px-6 py-3 text-center text-gray-600">{formatDate(recordDate)}</td>
                 <td className="px-6 py-3 text-center">
                     <button
                         onClick={onToggle}
@@ -153,12 +156,16 @@ const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
 
 // Expandable Row Component for Farmer Harvest
 const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
+    // Use the enriched data from the harvest record
+    const harvestId = harvest.harvest_id || harvest.id || 'Unknown ID';
+    const farmerName = harvest.farmer_name || harvest.name || 'Unknown Farmer';
+
     return (
         <>
             <tr className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
-                <td className="px-6 py-3 text-left font-medium text-gray-800">{harvest.id || 'N/A'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{harvest.name || 'N/A'}</td>
-                <td className="px-6 py-3 text-center text-gray-600">{harvest.date_of_delivery || 'N/A'}</td>
+                <td className="px-6 py-3 text-left font-medium text-gray-800">{harvestId}</td>
+                <td className="px-6 py-3 text-left text-gray-600">{farmerName}</td>
+                <td className="px-6 py-3 text-center text-gray-600">{formatDate(harvest.date_of_delivery)}</td>
                 <td className="px-6 py-3 text-center">
                     <button
                         onClick={onToggle}
@@ -198,7 +205,7 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Amount Paid</p>
-                                <p className="text-sm text-gray-800">{harvest.amount_paid ? `UGX ${harvest.amount_paid}` : 'N/A'}</p>
+                                <p className="text-sm text-gray-800">{harvest.amount_paid ? `UGX ${Number(harvest.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: true })}` : 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Paid By</p>
@@ -239,16 +246,67 @@ const AggregationPage = () => {
             const normalizedFarmers = Array.isArray(farmersData) ? farmersData : (farmersData.results || []);
             const normalizedHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
 
-            // Sort by latest first
-            normalizedFarmers.sort((a, b) => new Date(b.date_of_birth || 0) - new Date(a.date_of_birth || 0));
-            normalizedHarvests.sort((a, b) => {
+            // Debug: Log sample records to see their structure
+            if (normalizedHarvests.length > 0) {
+                console.log('Sample harvest record:', normalizedHarvests[0]);
+                console.log('Harvest fields:', Object.keys(normalizedHarvests[0]));
+            }
+            if (normalizedFarmers.length > 0) {
+                console.log('Sample farmer record:', normalizedFarmers[0]);
+                const farmerFields = Object.keys(normalizedFarmers[0]);
+                console.log('Farmer fields:', farmerFields);
+                console.log('🔍 All farmer fields with values:', normalizedFarmers[0]);
+
+                // Find all date-related fields
+                const dateFields = farmerFields.filter(field =>
+                    field.includes('date') || field.includes('time') || field.includes('created') || field.includes('updated')
+                );
+                console.log('📅 Date-related fields:', dateFields);
+                dateFields.forEach(field => {
+                    console.log(`  - ${field}:`, normalizedFarmers[0][field]);
+                });
+            }
+
+            // Create a farmer lookup map by name for quick access
+            const farmerMapByName = {};
+            normalizedFarmers.forEach(farmer => {
+                const fullName = `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim().toLowerCase();
+                farmerMapByName[fullName] = farmer;
+            });
+
+            // Enrich harvest records with farmer details
+            const enrichedHarvests = normalizedHarvests.map(harvest => {
+                // The API returns 'harvest_id' and 'name' (farmer's name)
+                const harvestId = harvest.harvest_id || harvest.id;
+                const farmerName = harvest.name || 'Unknown Farmer';
+
+                // Try to find the farmer by matching the name
+                const farmer = farmerMapByName[farmerName.toLowerCase()];
+
+                return {
+                    ...harvest,
+                    harvest_id: harvestId,
+                    farmer_id: farmer?.farmer_id || 'N/A',
+                    farmer_name: farmerName,
+                    farmer_village: farmer?.village,
+                    farmer_details: farmer
+                };
+            });
+
+            // Sort by latest record creation first (using timestamp fields)
+            normalizedFarmers.sort((a, b) => {
+                const dateA = a.created_at || a.timestamp || a.date_created || a.updated_at || a.date_of_birth || 0;
+                const dateB = b.created_at || b.timestamp || b.date_created || b.updated_at || b.date_of_birth || 0;
+                return new Date(dateB) - new Date(dateA);
+            });
+            enrichedHarvests.sort((a, b) => {
                 const dateA = a.date_of_delivery || '';
                 const dateB = b.date_of_delivery || '';
                 return dateA.localeCompare(dateB);
             });
 
             setFarmers(normalizedFarmers);
-            setHarvests(normalizedHarvests);
+            setHarvests(enrichedHarvests);
         } catch (err) {
             console.error('Error fetching aggregation data:', err);
             setError('Failed to load data. Please try again.');
@@ -296,7 +354,7 @@ const AggregationPage = () => {
             <main className="p-4 sm:p-6 md:p-8 pt-0">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-text-default">
+                    <h1 className="text-3xl font-bold" style={{ color: '#3D2817' }}>
                         Aggregation Overview
                     </h1>
                     <button
@@ -439,12 +497,12 @@ const AggregationPage = () => {
                                 )
                             ) : (
                                 harvests.length > 0 ? (
-                                    harvests.map((harvest) => (
+                                    harvests.map((harvest, index) => (
                                         <ExpandableHarvestRow
-                                            key={harvest.id}
+                                            key={harvest.harvest_id || harvest.id || index}
                                             harvest={harvest}
-                                            isExpanded={expandedRows[harvest.id]}
-                                            onToggle={() => toggleRow(harvest.id)}
+                                            isExpanded={expandedRows[harvest.harvest_id || harvest.id || index]}
+                                            onToggle={() => toggleRow(harvest.harvest_id || harvest.id || index)}
                                         />
                                     ))
                                 ) : (
