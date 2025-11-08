@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Home, DollarSign, ShoppingCart, Package, Users, CheckCircle } from 'lucide-react';
+import { Menu, X, Home, DollarSign, ShoppingCart, Package, Users, CheckCircle, UserPlus } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // API endpoint for staff registration
@@ -442,11 +442,33 @@ function StaffRegistration() {
 
         {/* FORM CONTAINER (Same size as WageEntry form) */}
         <div className="min-h-screen pt-24 md:pt-32 pb-12 flex justify-center">
-          <div className="w-full max-w-3xl mt-12 p-6 sm:p-8 rounded-2xl shadow-2xl"
-               style={{ backgroundColor: '#F5EEDC', border: `1px solid #B8A072` }}>
-            <h1 className="text-2xl sm:text-3xl font-extrabold mb-6" style={{ color: '#702A0B' }}>
-              {isEditing ? 'Edit Staff Member' : 'Staff Registration Form'}
-            </h1>
+          <div className="w-full max-w-3xl mt-12 shadow-2xl rounded-2xl"
+               style={{ backgroundColor: '#F5EEDC' }}>
+
+            {/* Styled Header */}
+            <div
+              className="flex justify-between items-center p-5 rounded-t-2xl"
+              style={{
+                backgroundColor: '#8B5A3C'
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <UserPlus className="w-6 h-6 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold text-white">
+                  {isEditing ? 'Edit Staff Member' : 'Staff Registration Form'}
+                </h1>
+              </div>
+              <button
+                onClick={() => navigate('/staff')}
+                className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 sm:p-8" style={{ border: `1px solid #B8A072`, borderTop: 'none', borderRadius: '0 0 1rem 1rem' }}>
 
             <div className="space-y-6">
               {/* Employee Name */}
@@ -722,6 +744,7 @@ function StaffRegistration() {
                   {loading ? (isEditing ? 'Updating...' : 'Registering...') : (isEditing ? 'Update Staff' : 'Register Staff')}
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </div>

@@ -23,9 +23,9 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://142.93.94.236:8000'
 
 const ApiClient = {
   post: async (url, data) => {
-    console.log('🔵 API Called:', url);
-    console.log('📤 Request Data:', data);
-    console.log('🌐 Full URL:', `${API_BASE_URL}/api/users/${url}`);
+    console.log('API Called:', url);
+    console.log('Request Data:', data);
+    console.log('Full URL:', `${API_BASE_URL}/api/users/${url}`);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/users/${url}`, {
@@ -36,10 +36,10 @@ const ApiClient = {
         body: JSON.stringify(data),
       });
 
-      console.log('📥 Response Status:', response.status);
+      console.log('Response Status:', response.status);
 
       const responseData = await response.json();
-      console.log('📥 Response Data:', responseData);
+      console.log('Response Data:', responseData);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -141,7 +141,7 @@ function Login() {
       setMessageType("success");
 
       setTimeout(() => {
-        console.log('🚀 Navigating to dashboard...');
+        console.log('Navigating to dashboard...');
         navigate('/dashboard');
       }, 800);
 
@@ -877,7 +877,7 @@ function Login() {
                 fontSize: '14px',
                 color: 'white',
                 marginBottom: '8px',
-                fontWeight: '600',
+                fontWeight: '400',
                 display: 'block',
               }}>Phone Number</label>
 
@@ -912,7 +912,7 @@ function Login() {
                 fontSize: '14px',
                 color: 'white',
                 marginBottom: '8px',
-                fontWeight: '600',
+                fontWeight: '400',
                 display: 'block',
               }}>PIN</label>
 
@@ -975,6 +975,7 @@ function Login() {
                 fontSize: '14px',
                 color: 'white',
                 cursor: 'pointer',
+                fontWeight: '400',
               }}>
                 <input
                   type="checkbox"
@@ -1062,9 +1063,18 @@ function Login() {
                   border: 'none',
                   color: 'white',
                   fontSize: '14px',
-                  fontWeight: '600',
+                  fontWeight: '400',
                   cursor: 'pointer',
                   textDecoration: 'underline',
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.color = '#D2A679';
+                  e.target.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'scale(1)';
                 }}
               >
                 ← Back
@@ -1085,9 +1095,18 @@ function Login() {
                   border: 'none',
                   color: 'white',
                   fontSize: '14px',
-                  fontWeight: '600',
+                  fontWeight: '400',
                   cursor: 'pointer',
                   textDecoration: 'underline',
+                  transition: 'all 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.color = '#D2A679';
+                  e.target.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.color = 'white';
+                  e.target.style.transform = 'scale(1)';
                 }}
               >
                 Reset PIN

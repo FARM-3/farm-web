@@ -69,8 +69,15 @@ const MODAL_COLORS = {
 };
 
 const formatUGX = (amount) => {
-    if (typeof amount !== 'number' || isNaN(amount)) return '0';
-    return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    if (typeof amount !== 'number' || isNaN(amount)) {
+        amount = Number(amount);
+        if (isNaN(amount)) return '0';
+    }
+    return amount.toLocaleString('en-US', { 
+        minimumFractionDigits: 0, 
+        maximumFractionDigits: 0,
+        useGrouping: true 
+    });
 };
 
 // --- SHARED COMPONENTS (Customized Button) ---
@@ -147,18 +154,93 @@ const useSalesForm = (onSuccess, editData = null) => {
         }
     }, [editData]);
 
+    // Get today's date in YYYY-MM-DD format
+    const getTodayDate = () => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+    };
+
     const validateField = (name, value) => {
         switch (name) {
             case 'customer_name':
-                return value.trim().length < 2 ? 'Must be at least 2 characters' : '';
-            case 'item': case 'method_of_payment':
-                return !value ? 'This field is required' : '';
-            case 'quantity': case 'rate': case 'amount':
-                const numVal = parseFloat(value);
-                return !value || isNaN(numVal) || numVal <= 0 ? 'Must be a positive number' : '';
+                if (!value || value.trim().length === 0) {
+                    return 'Customer name is required';
+                }
+                if (value.trim().length < 2) {
+                    return 'Customer name must be at least 2 characters';
+                }
+                if (value.trim().length > 100) {
+                    return 'Customer name must not exceed 100 characters';
+                }
+                return '';
+
+            case 'item':
+                return !value ? 'Please select an item' : '';
+
+            case 'quantity':
+                if (!value || value === '') {
+                    return 'Quantity is required';
+                }
+                const qty = parseFloat(value);
+                if (isNaN(qty)) {
+                    return 'Quantity must be a valid number';
+                }
+                if (qty <= 0) {
+                    return 'Quantity must be greater than 0';
+                }
+                if (qty > 1000000) {
+                    return 'Quantity seems unreasonably high';
+                }
+                return '';
+
+            case 'rate':
+                if (!value || value === '') {
+                    return 'Rate is required';
+                }
+                const rate = parseFloat(value);
+                if (isNaN(rate)) {
+                    return 'Rate must be a valid number';
+                }
+                if (rate <= 0) {
+                    return 'Rate must be greater than 0';
+                }
+                if (rate < 100) {
+                    return 'Rate seems too low (minimum 100 UGX)';
+                }
+                return '';
+
             case 'date_of_payment':
-                return !value ? 'Date is required' : '';
-            default: return '';
+                if (!value) {
+                    return 'Payment date is required';
+                }
+                const selectedDate = new Date(value);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                selectedDate.setHours(0, 0, 0, 0);
+
+                if (selectedDate > today) {
+                    return 'Cannot select a future date';
+                }
+                return '';
+
+            case 'method_of_payment':
+                return !value ? 'Please select a payment method' : '';
+
+            case 'amount':
+                if (!value || value === '') {
+                    return 'Amount is required';
+                }
+                const amt = parseFloat(value);
+                if (isNaN(amt)) {
+                    return 'Amount must be a valid number';
+                }
+                if (amt <= 0) {
+                    return 'Amount must be greater than 0';
+                }
+                return '';
+
+            default:
+                return '';
         }
     };
 
@@ -224,6 +306,14 @@ const useSalesForm = (onSuccess, editData = null) => {
             }
         });
 
+        // Additional validation: Check if amount is less than rate
+        const amount = parseFloat(formData.amount);
+        const rate = parseFloat(formData.rate);
+        if (!isNaN(amount) && !isNaN(rate) && amount < rate) {
+            newErrors.amount = `Total amount (${amount.toLocaleString()} UGX) cannot be less than rate per kg (${rate.toLocaleString()} UGX)`;
+            isFormValid = false;
+        }
+
         const newTouched = {};
         Object.keys(initialFormData).forEach(key => newTouched[key] = true);
         setTouched(newTouched);
@@ -233,10 +323,10 @@ const useSalesForm = (onSuccess, editData = null) => {
         if (isFormValid) {
             onSuccess(formData);
             resetForm();
-        } 
+        }
     };
 
-    return { formData, errors, touched, items, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit, resetForm };
+    return { formData, errors, touched, items, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit, resetForm, getTodayDate };
 };
 
 // --- MODAL HELPER COMPONENTS ---
@@ -249,7 +339,7 @@ const ModalSectionHeader = ({ icon: Icon, title }) => (
     </div>
 );
 
-const InputField = ({ label, name, value, onChange, onBlur, placeholder, required, type = "text", status = 'initial', error }) => {
+const InputField = ({ label, name, value, onChange, onBlur, placeholder, showRequired, type = "text", status = 'initial', error, max }) => {
     const borderColor = status === 'valid'
         ? MODAL_COLORS.VALID_BORDER
         : status === 'invalid'
@@ -260,7 +350,7 @@ const InputField = ({ label, name, value, onChange, onBlur, placeholder, require
         <div className="flex flex-col space-y-1">
             <label htmlFor={name} className="text-sm font-medium" style={{ color: MODAL_COLORS.TEXT_SECONDARY }}>
                 {label}
-                {required && <span className="ml-1" style={{ color: MODAL_COLORS.REQUIRED_ASTERISK }}>*</span>}
+                {showRequired && <span className="ml-1" style={{ color: MODAL_COLORS.REQUIRED_ASTERISK }}>*</span>}
             </label>
             <input
                 id={name}
@@ -269,8 +359,8 @@ const InputField = ({ label, name, value, onChange, onBlur, placeholder, require
                 onChange={onChange}
                 onBlur={onBlur}
                 placeholder={placeholder}
-                required={required}
                 type={type}
+                max={max}
                 className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
                 style={{
                     backgroundColor: MODAL_COLORS.INPUT_BG,
@@ -283,7 +373,7 @@ const InputField = ({ label, name, value, onChange, onBlur, placeholder, require
     );
 };
 
-const SelectField = ({ label, name, value, onChange, onBlur, options, required, status = 'initial', error }) => {
+const SelectField = ({ label, name, value, onChange, onBlur, options, showRequired, status = 'initial', error }) => {
     const borderColor = status === 'valid'
         ? MODAL_COLORS.VALID_BORDER
         : status === 'invalid'
@@ -294,7 +384,7 @@ const SelectField = ({ label, name, value, onChange, onBlur, options, required, 
         <div className="flex flex-col space-y-1">
             <label htmlFor={name} className="text-sm font-medium" style={{ color: MODAL_COLORS.TEXT_SECONDARY }}>
                 {label}
-                {required && <span className="ml-1" style={{ color: MODAL_COLORS.REQUIRED_ASTERISK }}>*</span>}
+                {showRequired && <span className="ml-1" style={{ color: MODAL_COLORS.REQUIRED_ASTERISK }}>*</span>}
             </label>
             <div className="relative flex items-center">
                 <select
@@ -303,7 +393,6 @@ const SelectField = ({ label, name, value, onChange, onBlur, options, required, 
                     value={value}
                     onChange={onChange}
                     onBlur={onBlur}
-                    required={required}
                     className="appearance-none flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 cursor-pointer"
                     style={{
                         backgroundColor: MODAL_COLORS.INPUT_BG,
@@ -340,7 +429,7 @@ const ActionButton = ({ children, onClick, className, style, disabled, type = "b
 // =========================================================
 
 const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
-    const { formData, errors, touched, items, paymentMethods, handleChange, handleBlur, handleSubmit } = useSalesForm(onSubmit, editData);
+    const { formData, errors, touched, items, paymentMethods, handleChange, handleBlur, handleSubmit, getTodayDate } = useSalesForm(onSubmit, editData);
     const [loading, setLoading] = useState(false);
 
     const getFieldStatus = (fieldName) => {
@@ -387,6 +476,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="e.g., John Doe"
+                                    showRequired={true}
                                     status={getFieldStatus('customer_name')}
                                     error={errors.customer_name}
                                 />
@@ -397,7 +487,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="e.g., Coffee, Vanilla"
-                                    required
+                                    showRequired={true}
                                     status={getFieldStatus('item')}
                                     error={errors.item}
                                 />
@@ -416,7 +506,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onBlur={handleBlur}
                                     placeholder="e.g., 50"
                                     type="number"
-                                    required
+                                    showRequired={true}
                                     status={getFieldStatus('quantity')}
                                     error={errors.quantity}
                                 />
@@ -428,7 +518,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onBlur={handleBlur}
                                     placeholder="e.g., 5000"
                                     type="number"
-                                    required
+                                    showRequired={true}
                                     status={getFieldStatus('rate')}
                                     error={errors.rate}
                                 />
@@ -440,7 +530,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onBlur={handleBlur}
                                     placeholder="e.g., 250000"
                                     type="number"
-                                    required
+                                    showRequired={true}
                                     status={getFieldStatus('amount')}
                                     error={errors.amount}
                                 />
@@ -451,7 +541,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     options={paymentMethods}
-                                    required
+                                    showRequired={true}
                                     status={getFieldStatus('method_of_payment')}
                                     error={errors.method_of_payment}
                                 />
@@ -469,7 +559,8 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     type="date"
-                                    required
+                                    max={getTodayDate()}
+                                    showRequired={true}
                                     status={getFieldStatus('date_of_payment')}
                                     error={errors.date_of_payment}
                                 />
@@ -578,9 +669,31 @@ function SalesPage() {
         let sortableItems = [...base];
         if (sortConfig.key !== null) {
             sortableItems.sort((a, b) => {
-                const aValue = a[sortConfig.key];
-                const bValue = b[sortConfig.key];
-                
+                let aValue = a[sortConfig.key];
+                let bValue = b[sortConfig.key];
+
+                // Handle date field mapping (date -> date_of_payment)
+                if (sortConfig.key === 'date') {
+                    aValue = a.date_of_payment || a.date;
+                    bValue = b.date_of_payment || b.date;
+                }
+
+                // Handle date sorting
+                const header = TABLE_HEADERS.find(h => h.key === sortConfig.key);
+                if (header?.type === 'date') {
+                    const dateA = new Date(aValue || 0);
+                    const dateB = new Date(bValue || 0);
+                    return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+                }
+
+                // Handle number sorting
+                if (header?.type === 'number') {
+                    const numA = parseFloat(aValue || 0);
+                    const numB = parseFloat(bValue || 0);
+                    return sortConfig.direction === 'ascending' ? numA - numB : numB - numA;
+                }
+
+                // Handle string sorting
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
@@ -800,7 +913,11 @@ function SalesPage() {
                 totalSales: 0,
                 averageOrderValue: 0,
                 totalOrders: 0,
-                uniqueCustomers: 0
+                uniqueCustomers: 0,
+                mostSoldItem: null,
+                mostSoldItemValue: 0,
+                weeklySales: 0,
+                weeklyOrderCount: 0
             };
         }
 
@@ -816,11 +933,66 @@ function SalesPage() {
         // Count unique customers
         const uniqueCustomers = new Set(sales.map(sale => sale.customer_name).filter(Boolean)).size;
 
+        // Calculate weekly sales (last 7 days)
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        const weeklySales = sales.reduce((sum, sale) => {
+            const saleDate = new Date(sale.date_of_payment || sale.date);
+            if (saleDate >= sevenDaysAgo && saleDate <= today) {
+                const amount = parseFloat(sale.total_amount || sale.amount || 0);
+                return sum + amount;
+            }
+            return sum;
+        }, 0);
+
+        const weeklyOrderCount = sales.filter(sale => {
+            const saleDate = new Date(sale.date_of_payment || sale.date);
+            return saleDate >= sevenDaysAgo && saleDate <= today;
+        }).length;
+
+        // Calculate most sold item by total value
+        const itemStats = {};
+        sales.forEach(sale => {
+            const item = sale.item;
+            if (!item) return;
+
+            const quantity = parseFloat(sale.quantity || 0);
+            const rate = parseFloat(sale.rate || 0);
+            const totalValue = quantity * rate;
+
+            if (!itemStats[item]) {
+                itemStats[item] = {
+                    totalQuantity: 0,
+                    totalValue: 0
+                };
+            }
+
+            itemStats[item].totalQuantity += quantity;
+            itemStats[item].totalValue += totalValue;
+        });
+
+        // Find the item with the highest total value
+        let mostSoldItem = null;
+        let mostSoldItemValue = 0;
+
+        Object.entries(itemStats).forEach(([item, stats]) => {
+            if (stats.totalValue > mostSoldItemValue) {
+                mostSoldItem = item;
+                mostSoldItemValue = stats.totalValue;
+            }
+        });
+
         return {
             totalSales,
             averageOrderValue,
             totalOrders: sales.length,
-            uniqueCustomers
+            uniqueCustomers,
+            mostSoldItem,
+            mostSoldItemValue,
+            weeklySales,
+            weeklyOrderCount
         };
     };
 
@@ -855,7 +1027,7 @@ function SalesPage() {
             <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
-                        Average Order Value
+                        Most Sold Item
                     </h3>
                     <Tag size={20} style={{ color: '#8B5A3C' }} />
                 </div>
@@ -867,11 +1039,17 @@ function SalesPage() {
                 ) : (
                     <div className="mt-2">
                         <div className="flex flex-col gap-1">
-                            <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
-                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.averageOrderValue)}</p>
+                            <p className="text-sm font-medium" style={{ color: '#888' }}>
+                                {kpis.mostSoldItem || 'N/A'}
+                            </p>
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>
+                                {kpis.mostSoldItem ? formatUGX(kpis.mostSoldItemValue) : '0'}
+                            </p>
                         </div>
                         <div className="mt-3 text-xs">
-                            <p style={{ color: '#666' }}>Per transaction</p>
+                            <p style={{ color: '#666' }}>
+                                {kpis.mostSoldItem ? 'Total value (UGX)' : 'No sales data'}
+                            </p>
                         </div>
                     </div>
                 )}
@@ -880,9 +1058,9 @@ function SalesPage() {
             <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
-                        Unique Customers
+                        Total Weekly Sales
                     </h3>
-                    <User size={20} style={{ color: '#8B5A3C' }} />
+                    <TrendingUpIcon size={20} style={{ color: '#8B5A3C' }} />
                 </div>
                 {loading ? (
                     <div className="flex items-center gap-2 mt-2">
@@ -892,10 +1070,11 @@ function SalesPage() {
                 ) : (
                     <div className="mt-2">
                         <div className="flex flex-col gap-1">
-                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{kpis.uniqueCustomers}</p>
+                            <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
+                            <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.weeklySales)}</p>
                         </div>
                         <div className="mt-3 text-xs">
-                            <p style={{ color: '#666' }}>Registered customers</p>
+                            <p style={{ color: '#666' }}>Orders this week: {kpis.weeklyOrderCount}</p>
                         </div>
                     </div>
                 )}

@@ -11,6 +11,7 @@ import StaffManagement from './pages/StaffManagement.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Aggregation from './pages/Aggregation.jsx';
 import { HarvestPage } from './pages/harvest.jsx';
+import Settings from './pages/Settings.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/aggregation" element={<ProtectedRoute><Aggregation /></ProtectedRoute>} />
           <Route path="/harvest" element={<ProtectedRoute><HarvestPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>
