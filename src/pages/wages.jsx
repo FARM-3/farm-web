@@ -470,6 +470,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
         days_missed: safeInitial.days_missed || '',
         amount_paid: safeInitial.amount_paid || '',
+        monthly_salary: safeInitial.monthly_salary || '',
     });
 
     const [staff, setStaff] = useState([]);
@@ -479,6 +480,22 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     const [message, setMessage] = useState('');
     const [attemptedSubmit, setAttemptedSubmit] = useState(false);
     const [showStaffDropdown, setShowStaffDropdown] = useState(false);
+    const [selectedStaff, setSelectedStaff] = useState(null);
+
+    // Auto-calculate amount paid based on monthly salary and days missed
+    const calculateAmountPaid = (monthlySalary, daysMissed) => {
+        const salary = parseFloat(monthlySalary) || 0;
+        const missed = parseFloat(daysMissed) || 0;
+
+        if (salary <= 0) return 0;
+
+        // Formula: (monthly_salary / 30) * (30 - days_missed)
+        const dailyRate = salary / 30;
+        const daysWorked = 30 - missed;
+        const amountPaid = dailyRate * daysWorked;
+
+        return Math.max(0, Math.round(amountPaid)); // Round to nearest whole number, minimum 0
+    };
 
     useEffect(() => {
         const fetchStaff = async () => {
@@ -506,12 +523,23 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
                 days_missed: safeData.days_missed || '',
                 amount_paid: safeData.amount_paid || '',
+                monthly_salary: safeData.monthly_salary || '',
             });
             setErrors({});
             setMessage('');
             setAttemptedSubmit(false);
         }
     }, [isOpen, initialData]);
+
+    // Auto-calculate when monthly_salary or days_missed changes
+    useEffect(() => {
+        if (form.monthly_salary && form.days_missed !== '') {
+            const calculatedAmount = calculateAmountPaid(form.monthly_salary, form.days_missed);
+            setForm(prev => ({ ...prev, amount_paid: calculatedAmount }));
+        } else {
+            setForm(prev => ({ ...prev, amount_paid: '' }));
+        }
+    }, [form.monthly_salary, form.days_missed]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -580,10 +608,12 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         }
         if (!currentForm.date_of_payment) newErrors.date_of_payment = 'Date of payment is required.';
 
-        // Validate days_missed - must be a valid number
+        // Validate days_missed - must be a valid number between 0 and 29
         const daysMissed = String(currentForm.days_missed).trim();
         if (daysMissed === '' || isNaN(Number(daysMissed)) || Number(daysMissed) < 0) {
             newErrors.days_missed = 'Valid days missed required.';
+        } else if (Number(daysMissed) >= 30) {
+            newErrors.days_missed = 'Days missed must be less than 30.';
         }
 
         return newErrors;
@@ -611,6 +641,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
             staff: form.employee_id, // Link to registered staff by staff_id (e.g., "RF001")
             date_of_payment: form.date_of_payment,
             days_missed: parseInt(daysMissed, 10) || 0,
+            amount_paid: form.amount_paid || 0, // Include calculated amount
         };
 
         console.log('Submitting payload:', JSON.stringify(payload, null, 2));
@@ -650,12 +681,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 console.log('✅ API Success Response:', savedData);
                 console.log('📝 Payload that was sent:', payload);
                 console.log('🔑 Saved record ID:', savedData.id);
-                console.log('💰 Calculated Amount Paid:', savedData.amount_paid);
-
-                // Update form with the calculated amount from backend
-                if (savedData.amount_paid) {
-                    setForm(prev => ({ ...prev, amount_paid: savedData.amount_paid }));
-                }
+                console.log('💰 Amount Paid (Frontend Calculated):', payload.amount_paid);
 
                 setMessage(initialData ? 'You have successfully updated the wage record!' : 'You have successfully recorded a new wage!');
 
@@ -727,7 +753,15 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                                             key={member.staff_id}
                                             onClick={() => {
                                                 const fullName = `${member.first_name} ${member.last_name}`;
-                                                setForm({ ...form, employee_id: member.staff_id, employee_name: fullName });
+                                                // Get monthly salary from staff member (if available)
+                                                const monthlySalary = member.monthly_salary || member.base_pay || 0;
+                                                setForm({
+                                                    ...form,
+                                                    employee_id: member.staff_id,
+                                                    employee_name: fullName,
+                                                    monthly_salary: monthlySalary
+                                                });
+                                                setSelectedStaff(member);
                                                 setShowStaffDropdown(false);
                                                 setErrors(prev => ({ ...prev, employee_name: '' }));
                                             }}
@@ -736,7 +770,14 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                                             <div className="font-medium text-[#4A3423]">
                                                 {member.first_name} {member.last_name}
                                             </div>
-                                            <div className="text-xs text-gray-500">{member.staff_id || 'No ID'}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {member.staff_id || 'No ID'}
+                                                {(member.monthly_salary || member.base_pay) && (
+                                                    <span className="ml-2 text-[#34A853]">
+                                                        • UGX {formatUGX(member.monthly_salary || member.base_pay)}/month
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                             </div>
@@ -760,15 +801,17 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     <div>
                         <label htmlFor="days_missed" className="block mb-1 text-sm font-medium text-gray-700">Days Missed</label>
                         <Input
-                            type="text"
+                            type="number"
                             inputMode="numeric"
                             name="days_missed"
                             value={form.days_missed}
                             onChange={handleChange}
                             placeholder="e.g. 2"
+                            min="0"
+                            max="29"
                             className={`py-2.5 ${getBorderClass('days_missed')}`}
                         />
-                        {errors.days_missed && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.days_missed && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.days_missed}</p>}
                     </div>
                 </div>
 
