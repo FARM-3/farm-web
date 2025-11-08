@@ -1,3 +1,4 @@
+// eslint-env node
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -8,6 +9,7 @@ const __dirname = path.dirname(__filename);
 
 // Initialize the Express app
 const app = express();
+// This file must only be run with Node.js, not imported in React/browser code!
 const port = process.env.PORT || 3000;
 const buildPath = path.join(__dirname, 'dist'); // Path to your built files (Vite output)
 

@@ -548,16 +548,29 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     }, [showStaffDropdown]);
 
     const getBorderClass = (fieldName, required = true) => {
+        // Show red border if there's an error
         if (errors[fieldName]) {
             return `border-2 border-[#EA4335]`;
         }
-        if (attemptedSubmit && required && form[fieldName] && !errors[fieldName]) {
+
+        // Show green border for valid required fields after submit attempt
+        if (attemptedSubmit && required && form[fieldName] && form[fieldName] !== '' && !errors[fieldName]) {
             return `border-2 border-[#34A853]`;
         }
-        if (attemptedSubmit && !required && form[fieldName] && !errors[fieldName]) {
-            return `border-2 border-gray-300`;
+
+        // Show green border for valid optional fields that have values
+        if (attemptedSubmit && !required && form[fieldName] && form[fieldName] !== '' && !errors[fieldName]) {
+            return `border-2 border-[#34A853]`;
         }
-        return '';
+
+        // Default border
+        return 'border border-gray-300';
+    };
+
+    // Get today's date in YYYY-MM-DD format
+    const getTodayDate = () => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
     };
 
     const validate = (currentForm = form) => {
@@ -738,9 +751,10 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             name="date_of_payment"
                             value={form.date_of_payment}
                             onChange={handleChange}
+                            max={getTodayDate()}
                             className={`py-2.5 ${getBorderClass('date_of_payment')}`}
                         />
-                        {errors.date_of_payment && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.date_of_payment && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.date_of_payment}</p>}
                     </div>
 
                     <div>
@@ -843,23 +857,19 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 onClick={(e) => e.stopPropagation()}
             >
                 <header
-                    className="flex justify-between items-center p-5 rounded-t-2xl flex-shrink-0 border-b-2"
+                    className="flex items-center justify-between p-4 border-b border-gray-200"
                     style={{
-                        backgroundColor: '#8B5A3C',
-                        borderColor: 'rgba(255, 255, 255, 0.1)'
+                        backgroundColor: '#FFFFFF'
                     }}
                 >
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                            <DollarSign className="w-6 h-6 text-white" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-white">{initialData ? 'Edit Wage Record' : 'Wage Entry Form'}</h2>
-                    </div>
+                    <h2 className="text-xl font-semibold" style={{ color: '#333333' }}>
+                        {initialData ? 'Edit Wage Record' : 'Wage Entry Form'}
+                    </h2>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200"
+                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
                     >
-                        <X className="w-6 h-6" />
+                        <X className="w-5 h-5" style={{ color: '#6B7280' }} />
                     </button>
                 </header>
 
@@ -904,7 +914,7 @@ function Wages() {
     const [wages, setWages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'ascending' });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1040,6 +1050,13 @@ function Wages() {
                 const aValue = a[sortConfig.key];
                 const bValue = b[sortConfig.key];
 
+                // Special handling for date fields to ensure proper date comparison
+                if (sortConfig.key === 'date_of_payment') {
+                    const dateA = new Date(aValue);
+                    const dateB = new Date(bValue);
+                    return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
+                }
+
                 if (TABLE_HEADERS.find(h => h.key === sortConfig.key)?.type === 'number') {
                     const numA = parseFloat(aValue || 0);
                     const numB = parseFloat(bValue || 0);
@@ -1049,6 +1066,13 @@ function Wages() {
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
+            });
+        } else {
+            // Default sort: most recent wages first (by date_of_payment descending)
+            sortableItems.sort((a, b) => {
+                const dateA = new Date(a.date_of_payment);
+                const dateB = new Date(b.date_of_payment);
+                return dateB - dateA;
             });
         }
         return sortableItems;

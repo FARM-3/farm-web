@@ -60,14 +60,14 @@ function WageEntry() {
         fetchStaff();
     }, []);
 
-    const calculateAmountPaid = (monthlyPay, daysWorked, deduction) => {
-        if (monthlyPay === '' || monthlyPay === 0 || daysWorked === '' || daysWorked === 0) {
+    const calculateAmountPaid = (monthlyPay, deduction) => {
+        // Simple calculation: Monthly Base - Deduction = Amount Paid
+        if (monthlyPay === '' || monthlyPay === 0) {
             return '';
         }
-        const dailyRate = Number(monthlyPay) / 30;
-        const grossAmount = dailyRate * Number(daysWorked);
+        const baseAmount = Number(monthlyPay) || 0;
         const deductionAmount = Number(deduction) || 0;
-        const netAmount = grossAmount - deductionAmount;
+        const netAmount = baseAmount - deductionAmount;
         return Math.max(0, netAmount).toFixed(2);
     };
 
@@ -84,11 +84,10 @@ function WageEntry() {
             updatedForm = { ...form, [name]: value };
         }
 
-        // Auto-calculate amount_paid if monthly_pay, days_worked, or deduction changes
-        if (name === 'monthly_pay' || name === 'days_worked' || name === 'deduction') {
+        // Auto-calculate amount_paid if monthly_pay or deduction changes
+        if (name === 'monthly_pay' || name === 'deduction') {
             const calculatedAmount = calculateAmountPaid(
                 updatedForm.monthly_pay,
-                updatedForm.days_worked,
                 updatedForm.deduction
             );
             updatedForm.amount_paid = calculatedAmount;
@@ -160,9 +159,9 @@ function WageEntry() {
                 }, 1500);
             } else {
                 const errorData = await response.json();
-                console.error('❌ API Error Status:', response.status);
-                console.error('❌ Error Response:', JSON.stringify(errorData, null, 2));
-                console.error('❌ Payload that was sent:', JSON.stringify(payload, null, 2));
+                console.error('API Error Status:', response.status);
+                console.error('Error Response:', JSON.stringify(errorData, null, 2));
+                console.error('Payload that was sent:', JSON.stringify(payload, null, 2));
                 setMessage(`Failed to save wage (${response.status}). error: ${errorData.employee_name || errorData.detail || JSON.stringify(errorData)}`);
             }
         } catch (err) {
@@ -221,17 +220,32 @@ function WageEntry() {
                         {errors.days_worked && <p className="mt-1 text-xs text-red-600">{errors.days_worked}</p>}
                     </div>
                     <div>
-                        <label htmlFor="monthly_pay" className="block mb-1 text-sm font-semibold" style={{ color: CUSTOM_COLORS.headerBg }}>Monthly Pay</label>
-                        <Input type="number" name="monthly_pay" value={form.monthly_pay} onChange={handleChange} placeholder="e.g. 500" style={{ backgroundColor: CUSTOM_COLORS.inputBg, borderColor: CUSTOM_COLORS.inputBorder }} />
+                        <label htmlFor="monthly_pay" className="block mb-1 text-sm font-semibold" style={{ color: CUSTOM_COLORS.headerBg }}>Monthly Base</label>
+                        <Input type="number" name="monthly_pay" value={form.monthly_pay} onChange={handleChange} placeholder="e.g. 200000" style={{ backgroundColor: CUSTOM_COLORS.inputBg, borderColor: CUSTOM_COLORS.inputBorder }} />
                     </div>
                     <div>
-                        <label htmlFor="amount_paid" className="block mb-1 text-sm font-semibold" style={{ color: CUSTOM_COLORS.headerBg }}>Amount Paid (Auto-calculated)</label>
-                        <Input type="number" name="amount_paid" value={form.amount_paid} onChange={handleChange} placeholder="e.g. 450" readOnly style={{ backgroundColor: '#f5f5f5', borderColor: CUSTOM_COLORS.inputBorder, cursor: 'not-allowed', opacity: 0.7 }} />
+                        <label htmlFor="amount_paid" className="block mb-1 text-sm font-semibold" style={{ color: CUSTOM_COLORS.headerBg }}>
+                            Total Amount Paid (Auto-calculated)
+                        </label>
+                        <Input
+                            type="text"
+                            name="amount_paid"
+                            value={form.amount_paid ? `UGX ${parseFloat(form.amount_paid).toLocaleString()}` : ''}
+                            readOnly
+                            placeholder="Auto-calculated"
+                            style={{
+                                backgroundColor: '#E8F5E9',
+                                borderColor: CUSTOM_COLORS.inputBorder,
+                                cursor: 'not-allowed',
+                                fontWeight: '600',
+                                color: '#2E7D32'
+                            }}
+                        />
                         {errors.amount_paid && <p className="mt-1 text-xs text-red-600">{errors.amount_paid}</p>}
                     </div>
                     <div>
                         <label htmlFor="deduction" className="block mb-1 text-sm font-semibold" style={{ color: CUSTOM_COLORS.headerBg }}>Deduction</label>
-                        <Input type="number" name="deduction" value={form.deduction} onChange={handleChange} placeholder="e.g. 50" style={{ backgroundColor: CUSTOM_COLORS.inputBg, borderColor: CUSTOM_COLORS.inputBorder }} />
+                        <Input type="number" name="deduction" value={form.deduction} onChange={handleChange} placeholder="e.g. 50000" style={{ backgroundColor: CUSTOM_COLORS.inputBg, borderColor: CUSTOM_COLORS.inputBorder }} />
                         {errors.deduction && <p className="mt-1 text-xs text-red-600">{errors.deduction}</p>}
                     </div>
                     <div className="sm:col-span-2">
