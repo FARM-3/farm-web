@@ -1290,6 +1290,7 @@ import {
 } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
+
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
     ACTIVE_LINK_BG: '#efebe9',
@@ -1564,10 +1565,15 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
             ...formData,
             // Convert formatted salary back to raw number for storage
             salary: formData.salary ? parseFloat(formData.salary.replace(/,/g, '')) : '',
-            // preserve original id/staff_id when editing (if provided)
-            id: staffData?.id || Date.now() + Math.random(),
-            staff_id: staffData?.staff_id || `RF${Math.floor(Math.random() * 900) + 100}`
         };
+
+        // Only include id and staff_id when editing existing staff
+        if (staffData?.id) {
+            resultData.id = staffData.id;
+        }
+        if (staffData?.staff_id) {
+            resultData.staff_id = staffData.staff_id;
+        }
 
         // Call the parent's onSave function and wait for it to complete
         await onSave(resultData);
@@ -1936,17 +1942,30 @@ const getStoredStaffData = () => {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
-            return JSON.parse(stored);
+            const parsed = JSON.parse(stored);
+            console.log('Loaded from localStorage:', parsed);
+            // Ensure all stored records have salary field
+            return parsed.map(staff => ({
+                ...staff,
+                salary: staff.salary || 0 // Add default if missing
+            }));
         }
     } catch (error) {
         console.error('Error reading from localStorage:', error);
     }
+    // Return initial data with salaries
     return [...INITIAL_STAFF_DATA];
 };
 
 const saveStaffDataToStorage = (data) => {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        // Ensure we're saving the current staff state
+        const dataToSave = Array.isArray(data) ? data : MOCK_STAFF_DATA;
+        console.log('Saving to localStorage:', dataToSave);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        
+        // Also update MOCK_STAFF_DATA
+        MOCK_STAFF_DATA = [...dataToSave];
     } catch (error) {
         console.error('Error saving to localStorage:', error);
     }
@@ -1978,30 +1997,88 @@ function StaffPage() {
             const response = await fetch(STAFF_API_ENDPOINT);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const data = await response.json();
-            const normalized = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
-            
-            // FIXED: Ensure all staff records have salary field
-            const staffWithSalary = normalized.map(staff => ({
+            let normalized = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : [];
+
+            // Map monthly_salary from API to salary for frontend
+            normalized = normalized.map(staff => ({
                 ...staff,
-                salary: staff.salary || 0, // Default to 0 if missing
-                hire_date: staff.hire_date || staff.date_hired // Normalize date field
+                salary: staff.monthly_salary || staff.salary || 0
             }));
+
+            console.log('API Response:', normalized);
+            console.log('Sample API staff record:', normalized[0]);
             
-            setStaff(staffWithSalary);
+            // FIXED: Merge API data with localStorage data to preserve salaries
+            const storedData = getStoredStaffData();
+            console.log('Stored data:', storedData);
+            
+            // Create a map of staff by ID from stored data to preserve salaries
+            const storedStaffMap = new Map();
+            storedData.forEach(staff => {
+                if (staff.id) storedStaffMap.set(staff.id, staff);
+                if (staff.staff_id) storedStaffMap.set(staff.staff_id, staff);
+            });
+            
+            // Merge API data with stored data, prioritizing stored salaries
+            const mergedStaff = normalized.map(apiStaff => {
+                const storedStaff = storedStaffMap.get(apiStaff.id) || storedStaffMap.get(apiStaff.staff_id);
+                if (storedStaff && storedStaff.salary) {
+                    console.log(`Preserving salary for ${apiStaff.first_name}: ${storedStaff.salary}`);
+                    return {
+                        ...apiStaff,
+                        salary: storedStaff.salary, // Use stored salary
+                        hire_date: apiStaff.hire_date || apiStaff.date_hired
+                    };
+                }
+                return {
+                    ...apiStaff,
+                    salary: apiStaff.salary || 0, // Use API salary or default
+                    hire_date: apiStaff.hire_date || apiStaff.date_hired
+                };
+            });
+
+            // Add locally-stored staff members that don't exist in API response
+            const apiStaffIds = new Set(normalized.map(s => s.staff_id || s.id));
+            const localOnlyStaff = storedData.filter(stored =>
+                !apiStaffIds.has(stored.staff_id) && !apiStaffIds.has(stored.id)
+            );
+
+            if (localOnlyStaff.length > 0) {
+                console.log('Adding local-only staff members:', localOnlyStaff);
+            }
+
+            const finalStaffList = [...localOnlyStaff, ...mergedStaff];
+
+            console.log('Final staff data (merged + local-only):', finalStaffList);
+            setStaff(finalStaffList);
+
+            // Update localStorage with final merged data
+            saveStaffDataToStorage(finalStaffList);
+            
         } catch (err) {
-            setError('Could not load data from API. Displaying mock data.');
-            // FIXED: Ensure mock data has salary
-            const mockWithSalary = MOCK_STAFF_DATA.map(staff => ({
-                ...staff,
-                salary: staff.salary || 0 // Add default salary if missing
-            }));
-            setStaff(mockWithSalary);
+            console.error('API Error:', err);
+            setError('Could not load data from API. Displaying stored data.');
+            // Use stored data when API fails
+            const storedData = getStoredStaffData();
+            console.log('Using stored data due to API error:', storedData);
+            setStaff(storedData);
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => { fetchStaff(); }, [fetchStaff]);
+    // Add this useEffect to automatically save to localStorage whenever staff data changes
+    useEffect(() => {
+        if (staff.length > 0 && !loading) {
+            console.log('Auto-saving staff data to localStorage:', staff);
+            saveStaffDataToStorage(staff);
+        }
+    }, [staff, loading]);
+
+    useEffect(() => { 
+        console.log('Initial staff load');
+        fetchStaff(); 
+    }, [fetchStaff]);
 
     const filteredStaff = useMemo(() => {
         let current = staff;
@@ -2075,6 +2152,11 @@ function StaffPage() {
         if (!savedStaffData) return;
 
         // Validate and prepare data for API
+        // Convert salary from formatted string (e.g., "7,000,000") to number (e.g., 7000000)
+        const salaryValue = typeof savedStaffData.salary === 'string'
+            ? parseFloat(savedStaffData.salary.replace(/,/g, ''))
+            : savedStaffData.salary || 0;
+
         const apiData = {
             first_name: savedStaffData.first_name?.trim() || '',
             last_name: savedStaffData.last_name?.trim() || '',
@@ -2086,7 +2168,7 @@ function StaffPage() {
             gender: savedStaffData.gender?.trim() || '',
             date_hired: savedStaffData.hire_date || savedStaffData.date_hired || '',
             employment_type: savedStaffData.employment_status || 'Full-time', // Use exact value from form
-            salary: savedStaffData.salary || 0, // Salary is already a number from the modal
+            monthly_salary: salaryValue, // Backend expects monthly_salary field name
             is_active: true
         };
 
@@ -2144,19 +2226,20 @@ function StaffPage() {
                 // FIXED: Update local state - ensure salary is properly preserved
                 const staffWithSalary = {
                     ...updatedStaff,
-                    salary: savedStaffData.salary, // Explicitly preserve salary from form data
+                    salary: updatedStaff.monthly_salary || savedStaffData.salary, // Use API's monthly_salary or form data
                     hire_date: updatedStaff.hire_date || updatedStaff.date_hired,
                     date_hired: updatedStaff.hire_date || updatedStaff.date_hired
                 };
-                
-                const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
-                if (index > -1) {
-                    MOCK_STAFF_DATA[index] = { ...staffWithSalary };
-                }
-                setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithSalary } : s));
 
-                // Save to localStorage as backup
-                saveStaffDataToStorage(MOCK_STAFF_DATA);
+                // FIXED: Update localStorage immediately after API success
+                // Use findIndex for more reliable state updates
+                const index = staff.findIndex(s => s.id === staffToEdit.id || s.staff_id === staffToEdit.staff_id);
+                if (index > -1) {
+                    const updatedStaffList = [...staff];
+                    updatedStaffList[index] = { ...staffWithSalary };
+                    setStaff(updatedStaffList);
+                    saveStaffDataToStorage(updatedStaffList);
+                }
 
                 // Close modal first
                 setIsStaffModalOpen(false);
@@ -2202,16 +2285,16 @@ function StaffPage() {
                 // FIXED: Update local state with API-generated data, ensuring salary is included
                 const newStaffWithSalary = {
                     ...newStaff,
-                    salary: savedStaffData.salary, // Explicitly include salary from form data
+                    salary: newStaff.monthly_salary || savedStaffData.salary, // Use API's monthly_salary or form data
                     hire_date: newStaff.hire_date || newStaff.date_hired,
                     date_hired: newStaff.hire_date || newStaff.date_hired
                 };
                 
-                MOCK_STAFF_DATA.unshift(newStaffWithSalary);
-                setStaff(prev => [newStaffWithSalary, ...prev]);
-
-                // Save to localStorage as backup
-                saveStaffDataToStorage(MOCK_STAFF_DATA);
+                // FIXED: Update localStorage immediately after API success
+                // Use findIndex for more reliable state updates - add to beginning
+                const updatedStaffList = [newStaffWithSalary, ...staff];
+                setStaff(updatedStaffList);
+                saveStaffDataToStorage(updatedStaffList);
 
                 // Close modal first
                 setIsStaffModalOpen(false);
@@ -2236,23 +2319,26 @@ function StaffPage() {
             }
 
             // Fallback to localStorage only
-            const staffWithSalary = {
-                ...savedStaffData,
-                date_hired: savedStaffData.hire_date || savedStaffData.date_hired
-            };
-
             if (staffToEdit) {
-                const index = MOCK_STAFF_DATA.findIndex(s => s.id === savedStaffData.id);
+                const index = staff.findIndex(s => s.id === savedStaffData.id || s.staff_id === savedStaffData.staff_id);
                 if (index > -1) {
-                    MOCK_STAFF_DATA[index] = { ...staffWithSalary };
+                    const updatedStaffList = [...staff];
+                    updatedStaffList[index] = {
+                        ...savedStaffData,
+                        date_hired: savedStaffData.hire_date || savedStaffData.date_hired
+                    };
+                    setStaff(updatedStaffList);
+                    saveStaffDataToStorage(updatedStaffList);
                 }
-                setStaff(prev => prev.map(s => s.id === savedStaffData.id ? { ...staffWithSalary } : s));
             } else {
-                MOCK_STAFF_DATA.unshift(staffWithSalary);
-                setStaff(prev => [staffWithSalary, ...prev]);
+                const newStaff = {
+                    ...savedStaffData,
+                    date_hired: savedStaffData.hire_date || savedStaffData.date_hired
+                };
+                const updatedStaffList = [newStaff, ...staff];
+                setStaff(updatedStaffList);
+                saveStaffDataToStorage(updatedStaffList);
             }
-
-            saveStaffDataToStorage(MOCK_STAFF_DATA);
         }
     };
 
@@ -2269,16 +2355,21 @@ function StaffPage() {
                 console.log('Staff deleted successfully from API');
 
                 // Remove from MOCK_STAFF_DATA
-                const index = MOCK_STAFF_DATA.findIndex(s => s.id === staffToDelete.id);
-                if (index > -1) {
-                    MOCK_STAFF_DATA.splice(index, 1);
+                const mockIndex = MOCK_STAFF_DATA.findIndex(s => s.id === staffToDelete.id);
+                if (mockIndex > -1) {
+                    MOCK_STAFF_DATA.splice(mockIndex, 1);
                 }
 
-                // Update state
-                setStaff(prev => prev.filter(s => s.id !== staffToDelete.id));
+                // Update state using findIndex for consistency
+                const stateIndex = staff.findIndex(s => s.id === staffToDelete.id || s.staff_id === staffToDelete.staff_id);
+                if (stateIndex > -1) {
+                    const updatedStaffList = [...staff];
+                    updatedStaffList.splice(stateIndex, 1);
+                    setStaff(updatedStaffList);
 
-                // Save to localStorage for persistence
-                saveStaffDataToStorage(MOCK_STAFF_DATA);
+                    // Save to localStorage for persistence
+                    saveStaffDataToStorage(updatedStaffList);
+                }
 
                 setShowDeleteModal(false);
                 setStaffToDelete(null);
@@ -2288,12 +2379,17 @@ function StaffPage() {
         } catch (err) {
             console.error('Failed to delete from API:', err);
             // Still delete locally even if API fails
-            const index = MOCK_STAFF_DATA.findIndex(s => s.id === staffToDelete.id);
-            if (index > -1) {
-                MOCK_STAFF_DATA.splice(index, 1);
+            const mockIndex = MOCK_STAFF_DATA.findIndex(s => s.id === staffToDelete.id);
+            if (mockIndex > -1) {
+                MOCK_STAFF_DATA.splice(mockIndex, 1);
             }
-            setStaff(prev => prev.filter(s => s.id !== staffToDelete.id));
-            saveStaffDataToStorage(MOCK_STAFF_DATA);
+            const stateIndex = staff.findIndex(s => s.id === staffToDelete.id || s.staff_id === staffToDelete.staff_id);
+            if (stateIndex > -1) {
+                const updatedStaffList = [...staff];
+                updatedStaffList.splice(stateIndex, 1);
+                setStaff(updatedStaffList);
+                saveStaffDataToStorage(updatedStaffList);
+            }
 
             setShowDeleteModal(false);
             setStaffToDelete(null);
@@ -2352,7 +2448,10 @@ function StaffPage() {
                     <td className="px-6 py-3 text-left text-gray-600">{staffMember.district || '-'}</td>
                     <td className="px-6 py-3 text-left text-gray-600">{staffMember.hire_date || staffMember.date_hired || 'N/A'}</td>
                     <td className="px-6 py-3 text-right text-gray-600">
-                        {staffMember.salary ? Number(staffMember.salary).toLocaleString() : 'No salary'}
+                        {staffMember.salary && staffMember.salary > 0 ? 
+                            Number(staffMember.salary).toLocaleString() : 
+                            'No salary'
+                        }
                     </td>
                     <td className="px-6 py-3 text-center">
                         <div className="flex items-center justify-center space-x-2">
