@@ -71,7 +71,7 @@ export const createExpenseFromHarvest = async (harvestData) => {
 export const onHarvestRecorded = async (harvestRecord, farmerDetails) => {
     // Extract necessary data
     const harvestData = {
-        farmer_name: farmerDetails ? `${farmerDetails.first_name || ''} ${farmerDetails.last_name || ''}`.trim() : 'Unknown Farmer',
+        farmer_name: farmerDetails?.farmer_name || 'Unknown Farmer',
         village: farmerDetails?.village || 'N/A',
         amount_paid: harvestRecord.amount_paid || harvestRecord.total_amount || 0,
         date: harvestRecord.date_of_delivery || harvestRecord.date || new Date().toISOString().substring(0, 10),

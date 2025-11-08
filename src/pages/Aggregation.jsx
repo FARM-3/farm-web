@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
 import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
+import { onHarvestRecorded } from '../utils/autoExpenseCreation';
 
 // API Endpoints
 const API_BASE_URL = 'http://142.93.94.236:8000/api';
@@ -275,7 +276,7 @@ const AggregationPage = () => {
             });
 
             // Enrich harvest records with farmer details
-            const enrichedHarvests = normalizedHarvests.map(harvest => {
+            const enrichedHarvests = await Promise.all(normalizedHarvests.map(async harvest => {
                 // The API returns 'harvest_id' and 'name' (farmer's name)
                 const harvestId = harvest.harvest_id || harvest.id;
                 const farmerName = harvest.name || 'Unknown Farmer';
@@ -283,15 +284,34 @@ const AggregationPage = () => {
                 // Try to find the farmer by matching the name
                 const farmer = farmerMapByName[farmerName.toLowerCase()];
 
+                // Create auto expense if it hasn't been created yet
+                if (farmer && harvest.amount_paid && !harvest.expense_created) {
+                    try {
+                        const farmerDetails = {
+                            // Use concatenated name if available, otherwise individual components
+                            farmer_name: farmer.farmer_name || `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim(),
+                            village: farmer.village
+                        };
+
+                        // Call the auto expense creation function
+                        await onHarvestRecorded(harvest, farmerDetails);
+                        
+                        // Mark this harvest as having an expense created
+                        harvest.expense_created = true;
+                    } catch (error) {
+                        console.error('Error creating auto expense for harvest:', harvest.harvest_id, error);
+                    }
+                }
+
                 return {
                     ...harvest,
                     harvest_id: harvestId,
                     farmer_id: farmer?.farmer_id || 'N/A',
-                    farmer_name: farmerName,
+                    farmer_name: farmer ? `${farmer.first_name} ${farmer.last_name}` : farmerName,
                     farmer_village: farmer?.village,
                     farmer_details: farmer
                 };
-            });
+            }));
 
             // Sort by latest record creation first (using timestamp fields)
             normalizedFarmers.sort((a, b) => {

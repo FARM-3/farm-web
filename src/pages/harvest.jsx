@@ -10,6 +10,9 @@ const API_BASE_URL = 'http://142.93.94.236:8000/api';
 const HARVESTS_API = `${API_BASE_URL}/aggregation/farmer-harvest/`; // Updated to use farmer-harvest endpoint
 const BLOCKS_API = `${API_BASE_URL}/harvests/blocks/`;
 
+// Import the auto expense creation utility
+import { onHarvestRecorded } from '../utils/autoExpenseCreation';
+
 // Coffee Colors
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
@@ -228,7 +231,26 @@ export function HarvestPage() {
                 console.log('Processed results:', results);
                 console.log('Is array?', Array.isArray(results));
                 console.log('Results length:', results.length);
-                setHarvests(Array.isArray(results) ? results : []);
+
+                // Process each harvest record and create corresponding expense
+                const processedResults = Array.isArray(results) ? results : [];
+                for (const harvest of processedResults) {
+                    // Get farmer details from the harvest record
+                    const farmerDetails = {
+                        first_name: harvest.name?.split(' ')[0] || '',
+                        last_name: harvest.name?.split(' ').slice(1).join(' ') || '',
+                        village: harvest.location || harvest.village || ''
+                    };
+                    
+                    // Create auto expense for the harvest
+                    try {
+                        await onHarvestRecorded(harvest, farmerDetails);
+                    } catch (error) {
+                        console.error('Error creating auto expense for harvest:', error);
+                    }
+                }
+
+                setHarvests(processedResults);
                 setError(null);
             } else {
                 const errorText = await response.text();
