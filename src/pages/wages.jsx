@@ -384,7 +384,7 @@
 
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, FileText, Search } from 'lucide-react';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, Search } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 
 const styleElement = document.createElement('style');
@@ -468,11 +468,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         employee_id: safeInitial.employee_id || safeInitial.employee_name_id || '',
         employee_name: safeInitial.employee_name || '',
         date_of_payment: safeInitial.date_of_payment || new Date().toISOString().substring(0, 10),
-        days_worked: safeInitial.days_worked || '',
-        monthly_pay: safeInitial.monthly_pay || '',
-         amount_paid: safeInitial.amount_paid || '',
-         deduction: safeInitial.deduction || '0',
-         noted_reason: safeInitial.noted_reason || '',
+        days_missed: safeInitial.days_missed || '',
+        amount_paid: safeInitial.amount_paid || '',
     });
 
     const [staff, setStaff] = useState([]);
@@ -481,6 +478,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState('');
     const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+    const [showStaffDropdown, setShowStaffDropdown] = useState(false);
 
     useEffect(() => {
         const fetchStaff = async () => {
@@ -506,11 +504,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 employee_id: safeData.employee_id || safeData.employee_name_id || '',
                 employee_name: safeData.employee_name || '',
                 date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
-                days_worked: safeData.days_worked || '',
-                monthly_pay: safeData.monthly_pay || '',
+                days_missed: safeData.days_missed || '',
                 amount_paid: safeData.amount_paid || '',
-                deduction:  safeData.deduction || '0',
-                noted_reason: safeData.noted_reason || '',
             });
             setErrors({});
             setMessage('');
@@ -518,38 +513,16 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         }
     }, [isOpen, initialData]);
 
-    const calculateAmountPaid = (monthlyPay, daysWorked, deduction) => {
-        if (monthlyPay === '' || monthlyPay === 0 || daysWorked === '' || daysWorked === 0) {
-            return '';
-        }
-        const dailyRate = Number(monthlyPay) / 30;
-        const grossAmount = dailyRate * Number(daysWorked);
-        const deductionAmount = Number(deduction) || 0;
-        const netAmount = grossAmount - deductionAmount;
-        return Math.max(0, netAmount).toFixed(2);
-    };
-
     const handleChange = (e) => {
         const { name, value } = e.target;
         let updatedForm;
 
-        if (name === 'employee_id') {
-            // When employee is selected, update both employee_id and employee_name
-            const selectedStaff = staff.find(s => s.staff_id === value);
-            const fullName = selectedStaff ? `${selectedStaff.first_name} ${selectedStaff.last_name}` : '';
-            updatedForm = { ...form, employee_id: value, employee_name: fullName };
+        if (name === 'employee_name') {
+            // When typing employee name, clear employee_id if not selecting from list
+            updatedForm = { ...form, employee_name: value };
+            setShowStaffDropdown(true);
         } else {
             updatedForm = { ...form, [name]: value };
-        }
-
-        // Auto-calculate amount_paid if monthly_pay, days_worked, or deduction changes
-        if (name === 'monthly_pay' || name === 'days_worked' || name === 'deduction') {
-            const calculatedAmount = calculateAmountPaid(
-                updatedForm.monthly_pay,
-                updatedForm.days_worked,
-                updatedForm.deduction
-            );
-            updatedForm.amount_paid = calculatedAmount;
         }
 
         setForm(updatedForm);
@@ -561,6 +534,18 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
     };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showStaffDropdown && !event.target.closest('.employee-dropdown-container')) {
+                setShowStaffDropdown(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showStaffDropdown]);
 
     const getBorderClass = (fieldName, required = true) => {
         if (errors[fieldName]) {
@@ -577,33 +562,15 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
     const validate = (currentForm = form) => {
         const newErrors = {};
-        if (!currentForm.employee_id) newErrors.employee_id = 'Employee is required.';
+        if (!currentForm.employee_name || currentForm.employee_name.trim() === '') {
+            newErrors.employee_name = 'Employee is required.';
+        }
         if (!currentForm.date_of_payment) newErrors.date_of_payment = 'Date of payment is required.';
 
-        // Validate days_worked - must be a valid number
-        const daysWorked = String(currentForm.days_worked).trim();
-        if (daysWorked === '' || isNaN(Number(daysWorked)) || Number(daysWorked) < 0) {
-            newErrors.days_worked = 'Valid days worked required.';
-        }
-
-        // Validate amount_paid - must be a valid number
-        const amountPaid = String(currentForm.amount_paid).trim();
-        if (amountPaid === '' || isNaN(Number(amountPaid)) || Number(amountPaid) < 0) {
-            newErrors.amount_paid = 'Valid amount paid required.';
-        }
-
-        // Validate deduction - must be a valid number (can be 0)
-        const deduction = String(currentForm.deduction).trim();
-        if (deduction === '' || isNaN(Number(deduction)) || Number(deduction) < 0) {
-            newErrors.deduction = 'Valid deduction required.';
-        }
-
-        // Validate monthly_pay if provided
-        if (currentForm.monthly_pay !== '' && currentForm.monthly_pay !== null) {
-            const monthlyPay = String(currentForm.monthly_pay).trim();
-            if (isNaN(Number(monthlyPay)) || Number(monthlyPay) < 0) {
-                newErrors.monthly_pay = 'Monthly pay must be a valid number.';
-            }
+        // Validate days_missed - must be a valid number
+        const daysMissed = String(currentForm.days_missed).trim();
+        if (daysMissed === '' || isNaN(Number(daysMissed)) || Number(daysMissed) < 0) {
+            newErrors.days_missed = 'Valid days missed required.';
         }
 
         return newErrors;
@@ -624,20 +591,13 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         setMessage('');
 
         // Convert string values to proper numbers, ensuring no NaN values
-        const daysWorked = String(form.days_worked).trim();
-        const amountPaid = String(form.amount_paid).trim();
-        const deduction = String(form.deduction).trim();
-        const monthlyPay = String(form.monthly_pay).trim();
+        const daysMissed = String(form.days_missed).trim();
 
         const payload = {
             employee_name: form.employee_name, // Free-text employee name
-            staff: form.employee_id, // Optional: link to registered staff by staff_id (e.g., "RF001")
+            staff: form.employee_id, // Link to registered staff by staff_id (e.g., "RF001")
             date_of_payment: form.date_of_payment,
-            days_worked: parseInt(daysWorked, 10) || 0,
-            monthly_pay: monthlyPay === '' ? null : parseInt(monthlyPay, 10),
-            amount_paid: parseInt(amountPaid, 10) || 0,
-            deduction: parseInt(deduction, 10) || 0,
-            noted_reason: form.noted_reason.trim() || '',
+            days_missed: parseInt(daysMissed, 10) || 0,
         };
 
         console.log('Submitting payload:', JSON.stringify(payload, null, 2));
@@ -677,12 +637,18 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 console.log('✅ API Success Response:', savedData);
                 console.log('📝 Payload that was sent:', payload);
                 console.log('🔑 Saved record ID:', savedData.id);
+                console.log('💰 Calculated Amount Paid:', savedData.amount_paid);
+
+                // Update form with the calculated amount from backend
+                if (savedData.amount_paid) {
+                    setForm(prev => ({ ...prev, amount_paid: savedData.amount_paid }));
+                }
 
                 setMessage(initialData ? 'You have successfully updated the wage record!' : 'You have successfully recorded a new wage!');
 
                 setTimeout(() => {
                     onSaveSuccess();
-                }, 1000);
+                }, 1500);
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('API Error Response:', response.status);
@@ -722,23 +688,47 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     Employee Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    <div className="md:col-span-2">
-                        <label htmlFor="employee_id" className="block mb-1 text-sm font-medium text-gray-700">Employee</label>
-                        <select
-                            name="employee_id"
-                            value={form.employee_id}
+                    <div className="md:col-span-2 employee-dropdown-container relative">
+                        <label htmlFor="employee_name" className="block mb-1 text-sm font-medium text-gray-700">Employee</label>
+                        <input
+                            type="text"
+                            name="employee_name"
+                            value={form.employee_name}
                             onChange={handleChange}
+                            onFocus={() => setShowStaffDropdown(true)}
                             disabled={loadingStaff}
-                            className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium bg-white ${getBorderClass('employee_id')} ${loadingStaff ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        >
-                            <option value="">{loadingStaff ? 'Loading staff...' : '-- Select an employee --'}</option>
-                            {staff.map(member => (
-                                <option key={member.staff_id} value={member.staff_id}>
-                                    {member.first_name} {member.last_name} {member.staff_id ? `(${member.staff_id})` : '(No ID)'}
-                                </option>
-                            ))}
-                        </select>
-                        {errors.employee_id && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                            placeholder={loadingStaff ? 'Loading staff...' : 'Type employee name or select from list'}
+                            className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium bg-white ${getBorderClass('employee_name')} ${loadingStaff ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            autoComplete="off"
+                        />
+                        {showStaffDropdown && !loadingStaff && staff.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {staff
+                                    .filter(member => {
+                                        const fullName = `${member.first_name} ${member.last_name}`.toLowerCase();
+                                        const searchTerm = form.employee_name.toLowerCase();
+                                        return fullName.includes(searchTerm) || member.staff_id?.toLowerCase().includes(searchTerm);
+                                    })
+                                    .map(member => (
+                                        <div
+                                            key={member.staff_id}
+                                            onClick={() => {
+                                                const fullName = `${member.first_name} ${member.last_name}`;
+                                                setForm({ ...form, employee_id: member.staff_id, employee_name: fullName });
+                                                setShowStaffDropdown(false);
+                                                setErrors(prev => ({ ...prev, employee_name: '' }));
+                                            }}
+                                            className="px-4 py-2 cursor-pointer hover:bg-[#efebe9] transition-colors"
+                                        >
+                                            <div className="font-medium text-[#4A3423]">
+                                                {member.first_name} {member.last_name}
+                                            </div>
+                                            <div className="text-xs text-gray-500">{member.staff_id || 'No ID'}</div>
+                                        </div>
+                                    ))}
+                            </div>
+                        )}
+                        {errors.employee_name && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
                     </div>
 
                     <div>
@@ -754,85 +744,38 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                     </div>
 
                     <div>
-                        <label htmlFor="days_worked" className="block mb-1 text-sm font-medium text-gray-700">Days Worked</label>
+                        <label htmlFor="days_missed" className="block mb-1 text-sm font-medium text-gray-700">Days Missed</label>
                         <Input
                             type="text"
                             inputMode="numeric"
-                            name="days_worked"
-                            value={form.days_worked}
+                            name="days_missed"
+                            value={form.days_missed}
                             onChange={handleChange}
-                            placeholder="e.g. 22"
-                            className={`py-2.5 ${getBorderClass('days_worked')}`}
+                            placeholder="e.g. 2"
+                            className={`py-2.5 ${getBorderClass('days_missed')}`}
                         />
-                        {errors.days_worked && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.days_missed && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
                     </div>
                 </div>
 
-                <hr className="border-gray-200 mb-6" />
+                <hr className="border-gray-200 my-6" />
 
                 <h3 className="text-lg font-semibold text-[#4A3423] mb-4 flex items-center">
                     <DollarSign className="w-5 h-5 mr-2 text-[#795548]" />
-                    Wage Payment Breakdown
+                    Calculated Amount
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 gap-4 mb-6">
                     <div>
-                        <label htmlFor="monthly_pay" className="block mb-1 text-sm font-medium text-gray-700">Monthly Base Pay (UGX)</label>
-                        <Input
-                            type="text"
-                            inputMode="numeric"
-                            name="monthly_pay"
-                            value={form.monthly_pay}
-                            onChange={handleChange}
-                            placeholder="e.g. 2000000 (Optional)"
-                            className={`py-2.5 ${getBorderClass('monthly_pay', false)}`}
-                        />
-                        {errors.monthly_pay && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.monthly_pay}</p>}
-                    </div>
-
-                    <div>
-                        <label htmlFor="deduction" className="block mb-1 text-sm font-medium text-gray-700">Deduction (UGX)</label>
-                        <Input
-                            type="text"
-                            inputMode="numeric"
-                            name="deduction"
-                            value={form.deduction}
-                            onChange={handleChange}
-                            placeholder="e.g. 0 or 800000"
-                            className={`py-2.5 ${getBorderClass('deduction')}`}
-                        />
-                        {errors.deduction && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
-                    </div>
-
-                    <div className="md:col-span-2">
                         <label htmlFor="amount_paid" className="block mb-1 text-sm font-medium text-gray-700">Total Amount Paid (UGX)</label>
                         <Input
                             type="text"
-                            inputMode="numeric"
                             name="amount_paid"
-                            value={form.amount_paid}
-                            onChange={handleChange}
+                            value={form.amount_paid ? `UGX ${formatUGX(form.amount_paid)}` : ''}
                             placeholder="e.g. 2200000"
-                            className={`py-2.5 font-bold ${getBorderClass('amount_paid')}`}
+                            readOnly
+                            className="py-2.5 font-bold bg-gray-50 text-[#34A853] cursor-not-allowed"
                         />
-                        {errors.amount_paid && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
                     </div>
-                </div>
-
-                <h3 className="text-lg font-semibold text-[#4A3423] mb-4 flex items-center mt-6">
-                    <FileText className="w-5 h-5 mr-2 text-[#795548]" />
-                    Payment Reason / Note
-                </h3>
-                <div className="md:col-span-2">
-                    <label htmlFor="noted_reason" className="block mb-1 text-sm font-medium text-gray-700">Detailed Note</label>
-                    <textarea
-                        id="noted_reason"
-                        name="noted_reason"
-                        value={form.noted_reason}
-                        onChange={handleChange}
-                        placeholder="Brief reason (e.g., Full attendance, Overtime bonus, Missed 8 days)"
-                        rows="3"
-                        className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#795548] focus:border-[#795548] text-[#4A3423] resize-none"
-                    />
                 </div>
 
                 {message && (
@@ -840,9 +783,9 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                         marginTop: '15px',
                         padding: '10px',
                         borderRadius: '6px',
-                        backgroundColor: message.includes('successfully recorded a new wage') ? '#E8F5E8' : '#FFEBEE',
-                        border: `1px solid ${message.includes('successfully recorded a new wage') ? CoffeeColors.SUCCESS_GREEN : CoffeeColors.ERROR_RED}`,
-                        color: message.includes('successfully recorded a new wage') ? CoffeeColors.SUCCESS_GREEN : CoffeeColors.ERROR_RED,
+                        backgroundColor: message.includes('successfully') ? '#E8F5E8' : '#FFEBEE',
+                        border: `1px solid ${message.includes('successfully') ? CoffeeColors.SUCCESS_GREEN : CoffeeColors.ERROR_RED}`,
+                        color: message.includes('successfully') ? CoffeeColors.SUCCESS_GREEN : CoffeeColors.ERROR_RED,
                         fontSize: '12px',
                         fontWeight: '500',
                         textAlign: 'center'
@@ -952,9 +895,8 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 const TABLE_HEADERS = [
     { key: 'employee_name', label: 'Employee', icon: User, type: 'string', align: 'left' },
     { key: 'date_of_payment', label: 'Date Paid', icon: Calendar, type: 'date', align: 'center' },
-    { key: 'days_worked', label: 'Days Worked', icon: Calendar, type: 'number', align: 'center' },
+    { key: 'days_missed', label: 'Days Missed', icon: Calendar, type: 'number', align: 'center' },
     { key: 'amount_paid', label: 'Amount Paid', icon: DollarSign, type: 'number', align: 'right' },
-    { key: 'deduction', label: 'Deduction', icon: MinusCircle, type: 'number', align: 'right' },
     { key: 'actions', label: 'Actions', icon: null, type: 'actions', align: 'center' },
 ];
 
@@ -1183,13 +1125,11 @@ function Wages() {
                 totalWagesPaid: 0,
                 averageWagePerEmployee: 0,
                 totalEmployees: 0,
-                totalDeductions: 0,
                 totalRecords: 0
             };
         }
 
         const totalWagesPaid = dataSource.reduce((sum, wage) => sum + (wage.amount_paid || 0), 0);
-        const totalDeductions = dataSource.reduce((sum, wage) => sum + (wage.deduction || 0), 0);
 
         // Count unique employees
         const uniqueEmployees = new Set(dataSource.map(wage => wage.employee_name)).size;
@@ -1199,7 +1139,6 @@ function Wages() {
             totalWagesPaid,
             averageWagePerEmployee,
             totalEmployees: uniqueEmployees,
-            totalDeductions,
             totalRecords: dataSource.length
         };
     }, [wages, allWagesForKPI]); // Re-calculate when wages state changes
@@ -1232,9 +1171,8 @@ function Wages() {
                 <tr key={index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-[#efebe9]/30">
                     <td className="px-6 py-4 text-left font-semibold text-[#4A3423]">{wage.employee_name || 'N/A'}</td>
                     <td className="px-6 py-4 text-center text-gray-700">{dateStr}</td>
-                    <td className="px-6 py-4 text-center text-gray-700 font-medium">{wage.days_worked || 0}</td>
+                    <td className="px-6 py-4 text-center text-gray-700 font-medium">{wage.days_missed || 0}</td>
                     <td className="px-6 py-4 text-right text-[#34A853] font-bold whitespace-nowrap">UGX {formatUGX(wage.amount_paid)}</td>
-                    <td className="px-6 py-4 text-right text-[#EA4335] font-semibold whitespace-nowrap">UGX {formatUGX(wage.deduction)}</td>
                     <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
                             <button
@@ -1265,7 +1203,7 @@ function Wages() {
             <main className={`${mobilePadding} pt-0`} style={{ maxWidth: '100%', overflowX: 'hidden' }}>
                 <h2 className="text-2xl sm:text-3xl font-bold text-[#4A3423] mb-8">Wages Records Overview</h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     {/* Card 1: Total Wages Paid */}
                     <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
                         <div className="flex items-center justify-between mb-4">
@@ -1318,25 +1256,6 @@ function Wages() {
                             </div>
                             <div className="mt-3 text-xs">
                                 <p style={{ color: '#666' }}>Unique employees</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Card 4: Total Deductions */}
-                    <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xs font-medium tracking-wide uppercase" style={{ color: '#666' }}>
-                                Total Deductions
-                            </h3>
-                            <MinusCircle size={20} style={{ color: '#8B5A3C' }} />
-                        </div>
-                        <div className="mt-2">
-                            <div className="flex flex-col gap-1">
-                                <p className="text-sm font-medium" style={{ color: '#888' }}>UGX</p>
-                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{formatUGX(kpis.totalDeductions)}</p>
-                            </div>
-                            <div className="mt-3 text-xs">
-                                <p style={{ color: '#666' }}>Total amount deducted</p>
                             </div>
                         </div>
                     </div>
