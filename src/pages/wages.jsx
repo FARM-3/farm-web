@@ -987,7 +987,7 @@ function Wages() {
     const [wages, setWages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'ascending' });
+    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'descending' });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
