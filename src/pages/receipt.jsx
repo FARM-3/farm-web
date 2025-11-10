@@ -78,11 +78,15 @@ export default function SalesReceipt() {
           </button>
         </div>
         <div id="receipt" className="bg-white p-12 rounded-lg shadow-lg">
-          <div className="company-info text-center mb-6">
-            <h1 className="text-3xl font-bold text-amber-800 mb-1">RUGYEYO FARM</h1>
-            <p className="text-lg text-amber-700 font-semibold">Coffee Production & Processing</p>
-            <p className="text-gray-700">Namayumba, Wakiso District, Uganda</p>
-            <p className="text-gray-700">Tel: +256772701051 | Email: rkabushenga@gmail.com</p>
+          <div className="company-info flex items-center gap-6 mb-6">
+            {/* Logo - place the file at public/img/rugyeyo-logo.png (Vite serves public/ at /) */}
+            <img src="/img/rugyeyo-logo.png" alt="Rugyeyo Farm logo" className="w-20 h-20 object-contain" />
+            <div className="text-left">
+              <h1 className="text-3xl font-bold text-amber-800 mb-1">RUGYEYO FARM</h1>
+              <p className="text-lg text-amber-700 font-semibold">Coffee Production & Processing</p>
+              <p className="text-gray-700">Namayumba, Wakiso District, Uganda</p>
+              <p className="text-gray-700">Tel: +256772701051 | Email: rkabushenga@gmail.com</p>
+            </div>
           </div>
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-semibold text-gray-600">Receipt No:</span>
@@ -109,10 +113,10 @@ export default function SalesReceipt() {
               <span className="text-lg font-semibold text-gray-700">Payment Method:</span>
               <span className="text-lg text-gray-800">{sale.method_of_payment || sale.payment_method}</span>
             </div>
-            {/* <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-gray-700">Batch ID:</span>
               <span className="text-lg text-gray-800">{sale.batch_id || 'N/A'}</span>
-            </div> */}
+            </div>
           </div>
           <div className="mb-8">
             <table className="w-full border-collapse">
