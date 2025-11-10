@@ -11,6 +11,8 @@ const CoffeeColors = {
     ERROR_RED: '#EA4335',
 };
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const Settings = () => {
     // State for user role and settings
     const [userRole, setUserRole] = useState('user'); // 'admin' or 'user'
@@ -65,7 +67,7 @@ const Settings = () => {
     // Settings state
     const [settings, setSettings] = useState(loadSettings());
 
-    // Fetch user role from backend
+    // Fetch user role from backend and load current prices
     useEffect(() => {
         const fetchUserRole = async () => {
             try {
@@ -79,6 +81,7 @@ const Settings = () => {
                     console.log('Admin mode manually enabled');
                     setUserRole('admin');
                     setIsAdmin(true);
+                    await loadCurrentPrices(token);
                     setLoading(false);
                     return;
                 }
@@ -89,14 +92,15 @@ const Settings = () => {
                     // This allows the settings page to work during development
                     setUserRole('admin');
                     setIsAdmin(true);
+                    await loadCurrentPrices(token);
                     setLoading(false);
                     return;
                 }
 
                 // Fetch user details from backend to check role
-                const response = await fetch('/api/users/me/', {
+                const response = await fetch(`${API_URL}/api/users/me/`, {
                     headers: {
-                        'Authorization': `Token ${token}`,
+                        'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json',
                     }
                 });
@@ -106,20 +110,22 @@ const Settings = () => {
                     console.log('User data from API:', userData);
 
                     // Check if user is administrator
-                    // Adjust these field names based on your actual API response
-                    const adminRole = userData.role === 'administrator' ||
-                                    userData.is_admin === true ||
-                                    userData.is_superuser === true ||
-                                    userData.user_type === 'admin' ||
-                                    userData.is_staff === true;
+                    // Based on the backend API User model roles
+                    const adminRole = userData.role === 'admin' ||
+                                    userData.role === 'superadmin' ||
+                                    userData.is_superuser === true;
 
                     setUserRole(adminRole ? 'admin' : 'user');
                     setIsAdmin(adminRole);
+
+                    // Load current prices from backend
+                    await loadCurrentPrices(token);
                 } else {
                     console.warn('Failed to fetch user role, granting temporary admin access');
                     // TEMPORARY: Grant admin access if API fails
                     setUserRole('admin');
                     setIsAdmin(true);
+                    await loadCurrentPrices(token);
                 }
             } catch (error) {
                 console.error('Error fetching user role:', error);
@@ -127,8 +133,48 @@ const Settings = () => {
                 // TEMPORARY: Grant admin access if there's an error
                 setUserRole('admin');
                 setIsAdmin(true);
+                await loadCurrentPrices();
             } finally {
                 setLoading(false);
+            }
+        };
+
+        const loadCurrentPrices = async (token) => {
+            try {
+                console.log('Loading current prices from backend...');
+                const response = await fetch(`${API_URL}/api/setprice/`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : '',
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (response.ok) {
+                    const prices = await response.json();
+                    console.log('Current prices from API:', prices);
+
+                    // If we have price records, update the settings
+                    if (prices && prices.length > 0) {
+                        const latestPrice = prices[0]; // Get the first/most recent record
+                        console.log('Loading price settings:', {
+                            production_kgPrice: latestPrice.production_kgPrice,
+                            farmer_kgPrice: latestPrice.farmer_kgPrice
+                        });
+
+                        setSettings(prev => ({
+                            ...prev,
+                            productionPricePerKg: parseInt(latestPrice.production_kgPrice) || prev.productionPricePerKg,
+                            farmerPricePerKg: parseInt(latestPrice.farmer_kgPrice) || prev.farmerPricePerKg
+                        }));
+                    } else {
+                        console.log('No existing price records found, using defaults');
+                    }
+                } else {
+                    console.warn('Failed to load current prices, using defaults');
+                }
+            } catch (error) {
+                console.error('Error loading current prices:', error);
+                console.log('Using default price settings');
             }
         };
 
@@ -152,6 +198,16 @@ const Settings = () => {
 
     // Handle save settings
     const handleSave = async () => {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+        if (!token) {
+            setMessage({
+                type: 'error',
+                text: 'Authentication required. Please login again.'
+            });
+            return;
+        }
+
         if (!isAdmin) {
             setMessage({ type: 'error', text: 'Only administrators can save settings' });
             return;
@@ -161,8 +217,6 @@ const Settings = () => {
         setMessage({ type: '', text: '' });
 
         try {
-            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-
             // Save coffee pricing to backend API
             try {
                 const priceData = {
@@ -170,64 +224,65 @@ const Settings = () => {
                     farmer_kgPrice: settings.farmerPricePerKg.toString()
                 };
 
-                const response = await fetch('/api/setprice/', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': token ? `Token ${token}` : '',
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(priceData)
-                });
+                // First try to get existing price record to update it
+                let existingPriceId = null;
+                try {
+                    const getResponse = await fetch(`${API_URL}/api/setprice/`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+
+                    if (getResponse.ok) {
+                        const existingPrices = await getResponse.json();
+                        if (existingPrices && existingPrices.length > 0) {
+                            existingPriceId = existingPrices[0].id;
+                        }
+                    }
+                } catch (getError) {
+                    // No existing price record found, will create new one
+                }
+
+                let response;
+                if (existingPriceId) {
+                    // Update existing record
+                    response = await fetch(`${API_URL}/api/setprice/${existingPriceId}/`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(priceData)
+                    });
+                } else {
+                    // Create new record
+                    response = await fetch(`${API_URL}/api/setprice/`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(priceData)
+                    });
+                }
 
                 if (response.ok) {
-                    console.log('Coffee prices saved to backend successfully');
                     const result = await response.json();
-                    console.log('Response from setprice API:', result);
+                    console.log('Coffee prices saved successfully');
                 } else {
                     const errorText = await response.text();
-                    console.warn('Backend save failed for prices. Status:', response.status, 'Response:', errorText);
+                    console.warn('Failed to save coffee prices:', response.status, errorText);
                 }
             } catch (apiError) {
                 console.warn('API not available for prices, saving locally:', apiError.message);
             }
 
-            // Try to save other settings to backend API
-            try {
-                const otherSettings = {
-                    companyName: settings.companyName,
-                    companyEmail: settings.companyEmail,
-                    companyPhone: settings.companyPhone,
-                    companyAddress: settings.companyAddress,
-                    currency: settings.currency,
-                    dateFormat: settings.dateFormat,
-                    timezone: settings.timezone,
-                    emailNotifications: settings.emailNotifications,
-                    smsNotifications: settings.smsNotifications,
-                    systemAlerts: settings.systemAlerts,
-                    twoFactorAuth: settings.twoFactorAuth,
-                    sessionTimeout: settings.sessionTimeout,
-                    passwordExpiry: settings.passwordExpiry
-                };
-
-                const response = await fetch('/api/settings/', {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': token ? `Token ${token}` : '',
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(otherSettings)
-                });
-
-                if (response.ok) {
-                    console.log('Other settings saved to backend successfully');
-                }
-            } catch (apiError) {
-                console.warn('API not available for other settings:', apiError.message);
-            }
+            // Skip saving other settings to backend API - endpoint doesn't exist
+            console.log('=== SKIPPING OTHER SETTINGS SAVE (API endpoint not available) ===');
 
             // Always save to localStorage as a backup
             localStorage.setItem('appSettings', JSON.stringify(settings));
-            console.log('Settings saved to localStorage');
 
             setMessage({ type: 'success', text: 'Settings saved successfully!' });
 
