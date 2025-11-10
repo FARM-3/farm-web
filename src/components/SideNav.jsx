@@ -236,11 +236,11 @@ export const SideNav = ({ children }) => {
             <aside
                 className={`fixed top-0 left-0 h-full ${sidebarWidthClass} transform ${
                     sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                } transition-transform duration-300 ease-in-out z-50 shadow-lg md:translate-x-0`}
+                } transition-transform duration-300 ease-in-out z-50 shadow-lg md:translate-x-0 flex flex-col`}
                 style={{ backgroundColor: CoffeeColors.SIDEBAR_BG }}
             >
                 {/* Logo and Title Section */}
-                <div className="flex items-center justify-between p-4 h-auto py-6" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
+                <div className="flex items-center justify-between p-4 h-auto py-6 flex-shrink-0" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
                     <div className="flex items-center">
                         <img
                             src={rugyeyoLogo}
@@ -265,14 +265,14 @@ export const SideNav = ({ children }) => {
                 </div>
 
                 {/* Main Navigation */}
-                <nav className="mt-4 flex flex-col space-y-1 px-3 flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100% - 13rem)' }}>
+                <nav className="mt-4 flex flex-col space-y-1 px-3 flex-1 overflow-y-auto min-h-0">
                     {navItems.map((item) => (
                         <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} />
                     ))}
                 </nav>
 
                 {/* Footer Links (Profile/Logout) */}
-                <div className="py-4 px-3 absolute bottom-0 left-0 right-0" style={{ borderTop: `1px solid rgba(255,255,255,0.1)`, backgroundColor: CoffeeColors.SIDEBAR_BG }}>
+                <div className="py-4 px-3 flex-shrink-0" style={{ borderTop: `1px solid rgba(255,255,255,0.1)`, backgroundColor: CoffeeColors.SIDEBAR_BG }}>
                     <div className="flex flex-col space-y-1">
                         {footerNavItems.map((item) => (
                             <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} onLogoutClick={() => setShowLogoutModal(true)} />
