@@ -561,6 +561,18 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
             // When typing employee name, clear employee_id if not selecting from list
             updatedForm = { ...form, employee_name: value };
             setShowStaffDropdown(true);
+        } else if (name === 'days_missed') {
+            // Prevent negative numbers and numbers >= 30
+            if (value.includes('-')) {
+                setErrors(prev => ({ ...prev, days_missed: 'Days missed must be a positive number.' }));
+                return;
+            }
+            const numValue = parseInt(value, 10);
+            if (!isNaN(numValue) && numValue >= 30) {
+                setErrors(prev => ({ ...prev, days_missed: 'Days missed should be less than 30.' }));
+                return;
+            }
+            updatedForm = { ...form, [name]: value };
         } else {
             updatedForm = { ...form, [name]: value };
         }
