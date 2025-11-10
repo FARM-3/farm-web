@@ -6,7 +6,7 @@ import "leaflet/dist/leaflet.css";
 const center = { lat: 0.4837, lng: 32.2783 };
 
 function FarmMap() {
-  const apiKey = process.env.REACT_APP_GEOAPIFY_KEY;
+  const GEOAPIFY_API_KEY = "d53f8e45ee9d4148914e34a05fc1525d";
 
   return (
     <div
@@ -27,7 +27,7 @@ function FarmMap() {
 
         <Marker position={center}>
           <Popup>
-            🌾 <strong>My Farm</strong> <br /> Namayumba, Wakiso District
+             <strong>My Farm</strong> <br /> Namayumba, Wakiso District
           </Popup>
         </Marker>
       </MapContainer>

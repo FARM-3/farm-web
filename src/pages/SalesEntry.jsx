@@ -359,7 +359,7 @@ function SalesEntry() {
                 value={formData.customerName}
                 onChange={handleChange}
                 onBlur={handleBlur}
-                placeholder="John Doe"
+                placeholder="Mukisa John"
                 style={{
                   width: '100%',
                   padding: '8px',

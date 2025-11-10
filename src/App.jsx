@@ -13,6 +13,7 @@ import Aggregation from './pages/Aggregation.jsx';
 import Receipt from './pages/receipt.jsx';
 import { HarvestPage } from './pages/harvest.jsx';
 import Settings from './pages/Settings.jsx';
+import LocationSelector from './components/LocationSelector';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
