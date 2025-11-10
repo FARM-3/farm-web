@@ -21,6 +21,9 @@ export default function SalesReceipt() {
   const [sale, setSale] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [logoIndex, setLogoIndex] = useState(0);
+  const [logoMissing, setLogoMissing] = useState(false);
+  const logoSources = ['/img/rugyeyo-logo.png', '/img/rugyeyo-logo.jpg', '/img/rugyeyo-logo.webp', '/img/logo.png'];
 
   useEffect(() => {
     const fetchSale = async () => {
@@ -78,10 +81,27 @@ export default function SalesReceipt() {
           </button>
         </div>
         <div id="receipt" className="bg-white p-12 rounded-lg shadow-lg">
-          <div className="company-info flex items-center gap-6 mb-6">
-            {/* Logo - place the file at public/img/rugyeyo-logo.png (Vite serves public/ at /) */}
-            <img src="/img/rugyeyo-logo.png" alt="Rugyeyo Farm logo" className="w-20 h-20 object-contain" />
-            <div className="text-left">
+          <div className="company-info text-center mb-6">
+            {/* Logo on the left of the header text; trying multiple common filenames if one is missing */}
+            {!logoMissing ? (
+              <img
+                src={logoSources[logoIndex]}
+                alt="Rugyeyo Farm logo"
+                className="logo"
+                onError={() => {
+                  if (logoIndex < logoSources.length - 1) {
+                    setLogoIndex((i) => i + 1);
+                  } else {
+                    setLogoMissing(true);
+                  }
+                }}
+              />
+            ) : (
+              <div className="logo">
+                <img src="/src/assets/rugyeyo_logo.png" alt="Default logo" className="logo-img" />
+              </div>
+            )}
+            <div className="text-center">
               <h1 className="text-3xl font-bold text-amber-800 mb-1">RUGYEYO FARM</h1>
               <p className="text-lg text-amber-700 font-semibold">Coffee Production & Processing</p>
               <p className="text-gray-700">Namayumba, Wakiso District, Uganda</p>
@@ -170,6 +190,22 @@ export default function SalesReceipt() {
             box-shadow: none;
             border-radius: 0;
           }
+        }
+        /* Logo positioning inside the receipt */
+        #receipt { position: relative; }
+        .logo {
+          position: absolute;
+          top: 36px; /* lowered slightly so it sits a bit below the top edge */
+          left: 12px;
+          width: 120px;
+          height: 120px;
+          /* container for the logo image (increased size) */
+        }
+        .logo-img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
         }
       `}</style>
     </div>
