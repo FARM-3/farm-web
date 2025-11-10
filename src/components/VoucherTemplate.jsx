@@ -1,0 +1,144 @@
+import React from 'react';
+import { formatCurrency, formatDate } from '../utils/voucherGeneration';
+
+/**
+ * VoucherTemplate Component
+ * Displays a formatted voucher for wage payments
+ * Can be used for preview or PDF generation
+ */
+const VoucherTemplate = ({ voucherData }) => {
+  if (!voucherData) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        No voucher data available
+      </div>
+    );
+  }
+
+  return (
+    <div className="voucher-template w-full max-w-4xl mx-auto bg-white p-8 font-sans">
+      {/* Header */}
+      <div className="text-center mb-8 border-b-4 border-[#702A0B] pb-6">
+        <h1 className="text-4xl font-bold text-[#702A0B] mb-2">
+          PAYMENT VOUCHER
+        </h1>
+        <p className="text-gray-600 text-sm mb-1">Rugyeyo Enterprise</p>
+        <p className="text-gray-500 text-xs">Official Wage Payment Receipt</p>
+      </div>
+
+      {/* Voucher Info */}
+      <div className="mb-8">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex justify-between border-b border-gray-200 py-2">
+            <span className="font-bold text-[#702A0B]">Voucher Number:</span>
+            <span>{voucherData.voucherNumber}</span>
+          </div>
+          <div className="flex justify-between border-b border-gray-200 py-2">
+            <span className="font-bold text-[#702A0B]">Generated Date:</span>
+            <span>{voucherData.generatedDate}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Employee Details */}
+      <div className="bg-[#F5EEDC] p-6 rounded-lg mb-8">
+        <h2 className="text-xl font-bold text-[#702A0B] mb-4 border-b-2 border-[#702A0B] pb-2">
+          EMPLOYEE INFORMATION
+        </h2>
+        <div className="space-y-3">
+          <div className="flex">
+            <span className="font-bold w-40">Employee Name:</span>
+            <span>{voucherData.employeeName}</span>
+          </div>
+          <div className="flex">
+            <span className="font-bold w-40">Staff ID:</span>
+            <span>{voucherData.staffId}</span>
+          </div>
+          <div className="flex">
+            <span className="font-bold w-40">Payment Date:</span>
+            <span>{voucherData.dateOfPayment}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Details */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold text-[#702A0B] mb-4 border-b-2 border-[#702A0B] pb-2">
+          PAYMENT BREAKDOWN
+        </h2>
+        <table className="w-full border-collapse border border-gray-300">
+          <thead>
+            <tr className="bg-[#702A0B] text-white">
+              <th className="p-3 text-left border border-gray-300">Description</th>
+              <th className="p-3 text-right border border-gray-300">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="p-3 border border-gray-300">Days Worked</td>
+              <td className="p-3 text-right border border-gray-300">
+                {voucherData.daysWorked} days
+              </td>
+            </tr>
+            <tr>
+              <td className="p-3 border border-gray-300">Monthly Salary</td>
+              <td className="p-3 text-right border border-gray-300">
+                {formatCurrency(voucherData.monthlySalary)}
+              </td>
+            </tr>
+            <tr>
+              <td className="p-3 border border-gray-300">Deductions</td>
+              <td className="p-3 text-right border border-gray-300 text-red-600">
+                -{formatCurrency(voucherData.deduction)}
+              </td>
+            </tr>
+            <tr className="bg-[#F5EEDC] font-bold text-lg">
+              <td className="p-4 border border-gray-300 text-[#702A0B]">
+                NET AMOUNT PAID
+              </td>
+              <td className="p-4 text-right border border-gray-300 text-[#702A0B]">
+                {formatCurrency(voucherData.amountPaid)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* Notes */}
+      {voucherData.reason && (
+        <div className="mb-12 p-4 bg-gray-50 border-l-4 border-[#702A0B]">
+          <p className="font-bold text-[#702A0B] mb-2">Notes:</p>
+          <p className="text-gray-700">{voucherData.reason}</p>
+        </div>
+      )}
+
+      {/* Signatures */}
+      <div className="mt-16 mb-8">
+        <div className="grid grid-cols-2 gap-8">
+          <div className="text-center">
+            <div className="border-t-2 border-[#702A0B] pt-3 mt-12">
+              <p className="font-bold mb-1">Employee Signature</p>
+              <p className="text-gray-500 text-xs">Date: _____________</p>
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="border-t-2 border-[#702A0B] pt-3 mt-12">
+              <p className="font-bold mb-1">Authorized Signature</p>
+              <p className="text-gray-500 text-xs">Date: _____________</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="text-center mt-12 pt-6 border-t-2 border-[#702A0B] text-gray-500 text-xs">
+        <p className="mb-1">
+          This is an official payment voucher generated by Rugyeyo Enterprise system
+        </p>
+        <p>For any queries, please contact the accounts department</p>
+      </div>
+    </div>
+  );
+};
+
+export default VoucherTemplate;

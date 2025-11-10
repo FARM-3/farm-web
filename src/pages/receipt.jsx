@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Printer } from 'lucide-react';
 
 const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
@@ -7,6 +7,7 @@ const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
 function getReceiptIdFromUrl(location) {
   const params = new URLSearchParams(location.search);
   return params.get('id');
+  
 }
 
 function generateReceiptNumber(sale) {
@@ -18,9 +19,13 @@ function generateReceiptNumber(sale) {
 
 export default function SalesReceipt() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sale, setSale] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [logoIndex, setLogoIndex] = useState(0);
+  const [logoMissing, setLogoMissing] = useState(false);
+  const logoSources = ['/img/rugyeyo-logo.png', '/img/rugyeyo-logo.jpg', '/img/rugyeyo-logo.webp', '/img/logo.png'];
 
   useEffect(() => {
     const fetchSale = async () => {
@@ -69,20 +74,49 @@ export default function SalesReceipt() {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-4 print:hidden">
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition"
-          >
-            <Printer size={20} />
-            Print Receipt
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition"
+            >
+              <Printer size={20} />
+              Print Receipt
+            </button>
+          </div>
         </div>
         <div id="receipt" className="bg-white p-12 rounded-lg shadow-lg">
           <div className="company-info text-center mb-6">
-            <h1 className="text-3xl font-bold text-amber-800 mb-1">RUGYEYO FARM</h1>
-            <p className="text-lg text-amber-700 font-semibold">Coffee Production & Processing</p>
-            <p className="text-gray-700">Namayumba, Wakiso District, Uganda</p>
-            <p className="text-gray-700">Tel: +256772701051 | Email: rkabushenga@gmail.com</p>
+            {/* Logo on the left of the header text; trying multiple common filenames if one is missing */}
+            {!logoMissing ? (
+              <img
+                src={logoSources[logoIndex]}
+                alt="Rugyeyo Farm logo"
+                className="logo"
+                onError={() => {
+                  if (logoIndex < logoSources.length - 1) {
+                    setLogoIndex((i) => i + 1);
+                  } else {
+                    setLogoMissing(true);
+                  }
+                }}
+              />
+            ) : (
+              <div className="logo">
+                <img src="/src/assets/rugyeyo_logo.png" alt="Default logo" className="logo-img" />
+              </div>
+            )}
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-amber-800 mb-1">RUGYEYO FARM</h1>
+              <p className="text-lg text-amber-700 font-semibold">Coffee Production & Processing</p>
+              <p className="text-gray-700">Namayumba, Wakiso District, Uganda</p>
+              <p className="text-gray-700">Tel: +256772701051 | Email: rkabushenga@gmail.com</p>
+            </div>
           </div>
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-semibold text-gray-600">Receipt No:</span>
@@ -109,10 +143,10 @@ export default function SalesReceipt() {
               <span className="text-lg font-semibold text-gray-700">Payment Method:</span>
               <span className="text-lg text-gray-800">{sale.method_of_payment || sale.payment_method}</span>
             </div>
-            {/* <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-gray-700">Batch ID:</span>
               <span className="text-lg text-gray-800">{sale.batch_id || 'N/A'}</span>
-            </div> */}
+            </div>
           </div>
           <div className="mb-8">
             <table className="w-full border-collapse">
@@ -166,6 +200,22 @@ export default function SalesReceipt() {
             box-shadow: none;
             border-radius: 0;
           }
+        }
+        /* Logo positioning inside the receipt */
+        #receipt { position: relative; }
+        .logo {
+          position: absolute;
+          top: 36px; /* lowered slightly so it sits a bit below the top edge */
+          left: 12px;
+          width: 120px;
+          height: 120px;
+          /* container for the logo image (increased size) */
+        }
+        .logo-img {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
         }
       `}</style>
     </div>
