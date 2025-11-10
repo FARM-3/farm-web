@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Printer } from 'lucide-react';
 
 const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
@@ -18,6 +18,7 @@ function generateReceiptNumber(sale) {
 
 export default function SalesReceipt() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sale, setSale] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -72,13 +73,21 @@ export default function SalesReceipt() {
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-4 print:hidden">
-          <button
-            onClick={handlePrint}
-            className="flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition"
-          >
-            <Printer size={20} />
-            Print Receipt
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+            >
+              ← Back
+            </button>
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition"
+            >
+              <Printer size={20} />
+              Print Receipt
+            </button>
+          </div>
         </div>
         <div id="receipt" className="bg-white p-12 rounded-lg shadow-lg">
           <div className="company-info text-center mb-6">
