@@ -21,10 +21,17 @@ const CoffeeColors = {
     EXPENSE_RED: '#FFCDD2',    // Light pink/red for expenses
 };
 
-// Helper function to format currency
+// Helper function to format currency with thousand separators
 const formatCurrency = (amount) => {
-    if (typeof amount !== 'number') return '0';
-    return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    if (typeof amount !== 'number' || isNaN(amount)) {
+        amount = Number(amount);
+        if (isNaN(amount)) return '0';
+    }
+    return amount.toLocaleString('en-US', { 
+        minimumFractionDigits: 0, 
+        maximumFractionDigits: 0,
+        useGrouping: true 
+    });
 };
 
 // --- COMPONENT: Dashboard Card (4 cards in a row) ---
@@ -233,7 +240,7 @@ export const DashboardScreen = () => {
 
     return (
         <SideNav>
-            <div>
+            <div className="pt-6">
                 <div className="flex justify-between items-center mb-8">
                     <h1 className="text-3xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>
                         Financial Dashboard

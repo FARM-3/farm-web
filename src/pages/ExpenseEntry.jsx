@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Tag, DollarSign, Calendar, MapPin, AlignLeft, Send, Loader2 } from 'lucide-react';
+import { Truck, Tag, DollarSign, Calendar, MapPin, AlignLeft, Send, Loader2, X } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import SideNav from '../components/SideNav.jsx';
@@ -157,15 +157,35 @@ function ExpenseEntry() {
     return (
         <SideNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}>
             <div className="min-h-screen flex items-start justify-center pt-24 pb-10 font-sans" style={{ backgroundColor: '#FAF7F1' }}>
-                <div className="w-full max-w-3xl mx-4 p-6 sm:p-8 md:p-10 shadow-2xl rounded-2xl" 
-                     style={{ backgroundColor: CUSTOM_COLORS.cardBg, border: `1px solid ${CUSTOM_COLORS.inputBorder}` }}>
-                    
-                    <h1 className="text-3xl font-extrabold text-center mb-2" style={{ color: CUSTOM_COLORS.primaryText }}>
-                        {isEditing ? 'Edit Expense' : 'Expense Entry Form'}
-                    </h1>
-                    <p className="text-center mb-8 text-sm" style={{ color: CUSTOM_COLORS.primaryText }}>
-                        Financial Management - Expenses
-                    </p>
+                <div className="w-full max-w-3xl mx-4 shadow-2xl rounded-2xl" style={{ backgroundColor: CUSTOM_COLORS.cardBg }}>
+
+                    {/* Styled Header */}
+                    <div
+                        className="flex justify-between items-center p-5 rounded-t-2xl"
+                        style={{
+                            backgroundColor: '#8B5A3C'
+                        }}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                                <DollarSign className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-white">
+                                    {isEditing ? 'Edit Expense' : 'Expense Entry Form'}
+                                </h1>
+                                <p className="text-white/80 text-sm">Financial Management - Expenses</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => navigate('/expenses')}
+                            className="p-2 rounded-full text-white/80 hover:text-white hover:bg-white/20 transition-all duration-200"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    <div className="p-6 sm:p-8 md:p-10" style={{ border: `1px solid ${CUSTOM_COLORS.inputBorder}`, borderTop: 'none', borderRadius: '0 0 1rem 1rem' }}>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         
@@ -281,6 +301,7 @@ function ExpenseEntry() {
                             {loading ? (isEditing ? 'Updating...' : 'Submitting...') : (isEditing ? 'Update Expense' : 'Submit Expense Record')}
                         </button>
                     </form>
+                    </div>
                 </div>
             </div>
         </SideNav>

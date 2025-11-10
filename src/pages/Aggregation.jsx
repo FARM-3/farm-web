@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
 import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
+import { onHarvestRecorded } from '../utils/autoExpenseCreation';
 
 // API Endpoints
 const API_BASE_URL = 'http://142.93.94.236:8000/api';
@@ -58,6 +59,9 @@ const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
 
 // Expandable Row Component for Farmers
 const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
+    // Use timestamp fields: created_at, timestamp, date_created, or updated_at
+    const recordDate = farmer.created_at || farmer.timestamp || farmer.date_created || farmer.updated_at || farmer.date_of_birth;
+
     return (
         <>
             <tr className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
@@ -65,7 +69,7 @@ const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
                 <td className="px-6 py-3 text-left text-gray-600">
                     {farmer.first_name} {farmer.last_name}
                 </td>
-                <td className="px-6 py-3 text-center text-gray-600">{formatDate(farmer.date_of_birth)}</td>
+                <td className="px-6 py-3 text-center text-gray-600">{formatDate(recordDate)}</td>
                 <td className="px-6 py-3 text-center">
                     <button
                         onClick={onToggle}
@@ -153,12 +157,16 @@ const ExpandableFarmerRow = ({ farmer, isExpanded, onToggle }) => {
 
 // Expandable Row Component for Farmer Harvest
 const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
+    // Use the enriched data from the harvest record
+    const harvestId = harvest.harvest_id || harvest.id || 'Unknown ID';
+    const farmerName = harvest.farmer_name || harvest.name || 'Unknown Farmer';
+
     return (
         <>
             <tr className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
-                <td className="px-6 py-3 text-left font-medium text-gray-800">{harvest.id || 'N/A'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{harvest.name || 'N/A'}</td>
-                <td className="px-6 py-3 text-center text-gray-600">{harvest.date_of_delivery || 'N/A'}</td>
+                <td className="px-6 py-3 text-left font-medium text-gray-800">{harvestId}</td>
+                <td className="px-6 py-3 text-left text-gray-600">{farmerName}</td>
+                <td className="px-6 py-3 text-center text-gray-600">{formatDate(harvest.date_of_delivery)}</td>
                 <td className="px-6 py-3 text-center">
                     <button
                         onClick={onToggle}
@@ -198,7 +206,7 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Amount Paid</p>
-                                <p className="text-sm text-gray-800">{harvest.amount_paid ? `UGX ${harvest.amount_paid}` : 'N/A'}</p>
+                                <p className="text-sm text-gray-800">{harvest.amount_paid ? `UGX ${Number(harvest.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: true })}` : 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Paid By</p>
@@ -237,18 +245,134 @@ const AggregationPage = () => {
 
             // Normalize data
             const normalizedFarmers = Array.isArray(farmersData) ? farmersData : (farmersData.results || []);
-            const normalizedHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
+            const rawHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
 
-            // Sort by latest first
-            normalizedFarmers.sort((a, b) => new Date(b.date_of_birth || 0) - new Date(a.date_of_birth || 0));
-            normalizedHarvests.sort((a, b) => {
+            // Debug: log raw sizes and a sample raw harvest so we can refine matching
+            console.log('Aggregation: raw harvests fetched=', rawHarvests.length, 'farmers fetched=', normalizedFarmers.length);
+            if (rawHarvests.length > 0) {
+                console.log('Sample raw harvest record:', rawHarvests[0]);
+                console.log('Raw harvest fields:', Object.keys(rawHarvests[0] || {}));
+            }
+
+            // Build farmer lookup maps so we can strictly match harvest records to registered farmers
+            const farmerMapByName = {};
+            const farmerMapById = {};
+            normalizedFarmers.forEach(farmer => {
+                const fullName = `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim().toLowerCase();
+                if (fullName) farmerMapByName[fullName] = farmer;
+                if (farmer.farmer_id) farmerMapById[String(farmer.farmer_id)] = farmer;
+                if (farmer.id) farmerMapById[String(farmer.id)] = farmer;
+            });
+
+            // Strictly filter raw harvests to only include farmer-harvest records.
+            // Strategy (in order):
+            // 1. If the record explicitly marks itself as a farmer harvest (common keys)
+            // 2. If the record has a name/farmer_name that matches a registered farmer
+            // 3. If the record has a farmer_id that matches a registered farmer
+            // This excludes production/worker harvests that have block_id/worker_name and don't map to a farmer.
+            const farmerHarvests = rawHarvests.filter(h => {
+                // explicit flags that some APIs use
+                const explicitFarmer = (h.source && String(h.source).toLowerCase().includes('farmer')) ||
+                    (h.harvest_type && String(h.harvest_type).toLowerCase().includes('farmer')) ||
+                    (h.type && String(h.type).toLowerCase().includes('farmer'));
+                if (explicitFarmer) return true;
+
+                // try match by name
+                const name = (h.name || h.farmer_name || `${h.first_name || ''} ${h.last_name || ''}`.trim()).trim().toLowerCase();
+                if (name) {
+                    if (farmerMapByName[name]) return true;
+
+                    // Relaxed matching: check if any registered farmer's first or last name appears in the harvest name
+                    const nameTokens = name.split(/\s+/).filter(Boolean);
+                    for (const f of normalizedFarmers) {
+                        const fFull = `${f.first_name || ''} ${f.last_name || ''}`.trim().toLowerCase();
+                        if (!fFull) continue;
+                        // exact contains or token match
+                        if (fFull === name || name === fFull) return true;
+                        if (nameTokens.some(tok => tok && (fFull.includes(tok) || tok.includes((fFull.split(' ')[0] || '').toLowerCase())))) return true;
+                    }
+                }
+
+                // try match by id
+                const fid = h.farmer_id || h.farmerId || h.farmer || h.owner_id;
+                if (fid && farmerMapById[String(fid)]) return true;
+
+                // otherwise exclude (likely production/worker harvest)
+                return false;
+            });
+
+            // Debug: show filtering results
+            console.log('Aggregation: rawHarvests=', rawHarvests.length, 'farmerHarvests(filtered)=', farmerHarvests.length);
+
+            // If nothing matched, print helpful diagnostics to assist refining the filter
+            if (farmerHarvests.length === 0 && rawHarvests.length > 0) {
+                const r = rawHarvests[0];
+                console.log('No farmer-harvests matched. First raw harvest name fields:', {
+                    name: r.name, farmer_name: r.farmer_name, first_name: r.first_name, last_name: r.last_name
+                });
+                console.log('Registered farmer names:', normalizedFarmers.map(f => `${f.first_name || ''} ${f.last_name || ''}`));
+            }
+
+            // Debug: Log a sample of filtered harvest record to see their structure
+            if (farmerHarvests.length > 0) {
+                console.log('Sample filtered harvest record:', farmerHarvests[0]);
+                console.log('Harvest fields:', Object.keys(farmerHarvests[0]));
+            }
+
+            if (normalizedFarmers.length > 0) {
+                console.log('Sample farmer record:', normalizedFarmers[0]);
+                const farmerFields = Object.keys(normalizedFarmers[0]);
+                console.log('Farmer fields:', farmerFields);
+                console.log('🔍 All farmer fields with values:', normalizedFarmers[0]);
+
+                // Find all date-related fields
+                const dateFields = farmerFields.filter(field =>
+                    field.includes('date') || field.includes('time') || field.includes('created') || field.includes('updated')
+                );
+                console.log('📅 Date-related fields:', dateFields);
+                dateFields.forEach(field => {
+                    console.log(`  - ${field}:`, normalizedFarmers[0][field]);
+                });
+            }
+
+            // Enrich harvest records with farmer details
+            const enrichedHarvests = await Promise.all(farmerHarvests.map(async harvest => {
+                // The API returns 'harvest_id' and 'name' (farmer's name)
+                const harvestId = harvest.harvest_id || harvest.id;
+
+                // Try to find the farmer by matching the name (several possible name fields)
+                const farmerName = (harvest.name || harvest.farmer_name || `${harvest.first_name || ''} ${harvest.last_name || ''}`.trim()).toLowerCase();
+                const farmer = farmerMapByName[farmerName] || null;
+
+                // NOTE: We intentionally do NOT auto-create expenses here during aggregation fetch.
+                // Auto-expense creation should happen at the point of harvest creation/confirmation
+                // (e.g. in the Harvest page or server-side) to avoid duplicate side-effects when
+                // multiple pages fetch the same harvest records.
+
+                return {
+                    ...harvest,
+                    harvest_id: harvestId,
+                    farmer_id: farmer?.farmer_id || harvest.farmer_id || 'N/A',
+                    farmer_name: farmer ? `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim() : (harvest.name || harvest.farmer_name || 'Unknown Farmer'),
+                    farmer_village: farmer?.village || harvest.village,
+                    farmer_details: farmer
+                };
+            }));
+
+            // Sort by latest record creation first (using timestamp fields)
+            normalizedFarmers.sort((a, b) => {
+                const dateA = a.created_at || a.timestamp || a.date_created || a.updated_at || a.date_of_birth || 0;
+                const dateB = b.created_at || b.timestamp || b.date_created || b.updated_at || b.date_of_birth || 0;
+                return new Date(dateB) - new Date(dateA);
+            });
+            enrichedHarvests.sort((a, b) => {
                 const dateA = a.date_of_delivery || '';
                 const dateB = b.date_of_delivery || '';
-                return dateB.localeCompare(dateA);
+                return dateA.localeCompare(dateB);
             });
 
             setFarmers(normalizedFarmers);
-            setHarvests(normalizedHarvests);
+            setHarvests(enrichedHarvests);
         } catch (err) {
             console.error('Error fetching aggregation data:', err);
             setError('Failed to load data. Please try again.');
@@ -296,7 +420,7 @@ const AggregationPage = () => {
             <main className="p-4 sm:p-6 md:p-8 pt-0">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-2xl md:text-3xl font-extrabold text-text-default">
+                    <h1 className="text-3xl font-bold" style={{ color: '#3D2817' }}>
                         Aggregation Overview
                     </h1>
                     <button
@@ -439,12 +563,12 @@ const AggregationPage = () => {
                                 )
                             ) : (
                                 harvests.length > 0 ? (
-                                    harvests.map((harvest) => (
+                                    harvests.map((harvest, index) => (
                                         <ExpandableHarvestRow
-                                            key={harvest.id}
+                                            key={harvest.harvest_id || harvest.id || index}
                                             harvest={harvest}
-                                            isExpanded={expandedRows[harvest.id]}
-                                            onToggle={() => toggleRow(harvest.id)}
+                                            isExpanded={expandedRows[harvest.harvest_id || harvest.id || index]}
+                                            onToggle={() => toggleRow(harvest.harvest_id || harvest.id || index)}
                                         />
                                     ))
                                 ) : (
