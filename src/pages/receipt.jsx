@@ -7,6 +7,7 @@ const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
 function getReceiptIdFromUrl(location) {
   const params = new URLSearchParams(location.search);
   return params.get('id');
+  
 }
 
 function generateReceiptNumber(sale) {
