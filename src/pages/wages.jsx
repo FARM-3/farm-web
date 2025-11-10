@@ -1176,17 +1176,17 @@ function Wages() {
 
         // Then, sort the filtered results
         let sortableItems = [...filteredItems];
-        if (sortConfig.key !== null) {
+            sortableItems.sort((a, b) => {
+                const dateA = new Date(a.date_of_payment || 0);
+                const dateB = new Date(b.date_of_payment || 0);
+                return dateB - dateA;
+            });
+        if (sortConfig.key !== null && sortConfig.key !== 'date_of_payment') {
             sortableItems.sort((a, b) => {
                 const aValue = a[sortConfig.key];
                 const bValue = b[sortConfig.key];
 
                 // Special handling for date fields to ensure proper date comparison
-                if (sortConfig.key === 'date_of_payment') {
-                    const dateA = new Date(aValue);
-                    const dateB = new Date(bValue);
-                    return sortConfig.direction === 'ascending' ? dateA - dateB : dateB - dateA;
-                }
 
                 if (TABLE_HEADERS.find(h => h.key === sortConfig.key)?.type === 'number') {
                     const numA = parseFloat(aValue || 0);
@@ -1209,9 +1209,12 @@ function Wages() {
 
     const requestSort = (key) => {
         let direction = 'ascending';
-        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-            direction = 'descending';
+        if (sortConfig.key === key) {
+            direction = sortConfig.direction === 'ascending' ? 'descending' : 'ascending';
+        }   else {
+            direction = key === 'date_of_payment' ? 'descending' : 'ascending';
         }
+
         setSortConfig({ key, direction });
     };
 
@@ -1274,6 +1277,7 @@ function Wages() {
 
     const confirmDelete = async () => {
         if (wageToDelete) {
+            setDeleting(true);
             try {
                 // Get auth token
                 const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
@@ -1289,17 +1293,18 @@ function Wages() {
 
                 if (response.ok) {
                     console.log('Wage deleted successfully');
-                    setShowDeleteModal(false);
-                    setWageToDelete(null);
-                    // Refresh the current page
-                    fetchWages(currentPage);
                 } else {
                     console.error('Failed to delete wage:', response.status);
-                    alert('Failed to delete wage record. Please try again.');
                 }
+                setShowDeleteModal(false);
+                setWageToDelete(null);
+                // Refresh the current page
+                fetchWages(currentPage);
             } catch (err) {
                 console.error('Network error during delete:', err);
                 alert('Network error. Please check your connection and try again.');
+            } finally {
+                setDeleting(false);
             }
         }
     };
@@ -1605,10 +1610,18 @@ function Wages() {
                                 </button>
                                 <button
                                     onClick={confirmDelete}
-                                    className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200"
-                                    style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}
+                                    disabled={deleting}
+                                    className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                                    style={{ background: deleting ? '#dc2626' : 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}
                                 >
-                                    Delete
+                                    {deleting ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        'Delete'
+                                    )}
                                 </button>
                             </div>
                         </div>
