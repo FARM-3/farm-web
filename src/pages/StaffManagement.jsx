@@ -293,96 +293,82 @@ const PARISHES_BY_SUB_COUNTY = {
   "Kasome Sub-County": ["Kasome Central", "Kasome East"],
 };
 
+// ... (imports and constants remain the same)
+
 const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
-  const getTodayDate = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-  const today = getTodayDate();
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    gender: "",
+    nin: "",
+    hire_date: "",
+    monthly_salary: "",
+    employment_status: "",
+    district: "",
+    subcounty: "",
+    parish: "",
+    village: "",
+  });
 
-  const formatNumberWithCommas = (value) => {
-    if (!value && value !== 0) return "";
-    const num = value.toString().replace(/,/g, "");
-    return Number(num).toLocaleString("en-US");
-  };
+  const [validation, setValidation] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const today = new Date().toISOString().split('T')[0];
 
-  const normalizeStaff = (s) => {
-    if (!s)
-      return {
+  // Initialize form data when modal opens or staffData changes
+  useEffect(() => {
+    if (staffData) {
+      setFormData({
+        first_name: staffData.first_name || "",
+        last_name: staffData.last_name || "",
+        gender: staffData.gender || "",
+        nin: staffData.nin || "",
+        hire_date: staffData.hire_date || staffData.date_hired || "",
+        monthly_salary: staffData.monthly_salary || staffData.salary || "",
+        employment_status: staffData.employment_status || "Full-time",
+        district: staffData.district || "",
+        subcounty: staffData.subcounty || staffData.sub_county || "",
+        parish: staffData.parish || "",
+        village: staffData.village || "",
+      });
+    } else {
+      setFormData({
         first_name: "",
         last_name: "",
         gender: "",
         nin: "",
+        hire_date: "",
+        monthly_salary: "",
+        employment_status: "Full-time",
         district: "",
         subcounty: "",
         parish: "",
         village: "",
-        employment_status: "",
-        hire_date: today,
-        monthly_salary: "",
-      };
-    return {
-      first_name: s.first_name || "",
-      last_name: s.last_name || "",
-      gender: s.gender || "",
-      nin: s.nin || "",
-      district: s.district || "",
-      subcounty: s.subcounty || s.sub_county || "",
-      parish: s.parish || "",
-      village: s.village || "",
-      employment_status: s.employment_status || s.employment_type || "",
-      hire_date: s.hire_date || s.date_hired || today,
-      monthly_salary: s.monthly_salary
-        ? formatNumberWithCommas(s.monthly_salary)
-        : "",
-    };
-  };
-
-  const [formData, setFormData] = useState(normalizeStaff(staffData));
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validation, setValidation] = useState({});
-
-  useEffect(() => {
-    if (isOpen) {
-      setFormData(normalizeStaff(staffData));
-      setValidation({});
+      });
     }
-  }, [isOpen, staffData]);
+    setValidation({});
+  }, [staffData, isOpen]);
 
-  const validateField = (name, value) => {
-    const v = String(value || "").trim();
-    switch (name) {
+  const validateField = (fieldName, value) => {
+    switch (fieldName) {
       case "first_name":
       case "last_name":
-        return v.length >= 2;
+        return value.trim().length >= 2;
       case "gender":
-        return ["Male", "Female"].includes(value);
+        return value !== "";
       case "nin":
-        return v.length === 14 && /^(CM|CF)[A-Za-z0-9]{12}$/.test(v);
+        const ninPattern = /^(CM|CF)[A-Za-z0-9]{12}$/;
+        return ninPattern.test(value.toUpperCase());
+      case "hire_date":
+        return value && new Date(value) <= new Date();
+      case "monthly_salary":
+        return value && !isNaN(parseFloat(value.replace(/,/g, ""))) && parseFloat(value.replace(/,/g, "")) > 0;
+      case "employment_status":
+        return value !== "";
       case "district":
       case "subcounty":
       case "parish":
       case "village":
-        return v.length > 0;
-      case "monthly_salary":
-        const rawSalary = v.replace(/,/g, "");
-        if (rawSalary === "") return false;
-        const salaryNum = parseFloat(rawSalary);
-        return !isNaN(salaryNum) && salaryNum >= 0;
-      case "employment_status":
-        return ["Full-time", "Part-time", "Contract", "Seasonal"].includes(
-          value
-        );
-      case "hire_date":
-        if (!v.length) return false;
-        const now = new Date();
-        const todayStr = `${now.getFullYear()}-${String(
-          now.getMonth() + 1
-        ).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-        return v <= todayStr;
+        return value.trim().length >= 2;
       default:
         return true;
     }
@@ -390,342 +376,750 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => {
-      const next = { ...prev };
-      if (name === "monthly_salary") {
-        if (value && /^[0-9,]*$/.test(value)) {
-          const rawValue = value.replace(/,/g, "");
-          next[name] =
-            rawValue === "" ? "" : Number(rawValue).toLocaleString("en-US");
-        }
-      } else {
-        next[name] = value;
-      }
-      return next;
-    });
-    setValidation((prev) => ({ ...prev, [name]: validateField(name, value) }));
+    let processedValue = value;
+
+    if (name === "monthly_salary") {
+      // Format salary with commas
+      processedValue = value.replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: processedValue,
+    }));
+
+    // Validate field
+    setValidation((prev) => ({
+      ...prev,
+      [name]: validateField(name, processedValue),
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const fieldsToCheck = [
-      "first_name",
-      "last_name",
-      "gender",
-      "nin",
-      "district",
-      "subcounty",
-      "parish",
-      "village",
-      "employment_status",
-      "hire_date",
-      "monthly_salary",
-    ];
-    const newValidation = {};
-    let allValid = true;
-
-    for (const f of fieldsToCheck) {
-      const value =
-        f === "monthly_salary" ? formData[f].replace(/,/g, "") : formData[f];
-      const ok = validateField(f, value);
-      newValidation[f] = ok;
-      if (!ok) allValid = false;
-    }
-
-    setValidation(newValidation);
-    if (!allValid) return;
-
     setIsSubmitting(true);
 
-    const payload = {
-      ...formData,
-      monthly_salary: formData.monthly_salary
-        ? parseFloat(formData.monthly_salary.replace(/,/g, ""))
-        : "",
-    };
+    // Validate all fields
+    const newValidation = {};
+    Object.keys(formData).forEach((key) => {
+      newValidation[key] = validateField(key, formData[key]);
+    });
+    setValidation(newValidation);
 
-    if (staffData?.id) payload.id = staffData.id;
-    if (staffData?.staff_id) payload.staff_id = staffData.staff_id;
+    // Check if all validations pass
+    const isValid = Object.values(newValidation).every((v) => v === true);
 
-    await onSave(payload);
-    setIsSubmitting(false);
+    if (!isValid) {
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      // Prepare data for submission
+      const submitData = {
+        ...formData,
+        monthly_salary: parseFloat(formData.monthly_salary.replace(/,/g, "")),
+        nin: formData.nin.toUpperCase(),
+      };
+
+      if (onSave) {
+        await onSave(submitData);
+      }
+
+      onClose();
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
 
+  // Uniform input styles
+  const inputStyles = {
+    base: {
+      width: "100%",
+      padding: "12px",
+      border: "1px solid #D1D5DB",
+      borderRadius: "0px",
+      outline: "none",
+      backgroundColor: "#FFFFFF",
+      fontSize: "14px",
+      fontFamily: "inherit",
+    },
+    focus: {
+      border: "1px solid #795548",
+      boxShadow: "0 0 0 2px rgba(121, 85, 72, 0.1)",
+    },
+    valid: {
+      border: "1px solid #10B981",
+    },
+    invalid: {
+      border: "1px solid #EF4444",
+    }
+  };
+
+  const labelStyles = {
+    display: "block",
+    fontSize: "14px",
+    fontWeight: "500",
+    color: "#374151",
+    marginBottom: "6px",
+    fontFamily: "inherit",
+  };
+
+  const errorStyles = {
+    fontSize: "12px",
+    color: "#EF4444",
+    marginTop: "4px",
+    fontFamily: "inherit",
+  };
+
+  const getInputStyle = (fieldName) => {
+    const baseStyle = { ...inputStyles.base };
+    
+    if (validation[fieldName] === true) {
+      return { ...baseStyle, ...inputStyles.valid };
+    } else if (validation[fieldName] === false) {
+      return { ...baseStyle, ...inputStyles.invalid };
+    }
+    
+    return baseStyle;
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div
-        className="bg-white rounded-lg shadow-2xl w-full max-w-2xl mx-auto flex flex-col overflow-hidden"
-        style={{ maxHeight: "90vh", height: "80vh" }}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">
+    <div style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0, 0, 0, 0.3)",
+      backdropFilter: "blur(4px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 50,
+      padding: "16px",
+      overflowY: "auto"
+    }}>
+      <div style={{
+        backgroundColor: "#FFFFFF",
+        borderRadius: "12px",
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+        width: "100%",
+        maxWidth: "800px", // Increased width for side-by-side layout
+        maxHeight: "90vh",
+        height: "85vh", // Slightly taller to accommodate more content
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden"
+      }}>
+        {/* Header */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "20px 24px",
+          borderBottom: "1px solid #E5E7EB"
+        }}>
+          <h2 style={{
+            fontSize: "20px",
+            fontWeight: "600",
+            color: "#1F2937",
+            margin: 0,
+            fontFamily: "inherit"
+          }}>
             {staffData ? "Edit Staff" : "Staff Entry"}
           </h2>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            style={{
+              padding: "8px",
+              borderRadius: "50%",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              color: "#6B7280"
+            }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = "#F3F4F6"}
+            onMouseLeave={(e) => e.target.style.backgroundColor = "transparent"}
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X size={20} />
           </button>
         </div>
 
-        <form
-          noValidate
-          onSubmit={handleSubmit}
-          className="flex-1 p-6 space-y-4 overflow-y-auto"
-        >
-          {/* --- Personal Info Section --- */}
+        {/* Form */}
+        <form onSubmit={handleSubmit} style={{
+          flex: 1,
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "24px",
+          overflowY: "auto"
+        }}>
+          {/* Personal Information Section */}
+          <div>
+            <h3 style={{
+              fontSize: "18px",
+              fontWeight: "600",
+              color: "#1F2937",
+              marginBottom: "16px",
+              fontFamily: "inherit"
+            }}>
+              Personal Information
+            </h3>
 
-          
-          {/* 🌍 Address Information Section with Geoapify */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr", // 2-column layout
+              gap: "16px"
+            }}>
+             {/* First Name */}
+             <div>
+               <label style={labelStyles}>First Name</label>
+               <input
+                 type="text"
+                 name="first_name"
+                 value={formData.first_name}
+                 onChange={handleChange}
+                 placeholder="Enter first name"
+                 style={getInputStyle("first_name")}
+                 onFocus={(e) => {
+                   e.target.style.border = inputStyles.focus.border;
+                   e.target.style.boxShadow = inputStyles.focus.boxShadow;
+                 }}
+                 onBlur={(e) => {
+                   const style = getInputStyle("first_name");
+                   e.target.style.border = style.border;
+                   e.target.style.boxShadow = "none";
+                 }}
+               />
+               {validation.first_name === false && (
+                 <p style={errorStyles}>
+                   First name must be at least 2 characters.
+                 </p>
+               )}
+             </div>
+
+             {/* Last Name */}
+             <div>
+               <label style={labelStyles}>Last Name</label>
+               <input
+                 type="text"
+                 name="last_name"
+                 value={formData.last_name}
+                 onChange={handleChange}
+                 placeholder="Enter last name"
+                 style={getInputStyle("last_name")}
+                 onFocus={(e) => {
+                   e.target.style.border = inputStyles.focus.border;
+                   e.target.style.boxShadow = inputStyles.focus.boxShadow;
+                 }}
+                 onBlur={(e) => {
+                   const style = getInputStyle("last_name");
+                   e.target.style.border = style.border;
+                   e.target.style.boxShadow = "none";
+                 }}
+               />
+               {validation.last_name === false && (
+                 <p style={errorStyles}>
+                   Last name must be at least 2 characters.
+                 </p>
+               )}
+             </div>
+
+             {/* Gender */}
+             <div>
+               <label style={labelStyles}>Gender</label>
+               <select
+                 name="gender"
+                 value={formData.gender}
+                 onChange={handleChange}
+                 style={getInputStyle("gender")}
+                 onFocus={(e) => {
+                   e.target.style.border = inputStyles.focus.border;
+                   e.target.style.boxShadow = inputStyles.focus.boxShadow;
+                 }}
+                 onBlur={(e) => {
+                   const style = getInputStyle("gender");
+                   e.target.style.border = style.border;
+                   e.target.style.boxShadow = "none";
+                 }}
+               >
+                 <option value="">Select gender</option>
+                 <option value="Male">Male</option>
+                 <option value="Female">Female</option>
+               </select>
+               {validation.gender === false && (
+                 <p style={errorStyles}>
+                   Please select a gender.
+                 </p>
+               )}
+             </div>
+
+             {/* NIN */}
+             <div>
+               <label style={labelStyles}>NIN</label>
+               <input
+                 type="text"
+                 name="nin"
+                 value={formData.nin}
+                 onChange={handleChange}
+                 placeholder="Enter NIN (e.g. CMXXXXXXXXXXXX)"
+                 style={{
+                   ...getInputStyle("nin"),
+                   textTransform: "uppercase"
+                 }}
+                 onFocus={(e) => {
+                   e.target.style.border = inputStyles.focus.border;
+                   e.target.style.boxShadow = inputStyles.focus.boxShadow;
+                 }}
+                 onBlur={(e) => {
+                   const style = getInputStyle("nin");
+                   e.target.style.border = style.border;
+                   e.target.style.boxShadow = "none";
+                 }}
+               />
+               {validation.nin === false && (
+                 <p style={errorStyles}>
+                   NIN must be 14 characters, start with CM or CF, and only contain letters/numbers.
+                 </p>
+               )}
+             </div>
+
+             {/* Hire Date */}
+             <div>
+               <label style={labelStyles}>Hire Date</label>
+               <input
+                 type="date"
+                 name="hire_date"
+                 max={today}
+                 value={formData.hire_date}
+                 onChange={handleChange}
+                 style={getInputStyle("hire_date")}
+                 onFocus={(e) => {
+                   e.target.style.border = inputStyles.focus.border;
+                   e.target.style.boxShadow = inputStyles.focus.boxShadow;
+                 }}
+                 onBlur={(e) => {
+                   const style = getInputStyle("hire_date");
+                   e.target.style.border = style.border;
+                   e.target.style.boxShadow = "none";
+                 }}
+               />
+               {validation.hire_date === false && (
+                 <p style={errorStyles}>
+                   Hire date cannot be in the future.
+                 </p>
+               )}
+             </div>
+
+             {/* Monthly Salary */}
+             <div>
+               <label style={labelStyles}>Monthly Salary (UGX)</label>
+               <input
+                 name="monthly_salary"
+                 type="text"
+                 value={formData.monthly_salary}
+                 onChange={handleChange}
+                 placeholder="e.g., 500,000"
+                 style={getInputStyle("monthly_salary")}
+                 onFocus={(e) => {
+                   e.target.style.border = inputStyles.focus.border;
+                   e.target.style.boxShadow = inputStyles.focus.boxShadow;
+                 }}
+                 onBlur={(e) => {
+                   const style = getInputStyle("monthly_salary");
+                   e.target.style.border = style.border;
+                   e.target.style.boxShadow = "none";
+                 }}
+               />
+               {validation.monthly_salary === false && (
+                 <p style={errorStyles}>
+                   Monthly Salary is required and must be valid.
+                 </p>
+               )}
+             </div>
+
+             {/* Employment Status */}
+             <div style={{ gridColumn: "span 2" }}>
+               <label style={labelStyles}>Employment Status</label>
+               <select
+                 name="employment_status"
+                 value={formData.employment_status}
+                 onChange={handleChange}
+                 style={getInputStyle("employment_status")}
+                 onFocus={(e) => {
+                   e.target.style.border = inputStyles.focus.border;
+                   e.target.style.boxShadow = inputStyles.focus.boxShadow;
+                 }}
+                 onBlur={(e) => {
+                   const style = getInputStyle("employment_status");
+                   e.target.style.border = style.border;
+                   e.target.style.boxShadow = "none";
+                 }}
+               >
+                 <option value="">Select employment status</option>
+                 <option value="Full-time">Full-time</option>
+                 <option value="Part-time">Part-time</option>
+                 <option value="Contract">Contract</option>
+                 <option value="Temporary">Seasonal</option>
+               </select>
+               {validation.employment_status === false && (
+                 <p style={errorStyles}>
+                   Please select an employment status.
+                 </p>
+               )}
+             </div>
+            </div>
+          </div>
+
+          {/* Address Information Section - FULL WIDTH for location inputs */}
           <GeoapifyContext apiKey="14cedd3fa25d49deacc7da7d7f48b00e">
-            <div className="grid grid-cols-1 gap-4">
-              {/* District */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  District *
-                </label>
-                <GeoapifyGeocoderAutocomplete
-                  placeholder="Search for district..."
-                  value={formData.district}
-                  type="state" // ✅ valid type
-                  filterByCountryCode={["ug"]}
-                  lang="en"
-                  limit={10}
-                  placeSelect={(value) => {
-                    if (!value || !value.properties) return; // ✅ null check
+            <div>
+              <h3 style={{
+                fontSize: "18px",
+                fontWeight: "600",
+                color: "#1F2937",
+                marginBottom: "16px",
+                fontFamily: "inherit"
+              }}>
+                Address Information
+              </h3>
 
-                    const districtName =
-                      value.properties.state ||
-                      value.properties.county ||
-                      value.properties.city ||
-                      value.properties.formatted ||
-                      "";
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr", // 2-column layout for address fields
+                gap: "16px"
+              }}>
+                {/* District */}
+                <div>
+                  <label style={labelStyles}>District</label>
+                  <div style={{
+                    position: "relative",
+                    width: "100%"
+                  }}>
+                    <GeoapifyGeocoderAutocomplete
+                      placeholder="Search for district..."
+                      value={formData.district}
+                      type="state"
+                      filterByCountryCode={["ug"]}
+                      lang="en"
+                      limit={10}
+                      placeSelect={(value) => {
+                        if (!value || !value.properties) return;
 
-                    const bbox = value.bbox || null;
+                        const districtName =
+                          value.properties.state ||
+                          value.properties.county ||
+                          value.properties.city ||
+                          value.properties.formatted ||
+                          "";
 
-                    setFormData((prev) => ({
-                      ...prev,
-                      district: districtName,
-                      subcounty: "",
-                      parish: "",
-                      _districtBBox: bbox,
-                    }));
+                        const bbox = value.bbox || null;
 
-                    setValidation((prev) => ({
-                      ...prev,
-                      district: validateField("district", districtName),
-                    }));
-                  }}
-                  debounceDelay={250}
-                  className="w-full"
-                />
-                {validation.district === false && (
-                  <p className="mt-1 text-xs text-red-600">
-                    District is required.
-                  </p>
-                )}
-              </div>
+                        setFormData((prev) => ({
+                          ...prev,
+                          district: districtName,
+                          subcounty: "",
+                          parish: "",
+                          _districtBBox: bbox,
+                        }));
 
-              {/* Subcounty */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subcounty *
-                </label>
-                <GeoapifyGeocoderAutocomplete
-                  placeholder={
-                    formData.district
-                      ? "Search for subcounty..."
-                      : "Select district first"
-                  }
-                  value={formData.subcounty}
-                  type="locality"
-                  filterByCountryCode={["ug"]}
-                  lang="en"
-                  limit={10}
-                  filterByRect={
-                    formData._districtBBox
-                      ? {
-                          lon1: formData._districtBBox[0],
-                          lat1: formData._districtBBox[1],
-                          lon2: formData._districtBBox[2],
-                          lat2: formData._districtBBox[3],
+                        setValidation((prev) => ({
+                          ...prev,
+                          district: validateField("district", districtName),
+                        }));
+                      }}
+                      debounceDelay={250}
+                      style={{
+                        ...getInputStyle("district"),
+                        position: "relative",
+                        zIndex: 1
+                      }}
+                    />
+                  </div>
+                  {validation.district === false && (
+                    <p style={errorStyles}>
+                      District is required.
+                    </p>
+                  )}
+                </div>
+
+                {/* Subcounty */}
+                <div>
+                  <label style={labelStyles}>Subcounty</label>
+                  <div style={{
+                    position: "relative",
+                    width: "100%"
+                  }}>
+                    <GeoapifyGeocoderAutocomplete
+                      placeholder={
+                        formData.district
+                          ? "Search for subcounty..."
+                          : "Select district first"
+                      }
+                      value={formData.subcounty}
+                      type="locality"
+                      filterByCountryCode={["ug"]}
+                      lang="en"
+                      limit={10}
+                      filterByRect={
+                        formData._districtBBox
+                          ? {
+                              lon1: formData._districtBBox[0],
+                              lat1: formData._districtBBox[1],
+                              lon2: formData._districtBBox[2],
+                              lat2: formData._districtBBox[3],
+                            }
+                          : undefined
+                      }
+                      disabled={!formData.district}
+                      suggestionsFilter={(suggestions) => {
+                        if (!formData.district || !LOCATION_DATA[formData.district]) {
+                          return suggestions;
                         }
-                      : undefined
-                  }
-                  disabled={!formData.district}
-                  placeSelect={(value) => {
-                    if (!value || !value.properties) return; // ✅ null check
+                        // Filter suggestions to only include subcounties from the selected district
+                        const districtSubcounties = LOCATION_DATA[formData.district];
+                        return suggestions.filter((suggestion) => {
+                          const suggestionName = suggestion.properties.formatted ||
+                                                suggestion.properties.locality ||
+                                                suggestion.properties.town ||
+                                                suggestion.properties.county ||
+                                                "";
+                          return districtSubcounties.some(subcounty =>
+                            subcounty.toLowerCase().includes(suggestionName.toLowerCase()) ||
+                            suggestionName.toLowerCase().includes(subcounty.toLowerCase())
+                          );
+                        });
+                      }}
+                      placeSelect={(value) => {
+                        if (!value || !value.properties) return;
 
-                    const subcountyName =
-                      value.properties.town ||
-                      value.properties.locality ||
-                      value.properties.suburb ||
-                      value.properties.county ||
-                      value.properties.formatted ||
-                      "";
+                        const subcountyName =
+                          value.properties.town ||
+                          value.properties.locality ||
+                          value.properties.suburb ||
+                          value.properties.county ||
+                          value.properties.formatted ||
+                          "";
 
-                    const bbox = value.bbox || null;
+                        const bbox = value.bbox || null;
 
-                    setFormData((prev) => ({
-                      ...prev,
-                      subcounty: subcountyName,
-                      parish: "",
-                      _subcountyBBox: bbox,
-                    }));
+                        setFormData((prev) => ({
+                          ...prev,
+                          subcounty: subcountyName,
+                          parish: "",
+                          _subcountyBBox: bbox,
+                        }));
 
-                    setValidation((prev) => ({
-                      ...prev,
-                      subcounty: validateField("subcounty", subcountyName),
-                    }));
-                  }}
-                  debounceDelay={250}
-                  className="w-full"
-                />
-                {validation.subcounty === false && (
-                  <p className="mt-1 text-xs text-red-600">
-                    Subcounty is required.
-                  </p>
-                )}
-              </div>
+                        setValidation((prev) => ({
+                          ...prev,
+                          subcounty: validateField("subcounty", subcountyName),
+                        }));
+                      }}
+                      debounceDelay={250}
+                      style={{
+                        ...getInputStyle("subcounty"),
+                        position: "relative",
+                        zIndex: 1
+                      }}
+                    />
+                  </div>
+                  {validation.subcounty === false && (
+                    <p style={errorStyles}>
+                      Subcounty is required.
+                    </p>
+                  )}
+                </div>
 
-              {/* Parish */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Parish *
-                </label>
-                <GeoapifyGeocoderAutocomplete
-                  placeholder={
-                    formData.subcounty
-                      ? "Search for parish..."
-                      : "Select subcounty first"
-                  }
-                  value={formData.parish}
-                  type="locality"
-                  filterByCountryCode={["ug"]}
-                  lang="en"
-                  limit={10}
-                  filterByRect={
-                    formData._subcountyBBox
-                      ? {
-                          lon1: formData._subcountyBBox[0],
-                          lat1: formData._subcountyBBox[1],
-                          lon2: formData._subcountyBBox[2],
-                          lat2: formData._subcountyBBox[3],
+                {/* Parish */}
+                <div>
+                  <label style={labelStyles}>Parish</label>
+                  <div style={{
+                    position: "relative",
+                    width: "100%"
+                  }}>
+                    <GeoapifyGeocoderAutocomplete
+                      placeholder={
+                        formData.subcounty
+                          ? "Search for parish..."
+                          : "Select subcounty first"
+                      }
+                      value={formData.parish}
+                      type="locality"
+                      filterByCountryCode={["ug"]}
+                      lang="en"
+                      limit={10}
+                      filterByRect={
+                        formData._subcountyBBox
+                          ? {
+                              lon1: formData._subcountyBBox[0],
+                              lat1: formData._subcountyBBox[1],
+                              lon2: formData._subcountyBBox[2],
+                              lat2: formData._subcountyBBox[3],
+                            }
+                          : undefined
+                      }
+                      disabled={!formData.subcounty}
+                      suggestionsFilter={(suggestions) => {
+                        if (!formData.subcounty || !PARISHES_BY_SUB_COUNTY[formData.subcounty]) {
+                          return suggestions;
                         }
-                      : undefined
-                  }
-                  disabled={!formData.subcounty}
-                  placeSelect={(value) => {
-                    if (!value || !value.properties) return; // ✅ null check
+                        // Filter suggestions to only include parishes from the selected subcounty
+                        const subcountyParishes = PARISHES_BY_SUB_COUNTY[formData.subcounty];
+                        return suggestions.filter((suggestion) => {
+                          const suggestionName = suggestion.properties.formatted ||
+                                                suggestion.properties.neighbourhood ||
+                                                suggestion.properties.locality ||
+                                                suggestion.properties.village ||
+                                                "";
+                          return subcountyParishes.some(parish =>
+                            parish.toLowerCase().includes(suggestionName.toLowerCase()) ||
+                            suggestionName.toLowerCase().includes(parish.toLowerCase())
+                          );
+                        });
+                      }}
+                      placeSelect={(value) => {
+                        if (!value || !value.properties) return;
 
-                    const parishName =
-                      value.properties.neighbourhood ||
-                      value.properties.village ||
-                      value.properties.suburb ||
-                      value.properties.locality ||
-                      value.properties.formatted ||
-                      "";
+                        const parishName =
+                          value.properties.neighbourhood ||
+                          value.properties.village ||
+                          value.properties.suburb ||
+                          value.properties.locality ||
+                          value.properties.formatted ||
+                          "";
 
-                    setFormData((prev) => ({
-                      ...prev,
-                      parish: parishName,
-                    }));
+                        setFormData((prev) => ({
+                          ...prev,
+                          parish: parishName,
+                        }));
 
-                    setValidation((prev) => ({
-                      ...prev,
-                      parish: validateField("parish", parishName),
-                    }));
-                  }}
-                  debounceDelay={250}
-                  className="w-full"
-                />
-                {validation.parish === false && (
-                  <p className="mt-1 text-xs text-red-600">
-                    Parish is required.
-                  </p>
-                )}
-              </div>
+                        setValidation((prev) => ({
+                          ...prev,
+                          parish: validateField("parish", parishName),
+                        }));
+                        }}
+                      debounceDelay={250}
+                      style={{
+                        ...getInputStyle("parish"),
+                        position: "relative",
+                        zIndex: 1
+                      }}
+                    />
+                  </div>
+                  {validation.parish === false && (
+                    <p style={errorStyles}>
+                      Parish is required.
+                    </p>
+                  )}
+                </div>
 
-              {/* Village */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Village *
-                </label>
-                <input
-                  name="village"
-                  value={formData.village}
-                  onChange={handleChange}
-                  placeholder="e.g., Kisaasi"
-                  required
-                  className="w-full p-3 border rounded-lg outline-none focus:ring-1 focus:ring-[#795548] bg-white"
-                  style={{
-                    borderColor:
-                      validation.village === true
-                        ? "#10B981"
-                        : validation.village === false
-                        ? "#EF4444"
-                        : "#D1D5DB",
-                  }}
-                />
-                {validation.village === false && (
-                  <p className="mt-1 text-xs text-red-600">
-                    This field is required — must be at least 2 characters.
-                  </p>
-                )}
+                {/* Village */}
+                <div>
+                  <label style={labelStyles}>Village</label>
+                  <div style={{
+                    position: "relative",
+                    width: "100%"
+                  }}>
+                    <input
+                      name="village"
+                      value={formData.village}
+                      onChange={handleChange}
+                      placeholder="e.g., Kisaasi"
+                      required
+                      style={{
+                        ...getInputStyle("village"),
+                        position: "relative",
+                        zIndex: 1
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.border = inputStyles.focus.border;
+                        e.target.style.boxShadow = inputStyles.focus.boxShadow;
+                      }}
+                      onBlur={(e) => {
+                        const style = getInputStyle("village");
+                        e.target.style.border = style.border;
+                        e.target.style.boxShadow = "none";
+                      }}
+                    />
+                  </div>
+                  {validation.village === false && (
+                    <p style={errorStyles}>
+                      This field is required — must be at least 2 characters.
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </GeoapifyContext>
 
-          {/* --- Employment details --- */}
-          <section className="bg-gray-50 border border-gray-100 rounded-lg p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Monthly Salary (UGX)
-            </label>
-            <input
-              name="monthly_salary"
-              type="text"
-              value={formData.monthly_salary}
-              onChange={handleChange}
-              placeholder="e.g., 500,000"
-              className="w-full border border-gray-300 rounded-lg p-2"
-            />
-            {validation.monthly_salary === false && (
-              <p className="mt-1 text-xs text-red-600">
-                Monthly Salary is required and must be valid.
-              </p>
-            )}
-          </section>
+          {/* Buttons */}
+          <div style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            paddingTop: "20px",
+            borderTop: "1px solid #E5E7EB",
+            gap: "12px",
+            marginTop: "auto"
+          }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                padding: "10px 20px",
+                borderRadius: "8px",
+                backgroundColor: "#F3F4F6",
+                color: "#374151",
+                border: "none",
+                fontSize: "14px",
+                fontWeight: "500",
+                cursor: "pointer",
+                fontFamily: "inherit"
+              }}
+              disabled={isSubmitting}
+              onMouseEnter={(e) => e.target.style.backgroundColor = "#E5E7EB"}
+              onMouseLeave={(e) => e.target.style.backgroundColor = "#F3F4F6"}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              style={{
+                padding: "10px 20px",
+                borderRadius: "8px",
+                backgroundColor: "#8B4513",
+                color: "#FFFFFF",
+                border: "none",
+                fontSize: "14px",
+                fontWeight: "500",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                opacity: isSubmitting ? 0.6 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!isSubmitting) e.target.style.backgroundColor = "#783A1E";
+              }}
+              onMouseLeave={(e) => {
+                if (!isSubmitting) e.target.style.backgroundColor = "#8B4513";
+              }}
+            >
+              {isSubmitting ? "Saving..." : staffData ? "Save Changes" : "Record Staff"}
+            </button>
+          </div>
         </form>
-
-        <div className="flex justify-end p-4 border-t border-gray-200 space-x-3 bg-gray-50">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-md bg-gray-200 text-gray-700"
-            disabled={isSubmitting}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="px-4 py-2 text-white rounded-md bg-[#9F4A2F]"
-          >
-            {isSubmitting
-              ? "Saving..."
-              : staffData
-              ? "Save Changes"
-              : "Record Staff"}
-          </button>
-        </div>
       </div>
     </div>
   );
 };
+
+
+
 
 const TABLE_HEADERS = [
   { key: "staff_id", label: "Staff Id", type: "string" },
@@ -842,13 +1236,8 @@ function StaffPage() {
         ? data.results
         : [];
 
-      // Map monthly_salary from API to salary for frontend
-      normalized = normalized.map((staff) => ({
-        ...staff,
-        salary: staff.monthly_salary || staff.salary || 0,
-      }));
-
-      console.log("API Response:", normalized);
+      console.log("Raw API Response:", data);
+      console.log("Normalized data:", normalized);
       console.log("Sample API staff record:", normalized[0]);
 
       // Map monthly_salary from API to salary for frontend
@@ -857,6 +1246,8 @@ function StaffPage() {
         salary: staff.monthly_salary || staff.salary || 0,
         hire_date: staff.hire_date || staff.date_hired,
       }));
+
+      console.log("Final staff list with salary mapping:", finalStaffList);
 
       console.log("Final staff data from API:", finalStaffList);
       setStaff(finalStaffList);
@@ -967,9 +1358,9 @@ function StaffPage() {
     // Validate and prepare data for API
     // Convert salary from formatted string (e.g., "7,000,000") to number (e.g., 7000000)
     const salaryValue =
-      typeof savedStaffData.salary === "string"
-        ? parseFloat(savedStaffData.salary.replace(/,/g, ""))
-        : savedStaffData.salary || 0;
+      typeof savedStaffData.monthly_salary === "string"
+        ? parseFloat(savedStaffData.monthly_salary.replace(/,/g, ""))
+        : savedStaffData.monthly_salary || 0;
 
     const apiData = {
       first_name: savedStaffData.first_name?.trim() || "",
@@ -1303,8 +1694,14 @@ function StaffPage() {
     return sortedStaff.map((staffMember, index) => {
       // Debug each staff member's salary
       console.log(
-        `Staff ${staffMember.first_name} salary:`,
-        staffMember.salary
+        `Staff ${staffMember.first_name} salary data:`,
+        {
+          salary: staffMember.salary,
+          monthly_salary: staffMember.monthly_salary,
+          monthly_salary_type: typeof staffMember.monthly_salary,
+          monthly_salary_value: staffMember.monthly_salary,
+          condition_check: staffMember.monthly_salary && staffMember.monthly_salary > 0
+        }
       );
 
       return (
@@ -1334,8 +1731,8 @@ function StaffPage() {
             {staffMember.hire_date || staffMember.date_hired || "N/A"}
           </td>
           <td className="px-6 py-3 text-right text-gray-600">
-            {staffMember.salary && staffMember.salary > 0
-              ? Number(staffMember.salary).toLocaleString()
+            {staffMember.monthly_salary && staffMember.monthly_salary > 0
+              ? Number(staffMember.monthly_salary).toLocaleString()
               : "No salary"}
           </td>
           <td className="px-6 py-3 text-center">
