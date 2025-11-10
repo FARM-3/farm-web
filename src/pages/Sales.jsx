@@ -1144,10 +1144,10 @@ function SalesPage() {
                             </button>
                             <button
                                 onClick={() => navigate(`/receipt?id=${sale.id}`)}
-                                className="text-green-600 hover:text-green-800 p-1 rounded-md hover:bg-green-50 transition-colors"
-                                title="View Receipt"
+                                className="text-green-600 hover:text-green-800 px-2 py-1 rounded-md hover:bg-green-50 transition-colors flex items-center gap-1"
                             >
                                 <ShoppingBag className="w-4 h-4" />
+                                <span className="text-xs">View Receipt</span>
                             </button>
                         </div>
                     </td>

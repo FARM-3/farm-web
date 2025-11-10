@@ -724,9 +724,9 @@ const Settings = () => {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8B4513]"
                             style={{
-                                backgroundColor: CoffeeColors.MEDIUM_BROWN,
+                                backgroundColor: '#702A0B', // Same as CoffeeColors.BUTTON_PRIMARY
                                 color: '#FFFFFF'
                             }}
                         >
