@@ -1961,6 +1961,7 @@ function StaffPage() {
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterGender, setFilterGender] = useState('');
+    const [filterSalary, setFilterSalary] = useState('');
     const navigate = useNavigate();
 
     const [sortConfig, setSortConfig] = useState({ key: 'date_hired', direction: 'descending' });
@@ -2016,8 +2017,21 @@ function StaffPage() {
         if (filterGender) {
             current = current.filter(su => su.gender?.toLowerCase() === filterGender.toLowerCase());
         }
+        if (filterSalary) {
+            current = current.filter(su => {
+                const salary = parseFloat(su.salary) || 0;
+                if (filterSalary === 'low') {
+                    return salary < 100000;
+                } else if (filterSalary === 'medium') {
+                    return salary >= 100000 && salary < 300000;
+                } else if (filterSalary === 'high') {
+                    return salary >= 300000;
+                }
+                return true;
+            });
+        }
         return current;
-    }, [staff, searchTerm, filterGender]);
+    }, [staff, searchTerm, filterGender, filterSalary]);
 
     const sortedStaff = useMemo(() => {
         const base = Array.isArray(filteredStaff) ? filteredStaff : [];
@@ -2555,6 +2569,16 @@ function StaffPage() {
                             <option value="">Filter by Gender</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
+                        </select>
+                        <ChevronsDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    </div>
+
+                    <div className="relative w-full sm:w-48">
+                        <select value={filterSalary} onChange={(e) => setFilterSalary(e.target.value)} className="appearance-none w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg bg-white outline-none">
+                            <option value="">Filter by Salary</option>
+                            <option value="low">Low (&lt; 100k)</option>
+                            <option value="medium">Medium (100k - 300k)</option>
+                            <option value="high">High (≥ 300k)</option>
                         </select>
                         <ChevronsDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                     </div>

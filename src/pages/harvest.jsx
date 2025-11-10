@@ -484,10 +484,7 @@ const BLOCKS_API = `${API_BASE_URL}/harvests/blocks/`;
 // Import the auto expense creation utility
 import { onHarvestRecorded } from '../utils/autoExpenseCreation';
 
-// Import the auto expense creation utility
-import { onHarvestRecorded } from '../utils/autoExpenseCreation';
-
-// Coffee Colors (omitted for brevity)
+// Coffee Colors
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
     ACTIVE_LINK_BG: '#efebe9',
@@ -737,26 +734,25 @@ export function HarvestPage() {
                         last_name: harvest.name?.split(' ').slice(1).join(' ') || '',
                         village: harvest.location || harvest.village || ''
                     };
-                    
-                    // Create auto expense for the harvest
-                    try {
-                        await onHarvestRecorded(harvest, farmerDetails);
-                    } catch (error) {
-                        console.error('Error creating auto expense for harvest:', error);
+
+                    // Heuristic: only create auto-expense for records that look like farmer harvests
+                    // Skip records that have worker_name or block_id and don't have a clear farmer name
+                    const hasFarmerName = !!(harvest.name || harvest.farmer_name || (harvest.first_name && harvest.last_name));
+                    const looksLikeWorkerOrProduction = !!(harvest.worker_name || harvest.block_id || harvest.block);
+
+                    if (hasFarmerName && !looksLikeWorkerOrProduction) {
+                        try {
+                            await onHarvestRecorded(harvest, farmerDetails);
+                        } catch (error) {
+                            console.error('Error creating auto expense for harvest:', error);
+                        }
+                    } else {
+                        console.log('Skipping auto-expense for non-farmer harvest:', harvest.harvest_id || harvest.id || '(no id)');
                     }
                 }
 
                 setHarvests(processedResults);
                 setError(null);
-            if (response.ok) {
-                const data = await response.json();
-                const results = data.results || data;
-                setHarvests(Array.isArray(results) ? results : []);
-                setError(null);
-            } else if (response.status === 401) {
-                // Specific handling for 401 error
-                setError('Authentication Failed (401). Please log in again.');
-                setHarvests([]);
             } else {
                 const errorText = await response.text();
                 setError(`API Error: ${response.status} - ${errorText}`);

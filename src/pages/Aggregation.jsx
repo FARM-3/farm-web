@@ -245,13 +245,80 @@ const AggregationPage = () => {
 
             // Normalize data
             const normalizedFarmers = Array.isArray(farmersData) ? farmersData : (farmersData.results || []);
-            const normalizedHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
+            const rawHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
 
-            // Debug: Log sample records to see their structure
-            if (normalizedHarvests.length > 0) {
-                console.log('Sample harvest record:', normalizedHarvests[0]);
-                console.log('Harvest fields:', Object.keys(normalizedHarvests[0]));
+            // Debug: log raw sizes and a sample raw harvest so we can refine matching
+            console.log('Aggregation: raw harvests fetched=', rawHarvests.length, 'farmers fetched=', normalizedFarmers.length);
+            if (rawHarvests.length > 0) {
+                console.log('Sample raw harvest record:', rawHarvests[0]);
+                console.log('Raw harvest fields:', Object.keys(rawHarvests[0] || {}));
             }
+
+            // Build farmer lookup maps so we can strictly match harvest records to registered farmers
+            const farmerMapByName = {};
+            const farmerMapById = {};
+            normalizedFarmers.forEach(farmer => {
+                const fullName = `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim().toLowerCase();
+                if (fullName) farmerMapByName[fullName] = farmer;
+                if (farmer.farmer_id) farmerMapById[String(farmer.farmer_id)] = farmer;
+                if (farmer.id) farmerMapById[String(farmer.id)] = farmer;
+            });
+
+            // Strictly filter raw harvests to only include farmer-harvest records.
+            // Strategy (in order):
+            // 1. If the record explicitly marks itself as a farmer harvest (common keys)
+            // 2. If the record has a name/farmer_name that matches a registered farmer
+            // 3. If the record has a farmer_id that matches a registered farmer
+            // This excludes production/worker harvests that have block_id/worker_name and don't map to a farmer.
+            const farmerHarvests = rawHarvests.filter(h => {
+                // explicit flags that some APIs use
+                const explicitFarmer = (h.source && String(h.source).toLowerCase().includes('farmer')) ||
+                    (h.harvest_type && String(h.harvest_type).toLowerCase().includes('farmer')) ||
+                    (h.type && String(h.type).toLowerCase().includes('farmer'));
+                if (explicitFarmer) return true;
+
+                // try match by name
+                const name = (h.name || h.farmer_name || `${h.first_name || ''} ${h.last_name || ''}`.trim()).trim().toLowerCase();
+                if (name) {
+                    if (farmerMapByName[name]) return true;
+
+                    // Relaxed matching: check if any registered farmer's first or last name appears in the harvest name
+                    const nameTokens = name.split(/\s+/).filter(Boolean);
+                    for (const f of normalizedFarmers) {
+                        const fFull = `${f.first_name || ''} ${f.last_name || ''}`.trim().toLowerCase();
+                        if (!fFull) continue;
+                        // exact contains or token match
+                        if (fFull === name || name === fFull) return true;
+                        if (nameTokens.some(tok => tok && (fFull.includes(tok) || tok.includes((fFull.split(' ')[0] || '').toLowerCase())))) return true;
+                    }
+                }
+
+                // try match by id
+                const fid = h.farmer_id || h.farmerId || h.farmer || h.owner_id;
+                if (fid && farmerMapById[String(fid)]) return true;
+
+                // otherwise exclude (likely production/worker harvest)
+                return false;
+            });
+
+            // Debug: show filtering results
+            console.log('Aggregation: rawHarvests=', rawHarvests.length, 'farmerHarvests(filtered)=', farmerHarvests.length);
+
+            // If nothing matched, print helpful diagnostics to assist refining the filter
+            if (farmerHarvests.length === 0 && rawHarvests.length > 0) {
+                const r = rawHarvests[0];
+                console.log('No farmer-harvests matched. First raw harvest name fields:', {
+                    name: r.name, farmer_name: r.farmer_name, first_name: r.first_name, last_name: r.last_name
+                });
+                console.log('Registered farmer names:', normalizedFarmers.map(f => `${f.first_name || ''} ${f.last_name || ''}`));
+            }
+
+            // Debug: Log a sample of filtered harvest record to see their structure
+            if (farmerHarvests.length > 0) {
+                console.log('Sample filtered harvest record:', farmerHarvests[0]);
+                console.log('Harvest fields:', Object.keys(farmerHarvests[0]));
+            }
+
             if (normalizedFarmers.length > 0) {
                 console.log('Sample farmer record:', normalizedFarmers[0]);
                 const farmerFields = Object.keys(normalizedFarmers[0]);
@@ -268,36 +335,25 @@ const AggregationPage = () => {
                 });
             }
 
-            // Create a farmer lookup map by name for quick access
-            const farmerMapByName = {};
-            normalizedFarmers.forEach(farmer => {
-                const fullName = `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim().toLowerCase();
-                farmerMapByName[fullName] = farmer;
-            });
-
             // Enrich harvest records with farmer details
-            const enrichedHarvests = await Promise.all(normalizedHarvests.map(async harvest => {
+            const enrichedHarvests = await Promise.all(farmerHarvests.map(async harvest => {
                 // The API returns 'harvest_id' and 'name' (farmer's name)
                 const harvestId = harvest.harvest_id || harvest.id;
-                const farmerName = harvest.name || 'Unknown Farmer';
 
-                // Try to find the farmer by matching the name
-                const farmer = farmerMapByName[farmerName.toLowerCase()];
+                // Try to find the farmer by matching the name (several possible name fields)
+                const farmerName = (harvest.name || harvest.farmer_name || `${harvest.first_name || ''} ${harvest.last_name || ''}`.trim()).toLowerCase();
+                const farmer = farmerMapByName[farmerName] || null;
 
-                // Create auto expense if it hasn't been created yet
-                if (farmer && harvest.amount_paid && !harvest.expense_created) {
+                // Only attempt auto expense creation for records that clearly map to a farmer
+                if (farmer && harvest.amount_paid) {
                     try {
                         const farmerDetails = {
-                            // Use concatenated name if available, otherwise individual components
-                            farmer_name: farmer.farmer_name || `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim(),
-                            village: farmer.village
+                            farmer_name: `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim() || farmer.name,
+                            village: farmer.village || harvest.village
                         };
 
-                        // Call the auto expense creation function
-                        await onHarvestRecorded(harvest, farmerDetails);
-                        
-                        // Mark this harvest as having an expense created
-                        harvest.expense_created = true;
+                        // Call the auto expense creation function (non-blocking)
+                        onHarvestRecorded(harvest, farmerDetails).catch(err => console.error('Auto expense error:', err));
                     } catch (error) {
                         console.error('Error creating auto expense for harvest:', harvest.harvest_id, error);
                     }
@@ -306,9 +362,9 @@ const AggregationPage = () => {
                 return {
                     ...harvest,
                     harvest_id: harvestId,
-                    farmer_id: farmer?.farmer_id || 'N/A',
-                    farmer_name: farmer ? `${farmer.first_name} ${farmer.last_name}` : farmerName,
-                    farmer_village: farmer?.village,
+                    farmer_id: farmer?.farmer_id || harvest.farmer_id || 'N/A',
+                    farmer_name: farmer ? `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim() : (harvest.name || harvest.farmer_name || 'Unknown Farmer'),
+                    farmer_village: farmer?.village || harvest.village,
                     farmer_details: farmer
                 };
             }));
