@@ -344,20 +344,10 @@ const AggregationPage = () => {
                 const farmerName = (harvest.name || harvest.farmer_name || `${harvest.first_name || ''} ${harvest.last_name || ''}`.trim()).toLowerCase();
                 const farmer = farmerMapByName[farmerName] || null;
 
-                // Only attempt auto expense creation for records that clearly map to a farmer
-                if (farmer && harvest.amount_paid) {
-                    try {
-                        const farmerDetails = {
-                            farmer_name: `${farmer.first_name || ''} ${farmer.last_name || ''}`.trim() || farmer.name,
-                            village: farmer.village || harvest.village
-                        };
-
-                        // Call the auto expense creation function (non-blocking)
-                        onHarvestRecorded(harvest, farmerDetails).catch(err => console.error('Auto expense error:', err));
-                    } catch (error) {
-                        console.error('Error creating auto expense for harvest:', harvest.harvest_id, error);
-                    }
-                }
+                // NOTE: We intentionally do NOT auto-create expenses here during aggregation fetch.
+                // Auto-expense creation should happen at the point of harvest creation/confirmation
+                // (e.g. in the Harvest page or server-side) to avoid duplicate side-effects when
+                // multiple pages fetch the same harvest records.
 
                 return {
                     ...harvest,

@@ -725,32 +725,11 @@ export function HarvestPage() {
                 console.log('Is array?', Array.isArray(results));
                 console.log('Results length:', results.length);
 
-                // Process each harvest record and create corresponding expense
+                // We intentionally do NOT auto-create expenses during harvest list fetch.
+                // Creating expenses on every fetch causes duplicates (multiple page loads/refreshes).
+                // Auto-expense creation should occur at the moment a harvest is created/confirmed,
+                // or be performed server-side. For now just set the fetched harvests into state.
                 const processedResults = Array.isArray(results) ? results : [];
-                for (const harvest of processedResults) {
-                    // Get farmer details from the harvest record
-                    const farmerDetails = {
-                        first_name: harvest.name?.split(' ')[0] || '',
-                        last_name: harvest.name?.split(' ').slice(1).join(' ') || '',
-                        village: harvest.location || harvest.village || ''
-                    };
-
-                    // Heuristic: only create auto-expense for records that look like farmer harvests
-                    // Skip records that have worker_name or block_id and don't have a clear farmer name
-                    const hasFarmerName = !!(harvest.name || harvest.farmer_name || (harvest.first_name && harvest.last_name));
-                    const looksLikeWorkerOrProduction = !!(harvest.worker_name || harvest.block_id || harvest.block);
-
-                    if (hasFarmerName && !looksLikeWorkerOrProduction) {
-                        try {
-                            await onHarvestRecorded(harvest, farmerDetails);
-                        } catch (error) {
-                            console.error('Error creating auto expense for harvest:', error);
-                        }
-                    } else {
-                        console.log('Skipping auto-expense for non-farmer harvest:', harvest.harvest_id || harvest.id || '(no id)');
-                    }
-                }
-
                 setHarvests(processedResults);
                 setError(null);
             } else {
