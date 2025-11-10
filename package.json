@@ -11,7 +11,8 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@geoapify/geocoder-autocomplete": "^3.0.0",
+    "@geoapify/geocoder-autocomplete": "^2.2.1",
+    "@geoapify/react-geocoder-autocomplete": "^2.2.1",
     "@tailwindcss/vite": "^4.1.14",
     "axios": "^1.12.2",
     "express": "^5.1.0",

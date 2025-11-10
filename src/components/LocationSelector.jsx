@@ -1,106 +1,93 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
+import {
+  GeoapifyContext,
+  GeoapifyGeocoderAutocomplete,
+} from "@geoapify/react-geocoder-autocomplete";
 import "@geoapify/geocoder-autocomplete/styles/minimal.css";
 
-const GEOAPIFY_KEY = "d53f8e45ee9d4148914e34a05fc1525d";
+const GEOAPIFY_API_KEY = "14cedd3fa25d49deacc7da7d7f48b00e"; // your key
 
-function LocationSelector() {
-  const districtRef = useRef(null);
-  const subcountyRef = useRef(null);
-  const parishRef = useRef(null);
+function LocationSelector({ onLocationChange }) {
+  const [location, setLocation] = useState({
+    district: "",
+    subcounty: "",
+    parish: "",
+  });
 
-  const [district, setDistrict] = useState(null);
-  const [subcounty, setSubcounty] = useState(null);
-  const [parish, setParish] = useState(null);
+  const handleDistrictSelect = (value) => {
+    if (!value?.properties) return;
+    const district =
+      value.properties.county ||
+      value.properties.city ||
+      value.properties.state ||
+      value.properties.name ||
+      "";
+    const updated = { ...location, district };
+    setLocation(updated);
+    onLocationChange(updated);
+  };
 
-  useEffect(() => {
-    // dynamically load Geoapify script
-    const script = document.createElement("script");
-    script.src = `https://unpkg.com/@geoapify/geocoder-autocomplete@1.0.1/dist/index.min.js`;
-    script.async = true;
-    document.body.appendChild(script);
+  const handleSubcountySelect = (value) => {
+    if (!value?.properties) return;
+    const subcounty =
+      value.properties.locality ||
+      value.properties.city ||
+      value.properties.name ||
+      "";
+    const updated = { ...location, subcounty };
+    setLocation(updated);
+    onLocationChange(updated);
+  };
 
-    script.onload = () => {
-      // eslint-disable-next-line no-undef
-      const districtAutocomplete = new Geoapify.GeocoderAutocomplete(
-        districtRef.current,
-        GEOAPIFY_KEY,
-        { type: "city", countryCodes: ["ug"] }
-      );
-
-      districtAutocomplete.on("select", (value) => {
-        setDistrict(value.properties);
-        setSubcounty(null);
-        setParish(null);
-      });
-
-      // eslint-disable-next-line no-undef
-      const subcountyAutocomplete = new Geoapify.GeocoderAutocomplete(
-        subcountyRef.current,
-        GEOAPIFY_KEY,
-        { type: "county", countryCodes: ["ug"] }
-      );
-
-      subcountyAutocomplete.on("select", (value) => {
-        setSubcounty(value.properties);
-        setParish(null);
-      });
-
-      // eslint-disable-next-line no-undef
-      const parishAutocomplete = new Geoapify.GeocoderAutocomplete(
-        parishRef.current,
-        GEOAPIFY_KEY,
-        { type: "locality", countryCodes: ["ug"] }
-      );
-
-      parishAutocomplete.on("select", (value) => {
-        setParish(value.properties);
-      });
-    };
-
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+  const handleParishSelect = (value) => {
+    if (!value?.properties) return;
+    const parish =
+      value.properties.locality ||
+      value.properties.neighbourhood ||
+      value.properties.name ||
+      "";
+    const updated = { ...location, parish };
+    setLocation(updated);
+    onLocationChange(updated);
+  };
 
   return (
-    <div style={{ padding: "20px", maxWidth: "500px", margin: "0 auto" }}>
-      <h2> Farm Location Selector</h2>
+    <GeoapifyContext apiKey={GEOAPIFY_API_KEY}>
+      <div className="space-y-3 mt-3">
+        <label className="block text-sm font-medium text-gray-700">
+          District
+        </label>
+        <GeoapifyGeocoderAutocomplete
+          placeholder="Search for district..."
+          type="state" // ✅ valid type
+          lang="en"
+          filterByCountryCode={["ug"]} // ✅ new property
+          placeSelect={handleDistrictSelect}
+        />
 
-      <label>District</label>
-      <div ref={districtRef} style={{ marginBottom: "15px" }}></div>
+        <label className="block text-sm font-medium text-gray-700">
+          Subcounty
+        </label>
+        <GeoapifyGeocoderAutocomplete
+          placeholder="Search for subcounty..."
+          type="city" // ✅ valid type
+          lang="en"
+          filterByCountryCode={["ug"]}
+          placeSelect={handleSubcountySelect}
+        />
 
-      {district && (
-        <>
-          <label>Subcounty</label>
-          <div ref={subcountyRef} style={{ marginBottom: "15px" }}></div>
-        </>
-      )}
-
-      {subcounty && (
-        <>
-          <label>Parish</label>
-          <div ref={parishRef} style={{ marginBottom: "15px" }}></div>
-        </>
-      )}
-
-      {parish && (
-        <div
-          style={{
-            marginTop: "20px",
-            background: "#f8f8f8",
-            padding: "10px",
-            borderRadius: "5px",
-          }}
-        >
-          <strong>Selected Location:</strong>
-          <p>
-            District: {district?.city || district?.county} <br />
-            Subcounty: {subcounty?.city || subcounty?.county} <br />
-            Parish: {parish?.city || parish?.county}
-          </p>
-        </div>
-      )}
-    </div>
+        <label className="block text-sm font-medium text-gray-700">
+          Parish
+        </label>
+        <GeoapifyGeocoderAutocomplete
+          placeholder="Search for parish..."
+          type="locality" // ✅ valid type
+          lang="en"
+          filterByCountryCode={["ug"]}
+          placeSelect={handleParishSelect}
+        />
+      </div>
+    </GeoapifyContext>
   );
 }
 
