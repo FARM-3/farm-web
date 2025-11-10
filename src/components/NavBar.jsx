@@ -113,18 +113,27 @@ const NavBar = () => {
                 className="fixed top-0 left-0 w-full p-4 shadow-xl z-10 font-sans"
                 style={{ backgroundColor: CUSTOM_COLORS.headerBg }}
             >
-                <div className="flex justify-between items-center max-w-7xl mx-auto">
-                    <div className="text-white text-xl font-bold flex items-center">
-                        <span className="mr-2 text-3xl">💰</span> Rugyeyo Farm Management
+                <div className="flex justify-between items-center max-w-7xl mx-auto min-w-0 pr-20">
+                    <div className="text-white text-xl font-bold flex items-center min-w-0">
+                        <span className="mr-2 text-3xl flex-shrink-0">💰</span>
+                        <span className="hidden md:inline truncate">Rugyeyo Farm Management</span>
+                        <span className="inline md:hidden truncate">Rugyeyo Farm</span>
                     </div>
                     <div className="flex items-center space-x-4">
-                        <div className="relative" ref={profileDropdownRef}>
+                        <div className="relative flex-shrink-0" ref={profileDropdownRef}>
                             <button
                                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-4 py-2 rounded transition-colors"
+                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors"
+                                style={{
+                                    position: 'absolute',
+                                    right: '1rem',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    zIndex: 60,
+                                }}
                             >
                                 <User size={20} />
-                                <span className="hidden md:inline">{userProfile.name || 'Profile'}</span>
+                                <span className="hidden sm:inline">{userProfile.name || 'Profile'}</span>
                             </button>
 
                             {showProfileDropdown && (
