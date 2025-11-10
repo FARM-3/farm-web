@@ -481,7 +481,10 @@ const API_BASE_URL = 'http://142.93.94.236:8000/api';
 const HARVESTS_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
 const BLOCKS_API = `${API_BASE_URL}/harvests/blocks/`;
 
-// Coffee Colors (omitted for brevity)
+// Import the auto expense creation utility
+import { onHarvestRecorded } from '../utils/autoExpenseCreation';
+
+// Coffee Colors
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
     ACTIVE_LINK_BG: '#efebe9',
@@ -714,15 +717,21 @@ export function HarvestPage() {
             console.log('Response status:', response.status);
             console.log('Response OK:', response.ok);
 
-            if (response.ok) {
-                const data = await response.json();
-                const results = data.results || data;
-                setHarvests(Array.isArray(results) ? results : []);
-                setError(null);
-            } else if (response.status === 401) {
-                // Specific handling for 401 error
-                setError('Authentication Failed (401). Please log in again.');
-                setHarvests([]);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Raw API response:', data);
+                const results = data.results || data;
+                console.log('Processed results:', results);
+                console.log('Is array?', Array.isArray(results));
+                console.log('Results length:', results.length);
+
+                // We intentionally do NOT auto-create expenses during harvest list fetch.
+                // Creating expenses on every fetch causes duplicates (multiple page loads/refreshes).
+                // Auto-expense creation should occur at the moment a harvest is created/confirmed,
+                // or be performed server-side. For now just set the fetched harvests into state.
+                const processedResults = Array.isArray(results) ? results : [];
+                setHarvests(processedResults);
+                setError(null);
             } else {
                 const errorText = await response.text();
                 setError(`API Error: ${response.status} - ${errorText}`);

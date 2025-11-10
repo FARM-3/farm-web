@@ -43,7 +43,8 @@ const Settings = () => {
         passwordExpiry: 90, // days
 
         // Coffee Pricing
-        coffeePricePerKg: 5000, // UGX per kg
+        productionPricePerKg: 5000, // Harvest price per kg for Workers (UGX)
+        farmerPricePerKg: 4500, // Farmer harvest price per kg (UGX)
     };
 
     // Load settings from localStorage or use defaults
@@ -162,24 +163,66 @@ const Settings = () => {
         try {
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
 
-            // Try to save to backend API
+            // Save coffee pricing to backend API
             try {
+                const priceData = {
+                    production_kgPrice: settings.productionPricePerKg.toString(),
+                    farmer_kgPrice: settings.farmerPricePerKg.toString()
+                };
+
+                const response = await fetch('/api/setprice/', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': token ? `Token ${token}` : '',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(priceData)
+                });
+
+                if (response.ok) {
+                    console.log('Coffee prices saved to backend successfully');
+                    const result = await response.json();
+                    console.log('Response from setprice API:', result);
+                } else {
+                    const errorText = await response.text();
+                    console.warn('Backend save failed for prices. Status:', response.status, 'Response:', errorText);
+                }
+            } catch (apiError) {
+                console.warn('API not available for prices, saving locally:', apiError.message);
+            }
+
+            // Try to save other settings to backend API
+            try {
+                const otherSettings = {
+                    companyName: settings.companyName,
+                    companyEmail: settings.companyEmail,
+                    companyPhone: settings.companyPhone,
+                    companyAddress: settings.companyAddress,
+                    currency: settings.currency,
+                    dateFormat: settings.dateFormat,
+                    timezone: settings.timezone,
+                    emailNotifications: settings.emailNotifications,
+                    smsNotifications: settings.smsNotifications,
+                    systemAlerts: settings.systemAlerts,
+                    twoFactorAuth: settings.twoFactorAuth,
+                    sessionTimeout: settings.sessionTimeout,
+                    passwordExpiry: settings.passwordExpiry
+                };
+
                 const response = await fetch('/api/settings/', {
                     method: 'PUT',
                     headers: {
                         'Authorization': token ? `Token ${token}` : '',
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(settings)
+                    body: JSON.stringify(otherSettings)
                 });
 
                 if (response.ok) {
-                    console.log('Settings saved to backend successfully');
-                } else {
-                    console.warn('Backend save failed, saving locally only');
+                    console.log('Other settings saved to backend successfully');
                 }
             } catch (apiError) {
-                console.warn('API not available, saving locally:', apiError.message);
+                console.warn('API not available for other settings:', apiError.message);
             }
 
             // Always save to localStorage as a backup
@@ -535,24 +578,28 @@ const Settings = () => {
                             <DollarSign size={20} />
                             Coffee Pricing
                         </h2>
-                        <div className="space-y-4">
+                        <p className="text-xs text-gray-500 mb-6">
+                            Set the harvest prices for coffee. These prices determine how much workers and farmers receive for their coffee deliveries.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Production/Harvest Price for Workers */}
                             <div>
                                 <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
-                                    Coffee Price per Kg (UGX)
+                                    Harvest Price per Kg for Workers (UGX)
                                 </label>
                                 <p className="text-xs text-gray-500 mb-3">
-                                    This estimated value will be used across the system for calculations and projections
+                                    Price paid to workers for coffee harvested
                                 </p>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 mb-3">
                                     <input
                                         type="number"
-                                        value={settings.coffeePricePerKg}
-                                        onChange={(e) => handleChange('coffeePricePerKg', parseInt(e.target.value))}
+                                        value={settings.productionPricePerKg}
+                                        onChange={(e) => handleChange('productionPricePerKg', parseInt(e.target.value))}
                                         disabled={!isAdmin}
                                         min="1000"
                                         max="50000"
                                         step="100"
-                                        className="w-full md:w-1/2 p-3 border rounded-lg focus:outline-none focus:ring-2 text-lg font-semibold"
+                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 text-lg font-semibold"
                                         style={{
                                             borderColor: '#D1D5DB',
                                             backgroundColor: isAdmin ? '#FFFFFF' : '#F3F4F6',
@@ -560,17 +607,55 @@ const Settings = () => {
                                             color: CoffeeColors.MEDIUM_BROWN
                                         }}
                                     />
-                                    <span className="text-lg font-medium" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                    <span className="text-lg font-medium whitespace-nowrap" style={{ color: CoffeeColors.DARK_BROWN }}>
                                         UGX / Kg
                                     </span>
                                 </div>
-                                <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: 'rgba(139, 69, 19, 0.05)' }}>
+                                <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(139, 69, 19, 0.05)' }}>
                                     <p className="text-sm font-medium" style={{ color: CoffeeColors.MEDIUM_BROWN }}>
-                                        Current Price: UGX {settings.coffeePricePerKg.toLocaleString()}
+                                        Current: UGX {settings.productionPricePerKg.toLocaleString()}
                                     </p>
                                     <p className="text-xs text-gray-600 mt-1">
-                                        Per 100kg: UGX {(settings.coffeePricePerKg * 100).toLocaleString()} |
-                                        Per ton (1000kg): UGX {(settings.coffeePricePerKg * 1000).toLocaleString()}
+                                        Per 100kg: UGX {(settings.productionPricePerKg * 100).toLocaleString()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Farmer Harvest Price */}
+                            <div>
+                                <label className="block text-sm font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                    Farmer Harvest Price per Kg (UGX)
+                                </label>
+                                <p className="text-xs text-gray-500 mb-3">
+                                    Price paid to farmers for coffee aggregated
+                                </p>
+                                <div className="flex items-center gap-3 mb-3">
+                                    <input
+                                        type="number"
+                                        value={settings.farmerPricePerKg}
+                                        onChange={(e) => handleChange('farmerPricePerKg', parseInt(e.target.value))}
+                                        disabled={!isAdmin}
+                                        min="1000"
+                                        max="50000"
+                                        step="100"
+                                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 text-lg font-semibold"
+                                        style={{
+                                            borderColor: '#D1D5DB',
+                                            backgroundColor: isAdmin ? '#FFFFFF' : '#F3F4F6',
+                                            cursor: isAdmin ? 'text' : 'not-allowed',
+                                            color: CoffeeColors.MEDIUM_BROWN
+                                        }}
+                                    />
+                                    <span className="text-lg font-medium whitespace-nowrap" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                        UGX / Kg
+                                    </span>
+                                </div>
+                                <div className="p-3 rounded-lg" style={{ backgroundColor: 'rgba(139, 69, 19, 0.05)' }}>
+                                    <p className="text-sm font-medium" style={{ color: CoffeeColors.MEDIUM_BROWN }}>
+                                        Current: UGX {settings.farmerPricePerKg.toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-gray-600 mt-1">
+                                        Per 100kg: UGX {(settings.farmerPricePerKg * 100).toLocaleString()}
                                     </p>
                                 </div>
                             </div>
@@ -584,9 +669,9 @@ const Settings = () => {
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#8B4513]"
                             style={{
-                                backgroundColor: CoffeeColors.MEDIUM_BROWN,
+                                backgroundColor: '#702A0B', // Same as CoffeeColors.BUTTON_PRIMARY
                                 color: '#FFFFFF'
                             }}
                         >

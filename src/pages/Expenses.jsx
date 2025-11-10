@@ -1002,11 +1002,9 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
 
         for (let i = 0; i < retries; i++) {
             try {
-                // Fetch both regular expenses and farmer harvest data in parallel
-                const [expenseResponse, harvestResponse] = await Promise.all([
-                    fetch(EXPENSE_API_ENDPOINT),
-                    fetch(FARMER_HARVEST_API)
-                ]);
+                // Only fetch expenses from the server. We no longer auto-pull harvest records into the
+                // expenses table to avoid presenting duplicate/derived rows — expenses must exist in DB.
+                const expenseResponse = await fetch(EXPENSE_API_ENDPOINT);
 
                 if (!expenseResponse.ok) {
                     throw new Error(`HTTP error! status: ${expenseResponse.status}`);
@@ -1019,37 +1017,8 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                         ? expenseData.results
                         : [];
 
-                // Process harvest data if available
-                let harvestExpenses = [];
-                if (harvestResponse.ok) {
-                    const harvestData = await harvestResponse.json();
-                    const normalizedHarvests = Array.isArray(harvestData)
-                        ? harvestData
-                        : Array.isArray(harvestData?.results)
-                            ? harvestData.results
-                            : [];
-
-                    // Convert harvest records to expense format
-                    harvestExpenses = normalizedHarvests.map(harvest => ({
-                        id: `harvest-${harvest.id || Math.random().toString(36).slice(2, 9)}`,
-                        expense_name: `Harvest Payment - ${harvest.crop_type || 'Coffee'}`,
-                        category: 'Aggregation',
-                        item: harvest.crop_type || 'Coffee',
-                        supplier: harvest.farmer_name || 'Unknown Farmer',
-                        description: `Auto-generated from harvest record. Weight: ${harvest.weight_on_delivery || 'N/A'} kg`,
-                        amount: harvest.amount_paid || 0,
-                        date: harvest.date_recorded || new Date().toISOString().split('T')[0],
-                        location: 'Rugyeyo Farm',
-                        _source: 'harvest',
-                        harvestDetails: {
-                            ...harvest,
-                            originalId: harvest.id
-                        }
-                    }));
-                }
-
-                // Combine both types of expenses, placing harvests at the top
-                const combinedExpenses = [...harvestExpenses, ...regularExpenses];
+                // Use only server-side expenses
+                const combinedExpenses = [...regularExpenses];
 
                 // Sort by date descending
                 combinedExpenses.sort((a, b) => {
@@ -1064,7 +1033,7 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
 
                 console.log('Data fetched successfully:', {
                     regularExpenses: regularExpenses.length,
-                    harvestExpenses: harvestExpenses.length,
+                    harvestExpenses: 0,
                     total: combinedExpenses.length
                 });
                 return;

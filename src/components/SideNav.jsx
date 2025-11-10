@@ -28,7 +28,6 @@ const navItems = [
     { key: 'expenses', name: 'Expenses', icon: Package, href: '/expenses' },
     { key: 'staff', name: 'Staff', icon: Users, href: '/staff' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
-    { key: 'receipt', name: 'Receipt', icon: ClipboardCheck, href: '/receipt' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
 ];
 
@@ -84,7 +83,7 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
         return (
             <button
                 onClick={onLogoutClick}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium w-full text-left
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all font-medium w-full text-left
                             hover:scale-[1.01]
                             ${isActive ? 'shadow-sm' : ''}`}
                 style={{
@@ -103,10 +102,10 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
                 }}
             >
                 <item.icon
-                    size={20}
+                    size={18}
                     style={{ color: iconColor }}
                 />
-                <span className="text-base">{item.name}</span>
+                <span className="text-sm">{item.name}</span>
             </button>
         );
     }
@@ -115,7 +114,7 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
         <Link
             key={item.name}
             to={item.href}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all font-medium
                         hover:scale-[1.01]
                         ${isActive ? 'shadow-sm' : ''}`}
             style={{
@@ -134,10 +133,10 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
             }}
         >
             <item.icon
-                size={20}
+                size={18}
                 style={{ color: iconColor }}
             />
-            <span className="text-base">{item.name}</span>
+            <span className="text-sm">{item.name}</span>
         </Link>
     );
 };
@@ -185,7 +184,12 @@ export const SideNav = ({ children }) => {
                 const token = localStorage.getItem('authToken') || localStorage.getItem('token');
                 if (!token) return;
 
-                const res = await fetch('http://localhost:8000/api/users/me/', {
+                // Prefer the deployed API host used across the app. If you run a local
+                // backend, change this to 'http://localhost:8000/api/users/me/' or make
+                // the host configurable via an environment variable.
+                const PROFILE_API = 'http://142.93.94.236:8000/api/users/me/';
+
+                const res = await fetch(PROFILE_API, {
                     headers: {
                         'Content-Type': 'application/json',
                         // OpenAPI YAML uses Bearer JWT for /api/users/me/
@@ -195,7 +199,7 @@ export const SideNav = ({ children }) => {
                 });
 
                 if (!res.ok) {
-                    // try fallback host if local API is not reachable
+                    // If remote profile fetch fails, fall back to localStorage below
                     throw new Error('Profile fetch failed');
                 }
 
@@ -236,11 +240,11 @@ export const SideNav = ({ children }) => {
             <aside
                 className={`fixed top-0 left-0 h-full ${sidebarWidthClass} transform ${
                     sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                } transition-transform duration-300 ease-in-out z-50 shadow-lg md:translate-x-0`}
+                } transition-transform duration-300 ease-in-out z-50 shadow-lg md:translate-x-0 flex flex-col`}
                 style={{ backgroundColor: CoffeeColors.SIDEBAR_BG }}
             >
                 {/* Logo and Title Section */}
-                <div className="flex items-center justify-between p-4 h-auto py-6" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
+                <div className="flex items-center justify-between p-4 h-auto py-6 flex-shrink-0" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
                     <div className="flex items-center">
                         <img
                             src={rugyeyoLogo}
@@ -265,14 +269,14 @@ export const SideNav = ({ children }) => {
                 </div>
 
                 {/* Main Navigation */}
-                <nav className="mt-4 flex flex-col space-y-1 px-3 flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100% - 13rem)' }}>
+                <nav className="mt-4 flex flex-col space-y-1 px-3 flex-1 overflow-y-auto min-h-0">
                     {navItems.map((item) => (
                         <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} />
                     ))}
                 </nav>
 
                 {/* Footer Links (Profile/Logout) */}
-                <div className="py-4 px-3 absolute bottom-0 left-0 right-0" style={{ borderTop: `1px solid rgba(255,255,255,0.1)`, backgroundColor: CoffeeColors.SIDEBAR_BG }}>
+                <div className="py-4 px-3 flex-shrink-0" style={{ borderTop: `1px solid rgba(255,255,255,0.1)`, backgroundColor: CoffeeColors.SIDEBAR_BG }}>
                     <div className="flex flex-col space-y-1">
                         {footerNavItems.map((item) => (
                             <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} onLogoutClick={() => setShowLogoutModal(true)} />
