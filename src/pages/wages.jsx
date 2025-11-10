@@ -384,8 +384,9 @@
 
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, Search } from 'lucide-react';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, Search, Download } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
+import { generateAndDownloadVoucher, validateWageRecordForVoucher } from '../utils/voucherGeneration';
 
 const styleElement = document.createElement('style');
 styleElement.innerHTML = `
@@ -404,8 +405,10 @@ const CoffeeColors = {
 };
 
 const formatUGX = (amount) => {
-    if (typeof amount !== 'number') return amount || '0';
-    return amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    if (amount === null || amount === undefined || isNaN(amount)) return '0';
+    const numAmount = typeof amount === 'number' ? amount : Number(amount);
+    if (isNaN(numAmount)) return '0';
+    return numAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
 const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
@@ -987,7 +990,7 @@ function Wages() {
     const [wages, setWages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: null });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -996,11 +999,13 @@ function Wages() {
     const [wageToDelete, setWageToDelete] = useState(null);
     const [allWagesForKPI, setAllWagesForKPI] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [downloadingVoucher, setDownloadingVoucher] = useState(null);
     const itemsPerPage = 7;
 
     // Helper function to round amount_paid to nearest 100
     const roundAmountToHundred = (amount) => {
-        return Math.round(amount / 100) * 100;
+        if (amount === null || amount === undefined || isNaN(amount)) return 0;
+        return Math.round(Number(amount) / 100) * 100;
     };
 
     const fetchWages = useCallback(async (page = 1) => {
@@ -1015,7 +1020,7 @@ function Wages() {
             }
 
             console.log('🔄 Fetching wages from API (page:', page, ')');
-            const response = await fetch(`${WAGES_API_ENDPOINT}?page=${page}&page_size=${itemsPerPage}`, {
+            const response = await fetch(`${WAGES_API_ENDPOINT}?page=${page}&page_size=${itemsPerPage}&ordering=-id`, {
                 headers: headers
             });
 
@@ -1027,12 +1032,52 @@ function Wages() {
             console.log('📊 Wages fetched from API:', data);
             console.log('📈 Number of wage records:', data.results ? data.results.length : (Array.isArray(data) ? data.length : 0));
 
-            // Helper to round amounts in wage records
+            // Helper to round amounts in wage records and calculate if missing
             const roundWageAmounts = (wages) => {
-                return wages.map(wage => ({
-                    ...wage,
-                    amount_paid: roundAmountToHundred(wage.amount_paid)
-                }));
+                return wages.map(wage => {
+                    // Calculate amount_paid if it's missing or zero
+                    let calculatedAmount = wage.amount_paid;
+
+                    // If amount_paid is null, undefined, 0, or NaN, calculate it
+                    if (!calculatedAmount || calculatedAmount === 0 || isNaN(calculatedAmount)) {
+                        const monthlySalary = Number(wage.monthly_salary) || Number(wage.monthly_pay) || 0;
+                        const daysMissed = Number(wage.days_missed) || 0;
+
+                        if (monthlySalary > 0) {
+                            // Formula: (monthly_salary / 30) * (30 - days_missed)
+                            const dailyRate = monthlySalary / 30;
+                            const daysWorked = 30 - daysMissed;
+                            calculatedAmount = dailyRate * daysWorked;
+
+                            console.log('✨ Calculating missing amount_paid:', {
+                                id: wage.id,
+                                monthly_salary: monthlySalary,
+                                days_missed: daysMissed,
+                                daily_rate: dailyRate,
+                                days_worked: daysWorked,
+                                calculated: calculatedAmount
+                            });
+                        } else {
+                            calculatedAmount = 0;
+                            console.log('⚠️ Cannot calculate for wage ID ' + wage.id + ' - monthly_salary is 0 or missing');
+                        }
+                    }
+
+                    const finalAmount = roundAmountToHundred(calculatedAmount);
+
+                    console.log('🔍 Processing wage:', {
+                        id: wage.id,
+                        employee: wage.employee_name,
+                        amount_paid_raw: wage.amount_paid,
+                        calculated_amount: calculatedAmount,
+                        final_rounded: finalAmount
+                    });
+
+                    return {
+                        ...wage,
+                        amount_paid: finalAmount
+                    };
+                });
             };
 
             // Handle both paginated and non-paginated responses
@@ -1043,7 +1088,7 @@ function Wages() {
 
                 // Fetch all wages for KPI calculation
                 if (data.count > itemsPerPage) {
-                    const allResponse = await fetch(`${WAGES_API_ENDPOINT}?page_size=${data.count}`, {
+                    const allResponse = await fetch(`${WAGES_API_ENDPOINT}?page_size=${data.count}&ordering=-id`, {
                         headers: headers
                     });
                     if (allResponse.ok) {
@@ -1154,11 +1199,9 @@ function Wages() {
                 return 0;
             });
         } else {
-            // Default sort: most recent wages first (by date_of_payment descending)
+            // Default sort: most recent wages first (by ID descending - higher ID = more recent)
             sortableItems.sort((a, b) => {
-                const dateA = new Date(a.date_of_payment);
-                const dateB = new Date(b.date_of_payment);
-                return dateB - dateA;
+                return b.id - a.id;
             });
         }
         return sortableItems;
@@ -1187,6 +1230,46 @@ function Wages() {
     const handleDeleteWage = (wage) => {
         setWageToDelete(wage);
         setShowDeleteModal(true);
+    };
+
+    const handleDownloadVoucher = async (wage) => {
+        // Validate wage record
+        const validation = validateWageRecordForVoucher(wage);
+        if (!validation.isValid) {
+            alert(`Cannot generate voucher:\n${validation.errors.join('\n')}`);
+            return;
+        }
+
+        setDownloadingVoucher(wage.id);
+        try {
+            const result = await generateAndDownloadVoucher(wage);
+            console.log('Voucher generated successfully:', result);
+
+            // Show success message
+            const tempMessage = document.createElement('div');
+            tempMessage.textContent = `Voucher ${result.voucherNumber} downloaded successfully!`;
+            tempMessage.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #34A853;
+                color: white;
+                padding: 16px 24px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999;
+                font-weight: 600;
+            `;
+            document.body.appendChild(tempMessage);
+            setTimeout(() => {
+                document.body.removeChild(tempMessage);
+            }, 3000);
+        } catch (error) {
+            console.error('Error generating voucher:', error);
+            alert(`Failed to generate voucher: ${error.message}`);
+        } finally {
+            setDownloadingVoucher(null);
+        }
     };
 
     const confirmDelete = async () => {
@@ -1277,14 +1360,34 @@ function Wages() {
 
         return sortedWages.map((wage, index) => {
             const dateStr = wage.date_of_payment ? new Date(wage.date_of_payment).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+            const formattedAmount = formatUGX(wage.amount_paid);
+            console.log('💰 Rendering wage row:', {
+                id: wage.id,
+                employee: wage.employee_name,
+                amount_paid: wage.amount_paid,
+                formatted: formattedAmount,
+                fullDisplay: `UGX ${formattedAmount}`
+            });
             return (
                 <tr key={index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-[#efebe9]/30">
                     <td className="px-6 py-4 text-left font-semibold text-[#4A3423]">{wage.employee_name || 'N/A'}</td>
                     <td className="px-6 py-4 text-center text-gray-700">{dateStr}</td>
                     <td className="px-6 py-4 text-center text-gray-700 font-medium">{wage.days_missed || 0}</td>
-                    <td className="px-6 py-4 text-right text-[#34A853] font-bold whitespace-nowrap">UGX {formatUGX(wage.amount_paid)}</td>
+                    <td className="px-6 py-4 text-right text-[#34A853] font-bold whitespace-nowrap">UGX {formattedAmount}</td>
                     <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
+                            <button
+                                onClick={() => handleDownloadVoucher(wage)}
+                                disabled={downloadingVoucher === wage.id}
+                                className="text-gray-800 hover:text-green-600 p-1 rounded-md hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Download voucher"
+                            >
+                                {downloadingVoucher === wage.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Download className="w-4 h-4" />
+                                )}
+                            </button>
                             <button
                                 onClick={() => handleEditWage(wage)}
                                 className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
