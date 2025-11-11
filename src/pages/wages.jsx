@@ -384,7 +384,8 @@
 
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, Search, Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, Search, Eye } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 import { generateAndDownloadVoucher, validateWageRecordForVoucher } from '../utils/voucherGeneration';
 
@@ -987,6 +988,7 @@ const TABLE_HEADERS = [
 ];
 
 function Wages() {
+    const navigate = useNavigate();
     const [wages, setWages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -999,7 +1001,6 @@ function Wages() {
     const [wageToDelete, setWageToDelete] = useState(null);
     const [allWagesForKPI, setAllWagesForKPI] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [downloadingVoucher, setDownloadingVoucher] = useState(null);
     const itemsPerPage = 7;
 
     // Helper function to round amount_paid to nearest 100
@@ -1235,44 +1236,8 @@ function Wages() {
         setShowDeleteModal(true);
     };
 
-    const handleDownloadVoucher = async (wage) => {
-        // Validate wage record
-        const validation = validateWageRecordForVoucher(wage);
-        if (!validation.isValid) {
-            alert(`Cannot generate voucher:\n${validation.errors.join('\n')}`);
-            return;
-        }
-
-        setDownloadingVoucher(wage.id);
-        try {
-            const result = await generateAndDownloadVoucher(wage);
-            console.log('Voucher generated successfully:', result);
-
-            // Show success message
-            const tempMessage = document.createElement('div');
-            tempMessage.textContent = `Voucher ${result.voucherNumber} downloaded successfully!`;
-            tempMessage.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #34A853;
-                color: white;
-                padding: 16px 24px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 9999;
-                font-weight: 600;
-            `;
-            document.body.appendChild(tempMessage);
-            setTimeout(() => {
-                document.body.removeChild(tempMessage);
-            }, 3000);
-        } catch (error) {
-            console.error('Error generating voucher:', error);
-            alert(`Failed to generate voucher: ${error.message}`);
-        } finally {
-            setDownloadingVoucher(null);
-        }
+    const handleViewVoucher = (wage) => {
+        navigate(`/voucher?id=${wage.id}`);
     };
 
     const confirmDelete = async () => {
@@ -1382,16 +1347,11 @@ function Wages() {
                     <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center space-x-2">
                             <button
-                                onClick={() => handleDownloadVoucher(wage)}
-                                disabled={downloadingVoucher === wage.id}
-                                className="text-gray-800 hover:text-green-600 p-1 rounded-md hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Download voucher"
+                                onClick={() => handleViewVoucher(wage)}
+                                className="text-gray-800 hover:text-green-600 p-1 rounded-md hover:bg-green-50 transition-colors"
+                                title="View voucher"
                             >
-                                {downloadingVoucher === wage.id ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Download className="w-4 h-4" />
-                                )}
+                                <Eye className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => handleEditWage(wage)}

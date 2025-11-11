@@ -1132,22 +1132,33 @@ function SalesPage() {
                         <div className="flex items-center justify-center space-x-2">
                             <button
                                 onClick={() => handleEditSale(sale)}
-                                className="text-gray-500 hover:text-blue-600 p-1 rounded-md hover:bg-gray-100 transition-colors"
+                                className="p-1 rounded-md transition-colors"
+                                style={{ color: '#000000' }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#3B82F6'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#000000'}
+                                title="Edit"
                             >
                                 <Edit className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => handleDeleteSale(sale)}
-                                className="text-error hover:text-red-700 p-1 rounded-md hover:bg-red-50 transition-colors"
+                                className="p-1 rounded-md transition-colors"
+                                style={{ color: '#000000' }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#EF4444'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#000000'}
+                                title="Delete"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => navigate(`/receipt?id=${sale.id}`)}
-                                className="text-green-600 hover:text-green-800 px-2 py-1 rounded-md hover:bg-green-50 transition-colors flex items-center gap-1"
+                                className="p-1 rounded-md transition-colors"
+                                style={{ color: '#000000' }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#10B981'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = '#000000'}
+                                title="View Receipt"
                             >
                                 <ShoppingBag className="w-4 h-4" />
-                                <span className="text-xs">View Receipt</span>
                             </button>
                         </div>
                     </td>
