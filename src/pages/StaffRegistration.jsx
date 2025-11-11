@@ -551,7 +551,7 @@ function StaffRegistration() {
                     value={form.nin}
                     onChange={handleChange}
                     onBlur={handleBlur}
-                    placeholder="CM12345678"
+                      placeholder="CM12345678901234"
                     maxLength="14"
                     className="w-full p-4 rounded-lg focus:outline-none transition-colors text-lg"
                     style={getInputStyle('nin')}
