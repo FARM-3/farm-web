@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { XCircle, Calendar, User, DollarSign, Hash, Briefcase } from 'lucide-react';
+import { XCircle, Calendar, User, DollarSign, Hash, Briefcase, Download } from 'lucide-react';
+import { generateAndDownloadVoucher } from '../utils/voucherGeneration';
 
 const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
 
@@ -29,6 +30,7 @@ export default function VoucherVerification() {
   const [wage, setWage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const fetchWage = async () => {
@@ -67,6 +69,20 @@ export default function VoucherVerification() {
 
     fetchWage();
   }, [location]);
+
+  const handleDownload = async () => {
+    if (!wage) return;
+
+    setDownloading(true);
+    try {
+      await generateAndDownloadVoucher(wage);
+    } catch (error) {
+      console.error('Error downloading voucher:', error);
+      alert('Failed to download voucher. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -205,6 +221,18 @@ export default function VoucherVerification() {
               <strong>Note:</strong> This verification page confirms that this voucher exists in our records.
               For any discrepancies or questions, please contact our accounts department.
             </p>
+          </div>
+
+          {/* Download Button */}
+          <div className="mt-6">
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="w-full flex items-center justify-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download size={20} />
+              {downloading ? 'Downloading...' : 'Download Voucher PDF'}
+            </button>
           </div>
         </div>
 

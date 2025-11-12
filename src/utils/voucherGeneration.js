@@ -127,6 +127,37 @@ export const createVoucherData = (wageRecord) => {
 };
 
 /**
+ * Converts an image to base64 data URL
+ * @param {string} url - The image URL
+ * @returns {Promise<string>} Base64 data URL
+ */
+export const imageToBase64 = (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      try {
+        const dataURL = canvas.toDataURL('image/png');
+        resolve(dataURL);
+      } catch (error) {
+        console.error('Error converting image to base64:', error);
+        resolve('');
+      }
+    };
+    img.onerror = () => {
+      console.error('Error loading image:', url);
+      resolve('');
+    };
+    img.src = url;
+  });
+};
+
+/**
  * Generates QR code data URL for voucher verification
  * @param {number} wageId - The wage record ID
  * @returns {Promise<string>} QR code data URL
@@ -153,9 +184,10 @@ export const generateQRCode = async (wageId) => {
  * Generates voucher HTML content
  * @param {Object} voucherData - Voucher data object
  * @param {string} qrCodeDataURL - QR code data URL (optional)
+ * @param {string} logoDataURL - Logo data URL (optional)
  * @returns {string} HTML string for voucher
  */
-export const generateVoucherHTML = (voucherData, qrCodeDataURL = '') => {
+export const generateVoucherHTML = (voucherData, qrCodeDataURL = '', logoDataURL = '') => {
   return `
     <div style="
       width: 210mm;
@@ -171,7 +203,7 @@ export const generateVoucherHTML = (voucherData, qrCodeDataURL = '') => {
       <div style="margin-bottom: 25px;">
         <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 2px solid #702A0B; padding-bottom: 15px;">
           <div style="display: flex; align-items: center; gap: 15px;">
-            <img src="/logo.jpg" alt="Rugyeyo Farm Logo" style="width: 60px; height: 60px; object-fit: contain;" />
+            ${logoDataURL ? `<img src="${logoDataURL}" alt="Rugyeyo Farm Logo" style="width: 60px; height: 60px; object-fit: contain;" />` : ''}
             <div>
               <h1 style="color: #702A0B; margin: 0 0 5px 0; font-size: 24px; font-weight: 700; letter-spacing: 0.5px;">RUGYEYO FARM</h1>
               <p style="margin: 0; color: #666; font-size: 11px;">Coffee Production & Processing</p>
@@ -304,12 +336,15 @@ export const generateAndDownloadVoucher = async (wageRecord, options = {}) => {
     // Generate QR code for verification
     const qrCodeDataURL = await generateQRCode(wageRecord.id);
 
+    // Load and convert logo to base64
+    const logoDataURL = await imageToBase64('/logo.jpg');
+
     // Create temporary container for HTML
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.left = '-9999px';
     container.style.top = '0';
-    container.innerHTML = generateVoucherHTML(voucherData, qrCodeDataURL);
+    container.innerHTML = generateVoucherHTML(voucherData, qrCodeDataURL, logoDataURL);
     document.body.appendChild(container);
 
     // Generate canvas from HTML
@@ -399,4 +434,233 @@ export const validateWageRecordForVoucher = (wageRecord) => {
     isValid: errors.length === 0,
     errors,
   };
+};
+
+// ==================== RECEIPT GENERATION FUNCTIONS ====================
+
+/**
+ * Generates receipt number from sale record
+ * @param {Object} sale - The sale record
+ * @returns {string} Receipt number
+ */
+export const generateReceiptNumber = (sale) => {
+  if (!sale) return '';
+  const date = sale.date_of_payment || sale.date || '';
+  const year = date ? new Date(date).getFullYear() : 'XXXX';
+  return `RUG-${year}-${String(sale.id).padStart(4, '0')}`;
+};
+
+/**
+ * Generates receipt HTML content
+ * @param {Object} sale - Sale record
+ * @returns {string} HTML string for receipt
+ */
+export const generateReceiptHTML = (sale) => {
+  const receiptNumber = generateReceiptNumber(sale);
+  const items = sale.items || [
+    {
+      product: sale.item || '',
+      item: sale.item || '',
+      qty: sale.quantity || 0,
+      rate: sale.rate || 0,
+      total: (sale.quantity || 0) * (sale.rate || 0)
+    }
+  ];
+  const totalAmount = items.reduce((sum, item) => sum + (item.total || 0), 0);
+  const amountInWords = numberToWords(totalAmount);
+  const paymentDate = sale.date_of_payment ? new Date(sale.date_of_payment).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }) : sale.date || 'N/A';
+
+  return `
+    <div style="
+      width: 210mm;
+      min-height: 297mm;
+      padding: 25mm;
+      margin: 0 auto;
+      background: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      box-sizing: border-box;
+      color: #333;
+    ">
+      <!-- Header -->
+      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 25px; border-bottom: 2px solid #702A0B; padding-bottom: 15px;">
+        <div style="display: flex; align-items: center; gap: 15px;">
+          <div>
+            <h1 style="color: #702A0B; margin: 0 0 5px 0; font-size: 28px; font-weight: 700; letter-spacing: 0.5px;">RUGYEYO FARM</h1>
+            <p style="margin: 0; color: #666; font-size: 12px;">Coffee Production & Processing</p>
+            <p style="margin: 0; color: #666; font-size: 11px;">Namayumba, Wakiso District, Uganda</p>
+          </div>
+        </div>
+        <div style="text-align: right;">
+          <p style="margin: 0; color: #702A0B; font-size: 12px; font-weight: 600;">RECEIPT</p>
+          <p style="margin: 0; color: #666; font-size: 11px;">No: ${receiptNumber}</p>
+        </div>
+      </div>
+
+      <!-- Title -->
+      <div style="background: #F5EEDC; padding: 12px; text-align: center; margin-bottom: 25px; border-radius: 8px;">
+        <h2 style="margin: 0; color: #702A0B; font-size: 18px; font-weight: 600; letter-spacing: 0.5px;">SALES RECEIPT</h2>
+      </div>
+
+      <!-- Customer Information -->
+      <div style="background: #FEFBF8; padding: 20px; border-radius: 8px; border: 1px solid #E8DCC8; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 15px 0; color: #702A0B; font-size: 14px; font-weight: 600;">Customer Information</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <tr>
+            <td style="padding: 6px 0; color: #666; width: 30%;">Customer:</td>
+            <td style="padding: 6px 0; color: #333; font-weight: 600;">${sale.customer_name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #666;">Payment Date:</td>
+            <td style="padding: 6px 0; color: #333; font-weight: 600;">${paymentDate}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #666;">Status:</td>
+            <td style="padding: 6px 0; color: #333; font-weight: 600;">${sale.status || 'Paid'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #666;">Payment Method:</td>
+            <td style="padding: 6px 0; color: #333; font-weight: 600;">${sale.method_of_payment || sale.payment_method || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #666;">Batch ID:</td>
+            <td style="padding: 6px 0; color: #333; font-weight: 600;">${sale.batch_id || 'N/A'}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Items Table -->
+      <div style="background: #FEFBF8; padding: 20px; border-radius: 8px; border: 1px solid #E8DCC8; margin-bottom: 20px;">
+        <h3 style="margin: 0 0 15px 0; color: #702A0B; font-size: 14px; font-weight: 600;">Item Details</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <thead>
+            <tr style="background: #F5EEDC;">
+              <th style="text-align: left; padding: 10px; color: #702A0B; font-weight: 600;">Product</th>
+              <th style="text-align: left; padding: 10px; color: #702A0B; font-weight: 600;">Item</th>
+              <th style="text-align: left; padding: 10px; color: #702A0B; font-weight: 600;">Qty (kg)</th>
+              <th style="text-align: left; padding: 10px; color: #702A0B; font-weight: 600;">Rate (UGX)</th>
+              <th style="text-align: left; padding: 10px; color: #702A0B; font-weight: 600;">Total (UGX)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map(item => `
+              <tr style="border-bottom: 1px solid #E8DCC8;">
+                <td style="padding: 10px; color: #333;">${item.product || item.item}</td>
+                <td style="padding: 10px; color: #333;">${item.item}</td>
+                <td style="padding: 10px; color: #333;">${item.qty}</td>
+                <td style="padding: 10px; color: #333;">${Number(item.rate).toLocaleString()}</td>
+                <td style="padding: 10px; color: #333;">${Number(item.total).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Total Amount -->
+      <div style="background: #702A0B; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span style="color: white; font-size: 14px; font-weight: 600;">Total Amount:</span>
+          <span style="color: white; font-size: 20px; font-weight: 700;">${formatCurrency(totalAmount)}</span>
+        </div>
+        <p style="margin: 10px 0 0 0; color: white; font-size: 11px; font-style: italic;">
+          ${amountInWords} Shillings Only
+        </p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);">
+          <span style="color: white; font-size: 13px; font-weight: 600;">Balance:</span>
+          <span style="color: white; font-size: 16px; font-weight: 600;">${formatCurrency(sale.balance || 0)}</span>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #702A0B;">
+        <p style="margin: 5px 0; font-size: 10px; font-style: italic; color: #666;">
+          This is an official sales receipt from Rugyeyo Farm
+        </p>
+        <p style="margin: 5px 0; font-size: 10px; color: #666;">
+          Namayumba, Wakiso District, Uganda | Tel: +256772701051
+        </p>
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * Generates and downloads a PDF receipt from sale record
+ * @param {Object} saleRecord - The sale record
+ * @returns {Promise<void>}
+ */
+export const generateAndDownloadReceipt = async (saleRecord) => {
+  try {
+    if (!saleRecord) {
+      throw new Error('Sale record is required');
+    }
+
+    // Create temporary container for HTML
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.innerHTML = generateReceiptHTML(saleRecord);
+    document.body.appendChild(container);
+
+    // Generate canvas from HTML
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      windowWidth: 794,  // A4 width at 96 DPI
+      windowHeight: 1123 // A4 height at 96 DPI
+    });
+
+    // Remove temporary container
+    document.body.removeChild(container);
+
+    // Create PDF
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Calculate dimensions to fit A4
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pdfWidth;
+    const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    // Add image to PDF
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfHeight;
+
+    // Add additional pages if content is longer than one page
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+    }
+
+    // Generate filename
+    const receiptNumber = generateReceiptNumber(saleRecord);
+    const filename = `Receipt_${receiptNumber}_${saleRecord.customer_name?.replace(/\s+/g, '_') || 'Customer'}.pdf`;
+
+    // Download PDF
+    pdf.save(filename);
+
+    return {
+      success: true,
+      filename,
+    };
+  } catch (error) {
+    console.error('Error generating receipt:', error);
+    throw new Error(`Failed to generate receipt: ${error.message}`);
+  }
 };

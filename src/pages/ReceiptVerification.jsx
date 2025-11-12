@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { XCircle, Calendar, User, DollarSign, Hash, Package, ShoppingCart } from 'lucide-react';
+import { XCircle, Calendar, User, DollarSign, Hash, Package, ShoppingCart, Download } from 'lucide-react';
+import { generateAndDownloadReceipt } from '../utils/voucherGeneration';
 
 const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
 
@@ -29,6 +30,7 @@ export default function ReceiptVerification() {
   const [sale, setSale] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const fetchSale = async () => {
@@ -66,6 +68,20 @@ export default function ReceiptVerification() {
 
     fetchSale();
   }, [location]);
+
+  const handleDownload = async () => {
+    if (!sale) return;
+
+    setDownloading(true);
+    try {
+      await generateAndDownloadReceipt(sale);
+    } catch (error) {
+      console.error('Error downloading receipt:', error);
+      alert('Failed to download receipt. Please try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -228,6 +244,18 @@ export default function ReceiptVerification() {
               <strong>Note:</strong> This verification page confirms that this receipt exists in our records.
               For any discrepancies or questions, please contact our sales department.
             </p>
+          </div>
+
+          {/* Download Button */}
+          <div className="mt-6">
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="w-full flex items-center justify-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Download size={20} />
+              {downloading ? 'Downloading...' : 'Download Receipt PDF'}
+            </button>
           </div>
         </div>
 
