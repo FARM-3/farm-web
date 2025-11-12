@@ -1,6 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Printer } from 'lucide-react';
+import QRCode from 'qrcode';
+
+// Number to words utility
+const numberToWords = (num) => {
+  if (!num || num === 0) return 'Zero';
+
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+  const convert = (n) => {
+    if (n < 10) return ones[n];
+    if (n < 20) return teens[n - 10];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+    if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' ' + convert(n % 100) : '');
+    if (n < 1000000) return convert(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '');
+    if (n < 1000000000) return convert(Math.floor(n / 1000000)) + ' Million' + (n % 1000000 !== 0 ? ' ' + convert(n % 1000000) : '');
+    return convert(Math.floor(n / 1000000000)) + ' Billion' + (n % 1000000000 !== 0 ? ' ' + convert(n % 1000000000) : '');
+  };
+
+  return convert(Math.floor(num));
+};
 
 const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
 
@@ -23,9 +45,7 @@ export default function SalesReceipt() {
   const [sale, setSale] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [logoIndex, setLogoIndex] = useState(0);
-  const [logoMissing, setLogoMissing] = useState(false);
-  const logoSources = ['/img/rugyeyo-logo.png', '/img/rugyeyo-logo.jpg', '/img/rugyeyo-logo.webp', '/img/logo.png'];
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
 
   useEffect(() => {
     const fetchSale = async () => {
@@ -42,6 +62,18 @@ export default function SalesReceipt() {
         if (!response.ok) throw new Error(`Sale not found (HTTP ${response.status})`);
         const data = await response.json();
         setSale(data);
+
+        // Generate QR code for the receipt verification URL
+        const receiptUrl = `${window.location.origin}/verify-receipt?id=${id}`;
+        const qrCode = await QRCode.toDataURL(receiptUrl, {
+          width: 200,
+          margin: 2,
+          color: {
+            dark: '#702A0B',
+            light: '#FFFFFF'
+          }
+        });
+        setQrCodeUrl(qrCode);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -83,107 +115,144 @@ export default function SalesReceipt() {
             </button>
             <button
               onClick={handlePrint}
-              className="flex items-center gap-2 bg-amber-700 text-white px-6 py-3 rounded-lg hover:bg-amber-800 transition"
+              className="flex items-center gap-2 text-white px-6 py-3 rounded-lg transition"
+              style={{ backgroundColor: '#702A0B' }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#5A2209'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#702A0B'}
             >
               <Printer size={20} />
               Print Receipt
             </button>
           </div>
         </div>
-        <div id="receipt" className="bg-white p-12 rounded-lg shadow-lg">
-          <div className="company-info text-center mb-6">
-            {/* Logo on the left of the header text; trying multiple common filenames if one is missing */}
-            {!logoMissing ? (
+        <div id="receipt" className="bg-white p-12 rounded-lg shadow-lg" style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
               <img
-                src={logoSources[logoIndex]}
-                alt="Rugyeyo Farm logo"
-                className="logo"
-                onError={() => {
-                  if (logoIndex < logoSources.length - 1) {
-                    setLogoIndex((i) => i + 1);
-                  } else {
-                    setLogoMissing(true);
-                  }
-                }}
+                src="/logo.jpg"
+                alt="Rugyeyo Farm Logo"
+                className="w-16 h-16 object-contain"
               />
-            ) : (
-              <div className="logo">
-                <img src="/src/assets/rugyeyo_logo.png" alt="Default logo" className="logo-img" />
+              <div>
+                <h1 className="text-3xl font-bold mb-1" style={{ color: '#702A0B', letterSpacing: '0.5px' }}>
+                  RUGYEYO FARM
+                </h1>
+                <p className="text-sm text-gray-600">Coffee Production & Processing</p>
               </div>
-            )}
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-amber-800 mb-1">RUGYEYO FARM</h1>
-              <p className="text-lg text-amber-700 font-semibold">Coffee Production & Processing</p>
-              <p className="text-gray-700">Namayumba, Wakiso District, Uganda</p>
-              <p className="text-gray-700">Tel: +256772701051 | Email: rkabushenga@gmail.com</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-semibold mb-1" style={{ color: '#702A0B' }}>RECEIPT</p>
+              <p className="text-xs text-gray-600">No: {generateReceiptNumber(sale)}</p>
             </div>
           </div>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-semibold text-gray-600">Receipt No:</span>
-            <span className="text-lg font-bold text-gray-800">{generateReceiptNumber(sale)}</span>
+          {/* Title */}
+          <div className="text-center mb-8 py-4" style={{ backgroundColor: '#F5EEDC', borderRadius: '8px' }}>
+            <h2 className="text-2xl font-bold" style={{ color: '#702A0B' }}>
+              SALES RECEIPT
+            </h2>
           </div>
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-amber-800 mb-2">Sales Receipt</h2>
-            <p className="text-xl text-amber-700">{sale.businessName || 'Rugyeyo Farm'}</p>
+          {/* Customer Information */}
+          <div className="mb-6" style={{ backgroundColor: '#FEFBF8', padding: '20px', borderRadius: '8px', border: '1px solid #E8DCC8' }}>
+            <h3 className="text-base font-semibold mb-4" style={{ color: '#702A0B' }}>
+              Customer Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Customer:</p>
+                <p className="text-base font-semibold" style={{ color: '#333' }}>{sale.customer_name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Payment Date:</p>
+                <p className="text-base font-semibold" style={{ color: '#333' }}>
+                  {sale.date_of_payment ? new Date(sale.date_of_payment).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  }) : sale.date}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Status:</p>
+                <p className="text-base font-semibold" style={{ color: '#333' }}>{sale.status || 'Paid'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Payment Method:</p>
+                <p className="text-base font-semibold" style={{ color: '#333' }}>{sale.method_of_payment || sale.payment_method}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Batch ID:</p>
+                <p className="text-base font-semibold" style={{ color: '#333' }}>{sale.batch_id || 'N/A'}</p>
+              </div>
+            </div>
           </div>
-          <div className="mb-8 space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-gray-700">Customer:</span>
-              <span className="text-lg text-gray-800">{sale.customer_name}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-gray-700">Payment Date:</span>
-              <span className="text-lg text-gray-800">{sale.date_of_payment ? new Date(sale.date_of_payment).toLocaleDateString() : sale.date}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-gray-700">Status:</span>
-              <span className="text-lg text-gray-800">{sale.status || 'Paid'}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-gray-700">Payment Method:</span>
-              <span className="text-lg text-gray-800">{sale.method_of_payment || sale.payment_method}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-lg font-semibold text-gray-700">Batch ID:</span>
-              <span className="text-lg text-gray-800">{sale.batch_id || 'N/A'}</span>
-            </div>
-          </div>
-          <div className="mb-8">
-            <table className="w-full border-collapse">
+          {/* Items Table */}
+          <div className="mb-6" style={{ backgroundColor: '#FEFBF8', padding: '20px', borderRadius: '8px', border: '1px solid #E8DCC8' }}>
+            <h3 className="text-base font-semibold mb-4" style={{ color: '#702A0B' }}>
+              Item Details
+            </h3>
+            <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-amber-200">
-                  <th className="text-left p-4 text-lg font-semibold text-gray-700">Product</th>
-                  <th className="text-left p-4 text-lg font-semibold text-gray-700">Item</th>
-                  <th className="text-left p-4 text-lg font-semibold text-gray-700">Qty (kg)</th>
-                  <th className="text-left p-4 text-lg font-semibold text-gray-700">Rate (UGX)</th>
-                  <th className="text-left p-4 text-lg font-semibold text-gray-700">Total (UGX)</th>
+                <tr style={{ backgroundColor: '#F5EEDC' }}>
+                  <th className="text-left p-3 font-semibold" style={{ color: '#702A0B' }}>Product</th>
+                  <th className="text-left p-3 font-semibold" style={{ color: '#702A0B' }}>Item</th>
+                  <th className="text-left p-3 font-semibold" style={{ color: '#702A0B' }}>Qty (kg)</th>
+                  <th className="text-left p-3 font-semibold" style={{ color: '#702A0B' }}>Rate (UGX)</th>
+                  <th className="text-left p-3 font-semibold" style={{ color: '#702A0B' }}>Total (UGX)</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item, index) => (
                   <tr key={index} className="border-b border-gray-200">
-                    <td className="p-4 text-lg text-gray-800">{item.product}</td>
-                    <td className="p-4 text-lg text-gray-800">{item.item}</td>
-                    <td className="p-4 text-lg text-gray-800">{item.qty}</td>
-                    <td className="p-4 text-lg text-gray-800">{Number(item.rate).toLocaleString()}</td>
-                    <td className="p-4 text-lg text-gray-800">{Number(item.total).toLocaleString()}</td>
+                    <td className="p-3 text-gray-800">{item.product}</td>
+                    <td className="p-3 text-gray-800">{item.item}</td>
+                    <td className="p-3 text-gray-800">{item.qty}</td>
+                    <td className="p-3 text-gray-800">{Number(item.rate).toLocaleString()}</td>
+                    <td className="p-3 text-gray-800">{Number(item.total).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="border-t-2 border-gray-300 pt-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-xl font-semibold text-gray-700">Total Amount:</span>
-              <span className="text-xl font-bold text-gray-800">UGX {Number(totalAmount).toLocaleString()}</span>
+          {/* Total Amount */}
+          <div className="mb-6 p-6" style={{ backgroundColor: '#702A0B', borderRadius: '8px' }}>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-lg font-semibold text-white">Total Amount:</span>
+              <span className="text-2xl font-bold text-white">UGX {Number(totalAmount).toLocaleString()}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xl font-semibold text-gray-700">Balance:</span>
-              <span className="text-xl font-bold text-gray-800">UGX {sale.balance || 0}</span>
+            <p className="text-sm italic text-white mt-2">
+              {numberToWords(totalAmount)} Shillings Only
+            </p>
+            <div className="flex justify-between items-center mt-4">
+              <span className="text-base font-semibold text-white">Balance:</span>
+              <span className="text-lg font-bold text-white">UGX {Number(sale.balance || 0).toLocaleString()}</span>
             </div>
           </div>
-          <div className="mt-12 text-center">
-            <p className="text-lg italic text-gray-600">Thank you for your business!</p>
+
+          {/* QR Code Section */}
+          {qrCodeUrl && (
+            <div className="mt-8 pt-6 border-t-2 border-gray-200 text-center">
+              <img
+                src={qrCodeUrl}
+                alt="Receipt QR Code"
+                className="mx-auto mb-3"
+                style={{ width: '120px', height: '120px', border: '3px solid #702A0B', borderRadius: '8px', padding: '8px', background: 'white' }}
+              />
+              <p className="text-xs font-semibold mb-1" style={{ color: '#702A0B' }}>Scan to View Receipt</p>
+              <p className="text-xs text-gray-600">
+                Scan this QR code to view this receipt online
+              </p>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div className="mt-6 text-center">
+            <p className="text-xs italic text-gray-500">
+              This is an official sales receipt from Rugyeyo Farm
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Namayumba, Wakiso District, Uganda | Tel: +256772701051
+            </p>
           </div>
         </div>
       </div>
@@ -200,22 +269,6 @@ export default function SalesReceipt() {
             box-shadow: none;
             border-radius: 0;
           }
-        }
-        /* Logo positioning inside the receipt */
-        #receipt { position: relative; }
-        .logo {
-          position: absolute;
-          top: 36px; /* lowered slightly so it sits a bit below the top edge */
-          left: 12px;
-          width: 120px;
-          height: 120px;
-          /* container for the logo image (increased size) */
-        }
-        .logo-img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          display: block;
         }
       `}</style>
     </div>
