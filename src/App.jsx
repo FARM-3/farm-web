@@ -11,6 +11,9 @@ import StaffManagement from './pages/StaffManagement.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Aggregation from './pages/Aggregation.jsx';
 import Receipt from './pages/receipt.jsx';
+import Voucher from './pages/voucher.jsx';
+import VoucherVerification from './pages/VoucherVerification.jsx';
+import ReceiptVerification from './pages/ReceiptVerification.jsx';
 import { HarvestPage } from './pages/harvest.jsx';
 import Settings from './pages/Settings.jsx';
 import LocationSelector from './components/LocationSelector';
@@ -32,6 +35,11 @@ function App() {
           {/* Path 1: Root path must show Login */}
           <Route path="/" element={<Login />} />
 
+          {/* Public Routes - no authentication required */}
+          <Route path="/verify-voucher" element={<VoucherVerification />} />
+          <Route path="/verify-receipt" element={<ReceiptVerification />} />
+          <Route path="/receipt" element={<Receipt />} />
+
           {/* Protected Routes - require authentication */}
           <Route path="/sales-entry" element={<ProtectedRoute><SalesEntry /></ProtectedRoute>} />
           <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
@@ -45,7 +53,7 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/aggregation" element={<ProtectedRoute><Aggregation /></ProtectedRoute>} />
           <Route path="/harvest" element={<ProtectedRoute><HarvestPage /></ProtectedRoute>} />
-          <Route path="/receipt" element={<ProtectedRoute><Receipt /></ProtectedRoute>} />
+          <Route path="/voucher" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
