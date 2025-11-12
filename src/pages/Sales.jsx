@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, ShoppingBag, X, Plus, Send } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 // 💡 IMPORTANT: ADJUST THE PATH BELOW TO YOUR ACTUAL SideNav COMPONENT
 import SideNav from '../components/SideNav'; 
@@ -1216,7 +1217,40 @@ function SalesPage() {
                             Record New Sale
                         </button>
                         <button
-                            onClick={() => console.log('Export to Excel')}
+                            onClick={() => {
+                                // Create Excel export functionality
+                                const data = sortedSales.map(sale => ({
+                                    'Customer Name': sale.customer_name || '',
+                                    'Item': sale.item || '',
+                                    'Quantity': sale.quantity || 0,
+                                    'Rate (UGX)': parseFloat(sale.rate || 0),
+                                    'Amount (UGX)': parseFloat(sale.amount || 0),
+                                    'Date of Payment': sale.date_of_payment || sale.date || '',
+                                    'Payment Method': sale.method_of_payment || sale.payment_method || ''
+                                }));
+
+                                // Create workbook and worksheet
+                                const wb = XLSX.utils.book_new();
+                                const ws = XLSX.utils.json_to_sheet(data);
+
+                                // Auto-size columns
+                                const colWidths = [
+                                    { wch: 20 }, // Customer Name
+                                    { wch: 15 }, // Item
+                                    { wch: 10 }, // Quantity
+                                    { wch: 12 }, // Rate (UGX)
+                                    { wch: 15 }, // Amount (UGX)
+                                    { wch: 15 }, // Date of Payment
+                                    { wch: 15 }  // Payment Method
+                                ];
+                                ws['!cols'] = colWidths;
+
+                                // Add worksheet to workbook
+                                XLSX.utils.book_append_sheet(wb, ws, 'Sales Data');
+
+                                // Generate and download file
+                                XLSX.writeFile(wb, `sales_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+                            }}
                             className="py-2 px-4 shadow-xl rounded-xl font-semibold hover:shadow-2xl transition-all duration-200"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >

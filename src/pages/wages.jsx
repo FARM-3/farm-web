@@ -387,6 +387,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, Search, Download } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 import { generateAndDownloadVoucher, validateWageRecordForVoucher } from '../utils/voucherGeneration';
+import * as XLSX from 'xlsx';
 
 const styleElement = document.createElement('style');
 styleElement.innerHTML = `
@@ -1501,9 +1502,44 @@ function Wages() {
                             <Plus className="w-4 h-4 mr-2" />
                             Record New Wage
                         </button>
-                        <Button type="secondary" onClick={() => alert('Exporting data...')} className="py-2 px-4 shadow-xl">
+                        <button
+                            onClick={() => {
+                                // Create Excel export functionality
+                                const data = sortedWages.map(wage => ({
+                                    'Employee Name': wage.employee_name || '',
+                                    'Date of Payment': wage.date_of_payment || '',
+                                    'Days Missed': wage.days_missed || 0,
+                                    'Amount Paid (UGX)': parseFloat(wage.amount_paid || 0),
+                                    'Monthly Salary (UGX)': parseFloat(wage.monthly_salary || wage.monthly_pay || 0),
+                                    'Staff ID': wage.staff_id || '',
+                                }));
+
+                                // Create workbook and worksheet
+                                const wb = XLSX.utils.book_new();
+                                const ws = XLSX.utils.json_to_sheet(data);
+
+                                // Auto-size columns
+                                const colWidths = [
+                                    { wch: 20 }, // Employee Name
+                                    { wch: 15 }, // Date of Payment
+                                    { wch: 12 }, // Days Missed
+                                    { wch: 18 }, // Amount Paid (UGX)
+                                    { wch: 20 }, // Monthly Salary (UGX)
+                                    { wch: 10 }  // Staff ID
+                                ];
+                                ws['!cols'] = colWidths;
+
+                                // Add worksheet to workbook
+                                XLSX.utils.book_append_sheet(wb, ws, 'Wages Data');
+
+                                // Generate and download file
+                                XLSX.writeFile(wb, `wages_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+                            }}
+                            className="py-2 px-4 shadow-xl rounded-xl font-semibold hover:shadow-2xl transition-all duration-200"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
+                        >
                             Export to Excel
-                        </Button>
+                        </button>
                     </div>
 
                     <div className="flex gap-3 items-center flex-wrap">

@@ -185,28 +185,28 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                     <td colSpan="4" className="px-6 py-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Coffee Type</p>
+                                <p className="text-sm text-gray-800">{harvest.coffee_type || 'N/A'}</p>
+                            </div>
+                            <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Weight on Delivery</p>
                                 <p className="text-sm text-gray-800">{harvest.weight_on_delivery ? `${harvest.weight_on_delivery} kg` : 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Weight After Floating</p>
-                                <p className="text-sm text-gray-800">{harvest.weight_after_floating ? `${harvest.weight_after_floating} kg` : 'N/A'}</p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Location of Delivery</p>
+                                <p className="text-sm text-gray-800">{harvest.location_of_delivery || 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Grade</p>
-                                <p className="text-sm text-gray-800">{harvest.grade || 'N/A'}</p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">GPS Coordinates Delivery</p>
+                                <p className="text-sm text-gray-800">{harvest.gps_coordinates_delivery || 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Cherry Color</p>
-                                <p className="text-sm text-gray-800">{harvest.cherry_color || 'N/A'}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Stage</p>
-                                <p className="text-sm text-gray-800">{harvest.stage || 'N/A'}</p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Price per KG</p>
+                                <p className="text-sm text-gray-800">{harvest.price_per_kg ? `UGX ${Number(harvest.price_per_kg).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: true })}` : 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Amount Paid</p>
-                                <p className="text-sm text-gray-800">{harvest.amount_paid ? `UGX ${Number(harvest.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: true })}` : 'N/A'}</p>
+                                <p className="text-sm text-gray-800">{harvest.amount_paid || 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Paid By</p>
