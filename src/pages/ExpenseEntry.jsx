@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Tag, DollarSign, Calendar, MapPin, AlignLeft, Send, Loader2, X } from 'lucide-react';
+import { Truck, Tag, DollarSign, Calendar, MapPin, AlignLeft, Send, Loader2, X, Package } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Button from '../components/Button.jsx';
 import SideNav from '../components/SideNav.jsx';
@@ -16,8 +16,9 @@ const CUSTOM_COLORS = {
     errorText: '#EF4444',
 };
 
-// IMPORTANT: This API endpoint is mock and should match your backend setup
-const EXPENSE_API_ENDPOINT = 'http://142.93.94.236:8000/api/expenses/';
+// IMPORTANT: These API endpoints use .env configuration
+const EXPENSE_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/expenses/`;
+const FARMER_HARVEST_API = `${import.meta.env.VITE_API_URL}/api/aggregation/farmer-harvest/`;
 
 // Mock list of common expense categories
 const CATEGORIES = [
@@ -43,8 +44,66 @@ function ExpenseEntry() {
     const [isEditing, setIsEditing] = useState(false);
     const [editId, setEditId] = useState(null);
 
+    // Farmer harvests state
+    const [farmerHarvests, setFarmerHarvests] = useState([]);
+    const [harvestsLoading, setHarvestsLoading] = useState(false);
+    const [selectedHarvest, setSelectedHarvest] = useState(null);
+
     // Sidebar state
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Fetch farmer harvests on component mount
+    useEffect(() => {
+        const fetchFarmerHarvests = async () => {
+            setHarvestsLoading(true);
+            try {
+                console.log('🌾 Fetching farmer harvests from:', FARMER_HARVEST_API);
+                const response = await fetch(FARMER_HARVEST_API);
+                console.log('🌾 Harvest API Response Status:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('🌾 Harvest API Raw Data:', data);
+
+                    // Handle both array and paginated responses
+                    let harvestsToSort = [];
+
+                    if (Array.isArray(data)) {
+                        harvestsToSort = data;
+                    } else if (data.results && Array.isArray(data.results)) {
+                        // Paginated response (from Django REST Framework)
+                        harvestsToSort = data.results;
+                    } else {
+                        console.warn('⚠️ Unexpected API response format:', data);
+                        harvestsToSort = [];
+                    }
+
+                    console.log('🌾 Harvests to sort count:', harvestsToSort.length);
+
+                    // Sort harvests by latest date first
+                    harvestsToSort.sort((a, b) => {
+                        const dateA = new Date(a.date_of_delivery || '');
+                        const dateB = new Date(b.date_of_delivery || '');
+                        return dateB - dateA;
+                    });
+
+                    setFarmerHarvests(harvestsToSort);
+                    console.log('🌾 Harvests set to state. Count:', harvestsToSort.length, 'First harvest:', harvestsToSort[0]);
+                } else {
+                    console.error('❌ Failed to fetch farmer harvests. Status:', response.status);
+                    const errorText = await response.text();
+                    console.error('❌ Error response:', errorText);
+                    setFarmerHarvests([]);
+                }
+            } catch (error) {
+                console.error('❌ Error fetching farmer harvests:', error);
+                setFarmerHarvests([]);
+            } finally {
+                setHarvestsLoading(false);
+            }
+        };
+        fetchFarmerHarvests();
+    }, []);
 
     // Check if we're editing an existing expense
     useEffect(() => {
@@ -70,6 +129,33 @@ function ExpenseEntry() {
         setFormData(prev => ({ ...prev, [name]: value }));
         // Clear message on new input
         setMessage(null);
+    };
+
+    const handleHarvestSelect = (e) => {
+        const harvestId = e.target.value;
+        if (!harvestId) {
+            setSelectedHarvest(null);
+            return;
+        }
+
+        const harvest = farmerHarvests.find(h => h.id?.toString() === harvestId);
+        if (harvest) {
+            setSelectedHarvest(harvest);
+            // Auto-populate expense fields from harvest data using best practices
+            setFormData(prev => ({
+                ...prev,
+                // Use harvest date as the expense date
+                date: harvest.date_of_delivery || new Date().toISOString().substring(0, 10),
+                // Set location to farmer name (or leave as is)
+                location: prev.location || `${harvest.name || 'Farmer'} Harvest`,
+                // Set expense name to include harvest details
+                expense_name: prev.expense_name || `Harvest - ${harvest.name || 'Coffee Delivery'}`,
+                // Category might be auto-set based on harvest (e.g., "Feed/Seed" for harvest-related)
+                category: prev.category || 'General Supplies',
+                // Set description to include harvest details if empty
+                description: prev.description || `Coffee Type: ${harvest.coffee_type || 'N/A'}, Weight: ${harvest.weight_on_delivery || 'N/A'} kg`,
+            }));
+        }
     };
 
     const handleAmountChange = (e) => {
@@ -210,6 +296,44 @@ function ExpenseEntry() {
                                 required
                                 Icon={Tag}
                             />
+                        </div>
+
+                        {/* Row 1.5: Pick from Farmer Harvest */}
+                        <div>
+                            <label htmlFor="farmer_harvest" className="block text-sm font-medium mb-2 flex items-center" style={{ color: CUSTOM_COLORS.primaryText }}>
+                                <Package className="w-4 h-4 mr-1" />
+                                Quick Pick from Farmer Harvest
+                                <span className="ml-1 text-gray-500 text-xs">(optional)</span>
+                            </label>
+                            <select
+                                id="farmer_harvest"
+                                value={selectedHarvest?.id || ''}
+                                onChange={handleHarvestSelect}
+                                disabled={harvestsLoading}
+                                className="w-full px-4 py-3 rounded-lg border-2 appearance-none focus:outline-none focus:ring-2 focus:ring-opacity-50"
+                                style={{
+                                    backgroundColor: CUSTOM_COLORS.inputBg,
+                                    borderColor: CUSTOM_COLORS.inputBorder,
+                                    color: CUSTOM_COLORS.primaryText,
+                                    '--tw-ring-color': CUSTOM_COLORS.submitBg
+                                }}
+                            >
+                                <option value="">
+                                    {harvestsLoading ? 'Loading harvests...' : 'Select a harvest to auto-fill form'}
+                                </option>
+                                {farmerHarvests.map(harvest => (
+                                    <option key={harvest.id} value={harvest.id}>
+                                        {`${harvest.name || 'Farmer'} - ${harvest.date_of_delivery || 'N/A'} (${harvest.weight_on_delivery || 0}kg)`}
+                                    </option>
+                                ))}
+                            </select>
+                            {selectedHarvest && (
+                                <div className="mt-2 p-3 rounded-lg bg-green-50 border border-green-200">
+                                    <p className="text-sm text-green-700">
+                                        Selected: <strong>{selectedHarvest.name}</strong> - {selectedHarvest.weight_on_delivery}kg on {selectedHarvest.date_of_delivery}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Row 2: Item and Supplier */}

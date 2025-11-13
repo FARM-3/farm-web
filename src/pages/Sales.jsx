@@ -6,8 +6,8 @@ import * as XLSX from 'xlsx';
 // 💡 IMPORTANT: ADJUST THE PATH BELOW TO YOUR ACTUAL SideNav COMPONENT
 import SideNav from '../components/SideNav'; 
 
-// --- API CONFIGURATION ---
-const SALES_API_ENDPOINT = 'http://142.93.94.236:8000/api/sales/';
+// --- API CONFIGURATION - Uses .env ---
+const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/sales/`;
 
 // --- MOCK DATA (Fallback) ---
 const MOCK_SALES = [

@@ -170,6 +170,52 @@ export const SideNav = ({ children }) => {
         console.log('  - showLogoutModal:', showLogoutModal);
     }, [showLogoutModal]);
 
+    // Fetch user profile from backend (best-effort). Falls back to localStorage if API is unavailable.
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const token = localStorage.getItem('authToken') || localStorage.getItem('token');
+                if (!token) return;
+
+                // Prefer the deployed API host used across the app. If you run a local
+                // Uses .env configuration for API endpoint
+                const PROFILE_API = `${import.meta.env.VITE_API_URL}/api/users/me/`;
+
+                const res = await fetch(PROFILE_API, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // OpenAPI YAML uses Bearer JWT for /api/users/me/
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+
+                if (!res.ok) {
+                    // If remote profile fetch fails, fall back to localStorage below
+                    throw new Error('Profile fetch failed');
+                }
+
+                const data = await res.json();
+                // Normalize possible field names
+                const name = data.full_name || `${data.first_name || ''} ${data.last_name || ''}`.trim() || data.name || data.username || localStorage.getItem('userName');
+                const phone = data.phone || data.contact || data.mobile || localStorage.getItem('userPhone');
+                const email = data.email || localStorage.getItem('userEmail');
+                const rawPassword = data.password || null; // most backends won't return this for security
+
+                setUserProfileData({ name, phone, email, rawPassword });
+            } catch (err) {
+                // Fallback: use any locally stored values
+                setUserProfileData({
+                    name: localStorage.getItem('userName') || 'User',
+                    phone: localStorage.getItem('userPhone') || '',
+                    email: localStorage.getItem('userEmail') || '',
+                    rawPassword: null
+                });
+            }
+        };
+
+        fetchProfile();
+    }, []);
 
     return (
         <div className="min-h-screen flex w-full" style={{ backgroundColor: CoffeeColors.SCREEN_BG, fontFamily: 'Inter, sans-serif' }}>

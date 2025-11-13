@@ -1,7 +1,7 @@
 // Utility function to automatically create an expense record when farmer harvest is recorded
 // This helps track aggregation costs as expenses
 
-const EXPENSE_API_ENDPOINT = 'http://142.93.94.236:8000/api/expenses/';
+const EXPENSE_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/expenses/`;
 
 // In-memory set to avoid creating duplicate expenses for the same harvest within this session
 const processedHarvestIds = new Set();

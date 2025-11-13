@@ -42,7 +42,7 @@ const NavBar = () => {
 
             // Call Django logout API
             if (token) {
-                await fetch('http://localhost:8000/api/users/logout/', {
+                await fetch(`${import.meta.env.VITE_API_URL}/api/users/logout/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -93,28 +93,60 @@ const NavBar = () => {
                 className="fixed top-0 left-0 w-full p-4 shadow-xl z-10 font-sans"
                 style={{ backgroundColor: CUSTOM_COLORS.headerBg }}
             >
-                <div className="flex justify-between items-center max-w-7xl mx-auto min-w-0 pr-20">
+                <div className="flex justify-between items-center max-w-7xl mx-auto min-w-0">
                     <div className="text-white text-xl font-bold flex items-center min-w-0">
                         <span className="mr-2 text-3xl flex-shrink-0">💰</span>
                         <span className="hidden md:inline truncate">Rugyeyo Farm Management</span>
                         <span className="inline md:hidden truncate">Rugyeyo Farm</span>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <button
-                            onClick={handleLogout}
-                            disabled={isLoggingOut}
-                            className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors"
-                            style={{
-                                position: 'absolute',
-                                right: '1rem',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                zIndex: 60,
-                            }}
-                        >
-                            <LogOut size={20} />
-                            <span className="hidden sm:inline">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
-                        </button>
+                    <div className="flex items-center space-x-4 flex-shrink-0">
+                        <div className="relative flex-shrink-0" ref={profileDropdownRef}>
+                            <button
+                                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors whitespace-nowrap"
+                                style={{
+                                    zIndex: 60,
+                                }}
+                            >
+                                <User size={20} />
+                                <span className="hidden sm:inline">{userProfile.name || 'Profile'}</span>
+                            </button>
+
+                            {showProfileDropdown && (
+                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-50">
+                                    <div className="px-4 py-3 border-b border-gray-200">
+                                        <p className="text-sm font-medium text-gray-900">{userProfile.name}</p>
+                                        <p className="text-sm text-gray-500">{userProfile.role}</p>
+                                        <p className="text-xs text-gray-500">{userProfile.phone}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowProfileModal(true);
+                                            setShowProfileDropdown(false);
+                                        }}
+                                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                        <User size={16} className="mr-2" />
+                                        View Profile
+                                    </button>
+                                    <button
+                                        onClick={() => navigate('/settings')}
+                                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                        <Settings size={16} className="mr-2" />
+                                        Settings
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        disabled={isLoggingOut}
+                                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                                    >
+                                        <LogOut size={16} className="mr-2" />
+                                        {isLoggingOut ? 'Logging out...' : 'Logout'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </nav>
