@@ -3,8 +3,8 @@ import { SideNav } from '../components/SideNav';
 import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 import { onHarvestRecorded } from '../utils/autoExpenseCreation';
 
-// API Endpoints
-const API_BASE_URL = 'http://142.93.94.236:8000/api';
+// API Endpoints - Uses .env configuration
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 const FARMERS_API = `${API_BASE_URL}/aggregation/farmer/`;
 const FARMER_HARVEST_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
 
@@ -185,28 +185,28 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                     <td colSpan="4" className="px-6 py-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Coffee Type</p>
+                                <p className="text-sm text-gray-800">{harvest.coffee_type || 'N/A'}</p>
+                            </div>
+                            <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Weight on Delivery</p>
                                 <p className="text-sm text-gray-800">{harvest.weight_on_delivery ? `${harvest.weight_on_delivery} kg` : 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Weight After Floating</p>
-                                <p className="text-sm text-gray-800">{harvest.weight_after_floating ? `${harvest.weight_after_floating} kg` : 'N/A'}</p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Location of Delivery</p>
+                                <p className="text-sm text-gray-800">{harvest.location_of_delivery || 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Grade</p>
-                                <p className="text-sm text-gray-800">{harvest.grade || 'N/A'}</p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">GPS Coordinates Delivery</p>
+                                <p className="text-sm text-gray-800">{harvest.gps_coordinates_delivery || 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Cherry Color</p>
-                                <p className="text-sm text-gray-800">{harvest.cherry_color || 'N/A'}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Stage</p>
-                                <p className="text-sm text-gray-800">{harvest.stage || 'N/A'}</p>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Price per KG</p>
+                                <p className="text-sm text-gray-800">{harvest.price_per_kg ? `UGX ${Number(harvest.price_per_kg).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: true })}` : 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Amount Paid</p>
-                                <p className="text-sm text-gray-800">{harvest.amount_paid ? `UGX ${Number(harvest.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: true })}` : 'N/A'}</p>
+                                <p className="text-sm text-gray-800">{harvest.amount_paid || 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Paid By</p>
@@ -366,9 +366,9 @@ const AggregationPage = () => {
                 return new Date(dateB) - new Date(dateA);
             });
             enrichedHarvests.sort((a, b) => {
-                const dateA = a.date_of_delivery || '';
-                const dateB = b.date_of_delivery || '';
-                return dateA.localeCompare(dateB);
+                const dateA = new Date(a.date_of_delivery || '');
+                const dateB = new Date(b.date_of_delivery || '');
+                return dateB - dateA;
             });
 
             setFarmers(normalizedFarmers);

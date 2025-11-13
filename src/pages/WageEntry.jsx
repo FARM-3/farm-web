@@ -5,9 +5,9 @@ import Button from '../components/Button.jsx';
 import SideNav from '../components/SideNav.jsx';
 import { generateAndDownloadVoucher } from '../utils/voucherGeneration';
 
-// API endpoints
-const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
-const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
+// API endpoints - Uses .env configuration
+const WAGES_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/wages/`;
+const STAFF_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/staff/`;
 
 const CUSTOM_COLORS = {
     headerBg: '#702A0B',

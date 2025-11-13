@@ -489,6 +489,7 @@ import {
     DollarSign, Send, Loader2, X, RefreshCw, ArrowUp, ArrowDown, Edit, Trash2, Search, ChevronsDown,
     Tag, Calendar, MapPin, AlignLeft, User, ShoppingBag, Receipt, Home, Plus
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 // NOTE: Assuming SideNav is imported from '../components/SideNav'
 import { SideNav } from '../components/SideNav';
@@ -535,8 +536,8 @@ const CATEGORIES = [
     'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
 ];
 
-const EXPENSE_API_ENDPOINT = 'http://142.93.94.236:8000/api/expenses/';
-const FARMER_HARVEST_API = 'http://142.93.94.236:8000/api/aggregation/farmer-harvest/';
+const EXPENSE_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/expenses/`;
+const FARMER_HARVEST_API = `${import.meta.env.VITE_API_URL}/api/aggregation/farmer-harvest/`;
 
 const TABLE_HEADERS = [
     { key: 'expense_name', label: 'Name', type: 'string' },
@@ -1344,7 +1345,42 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                             Record New Expense
                         </button>
                         <button
-                            onClick={() => alert('Exporting...')}
+                            onClick={() => {
+                                // Create Excel export functionality
+                                const data = sortedExpenses.map(expense => ({
+                                    'Expense Name': expense.expense_name || '',
+                                    'Category': expense.category || '',
+                                    'Date': expense.date || '',
+                                    'Amount (UGX)': parseFloat(expense.amount || 0),
+                                    'Supplier': expense.supplier || '',
+                                    'Location': expense.location || '',
+                                    'Item': expense.item || '',
+                                    'Description': expense.description || ''
+                                }));
+
+                                // Create workbook and worksheet
+                                const wb = XLSX.utils.book_new();
+                                const ws = XLSX.utils.json_to_sheet(data);
+
+                                // Auto-size columns
+                                const colWidths = [
+                                    { wch: 20 }, // Expense Name
+                                    { wch: 15 }, // Category
+                                    { wch: 12 }, // Date
+                                    { wch: 15 }, // Amount (UGX)
+                                    { wch: 20 }, // Supplier
+                                    { wch: 15 }, // Location
+                                    { wch: 15 }, // Item
+                                    { wch: 30 }  // Description
+                                ];
+                                ws['!cols'] = colWidths;
+
+                                // Add worksheet to workbook
+                                XLSX.utils.book_append_sheet(wb, ws, 'Expenses Data');
+
+                                // Generate and download file
+                                XLSX.writeFile(wb, `expenses_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+                            }}
                             className="py-2 px-4 shadow-xl rounded-xl"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >

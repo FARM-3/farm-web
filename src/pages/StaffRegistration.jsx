@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Menu, X, Home, DollarSign, ShoppingCart, Package, Users, CheckCircle, UserPlus } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-// API endpoint for staff registration
-const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
+// API endpoint for staff registration - Uses .env configuration
+const STAFF_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/staff/`;
 
 // Comprehensive location data - Districts with Sub-Counties
 const LOCATION_DATA = {

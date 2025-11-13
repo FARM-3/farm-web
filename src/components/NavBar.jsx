@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, Settings, Key } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 // --- Coffee Theme Colors (matching login page) ---
 const CoffeeColors = {
@@ -27,26 +27,6 @@ const NavBar = () => {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-    const [showProfileModal, setShowProfileModal] = useState(false);
-    const [userProfile, setUserProfile] = useState({
-        name: localStorage.getItem('userName') || '',
-        phone: localStorage.getItem('userPhone') || '',
-        role: localStorage.getItem('userRole') || '',
-    });
-    
-    const profileDropdownRef = useRef(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
-                setShowProfileDropdown(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     const handleLogout = async () => {
         setShowLogoutConfirm(true);
@@ -62,7 +42,7 @@ const NavBar = () => {
 
             // Call Django logout API
             if (token) {
-                await fetch('http://localhost:8000/api/users/logout/', {
+                await fetch(`${import.meta.env.VITE_API_URL}/api/users/logout/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -113,22 +93,18 @@ const NavBar = () => {
                 className="fixed top-0 left-0 w-full p-4 shadow-xl z-10 font-sans"
                 style={{ backgroundColor: CUSTOM_COLORS.headerBg }}
             >
-                <div className="flex justify-between items-center max-w-7xl mx-auto min-w-0 pr-20">
+                <div className="flex justify-between items-center max-w-7xl mx-auto min-w-0">
                     <div className="text-white text-xl font-bold flex items-center min-w-0">
                         <span className="mr-2 text-3xl flex-shrink-0">💰</span>
                         <span className="hidden md:inline truncate">Rugyeyo Farm Management</span>
                         <span className="inline md:hidden truncate">Rugyeyo Farm</span>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-4 flex-shrink-0">
                         <div className="relative flex-shrink-0" ref={profileDropdownRef}>
                             <button
                                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors"
+                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors whitespace-nowrap"
                                 style={{
-                                    position: 'absolute',
-                                    right: '1rem',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
                                     zIndex: 60,
                                 }}
                             >
@@ -284,43 +260,6 @@ const NavBar = () => {
                 </div>
             )}
 
-            {/* Success Message Modal */}
-            {/* Profile Modal */}
-            {showProfileModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-                        <h2 className="text-2xl font-bold mb-4 text-gray-800">Profile Information</h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Name</label>
-                                <p className="mt-1 p-2 w-full rounded-md border border-gray-300 bg-gray-50">
-                                    {userProfile.name}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Role</label>
-                                <p className="mt-1 p-2 w-full rounded-md border border-gray-300 bg-gray-50">
-                                    {userProfile.role}
-                                </p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Phone</label>
-                                <p className="mt-1 p-2 w-full rounded-md border border-gray-300 bg-gray-50">
-                                    {userProfile.phone}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="mt-6 flex justify-end space-x-3">
-                            <button
-                                onClick={() => setShowProfileModal(false)}
-                                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {showSuccessMessage && (
                 <div style={{

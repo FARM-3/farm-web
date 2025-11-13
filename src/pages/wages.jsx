@@ -413,7 +413,7 @@ const formatUGX = (amount) => {
     return numAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
-const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
+const WAGES_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/wages/`;
 
 const MOCK_WAGES_DATA = [
     { id: 1, employee_name: 'RF001 - John Doe', date_of_payment: '2025-10-18', days_worked: 22, monthly_pay: 2000000, amount_paid: 2200000, deduction: 0, noted_reason: 'Full attendance, bonus' },
@@ -911,7 +911,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         const fetchStaff = async () => {
             try {
                 setLoadingStaff(true);
-                const response = await fetch('http://142.93.94.236:8000/api/staff/');
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/staff/`);
                 if (!response.ok) throw new Error('Failed to fetch staff');
                 const data = await response.json();
                 const staffList = Array.isArray(data) ? data : data.results || [];
@@ -1947,7 +1947,7 @@ function Wages() {
                         </button>
                         <Button type="secondary" onClick={() => alert('Exporting data...')} className="py-2 px-4 shadow-xl">
                             Export to Excel
-                        </Button>
+                        </button>
                     </div>
 
                     <div className="flex gap-3 items-center flex-wrap">
