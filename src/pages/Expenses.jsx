@@ -1192,7 +1192,7 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                         </button>
                         <button
                             onClick={() => { setExpenseToDelete(expense); setShowDeleteModal(true); }}
-                            className={`p-1 rounded-md transition-colors ${expense._source === 'harvest' ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-700 hover:bg-red-50'}`}
+                            className={`p-1 rounded-md transition-colors ${expense._source === 'harvest' ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-red-700 hover:bg-red-50'}`}
                             disabled={expense._source === 'harvest'}
                             title={expense._source === 'harvest' ? 'Harvest expenses cannot be deleted here' : 'Delete expense'}
                         >
