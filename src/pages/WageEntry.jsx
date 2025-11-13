@@ -242,17 +242,17 @@ function WageEntry() {
                             name="employee_id"
                             value={form.employee_id}
                             onChange={handleChange}
-                            disabled={loadingStaff}
+                            disabled={loadingStaff || form.employee_id !== ''}
                             style={{
                                 width: '100%',
                                 padding: '10px 12px',
                                 borderRadius: '4px',
-                                backgroundColor: CUSTOM_COLORS.inputBg,
+                                backgroundColor: form.employee_id !== '' ? '#f3f4f6' : CUSTOM_COLORS.inputBg,
                                 borderColor: CUSTOM_COLORS.inputBorder,
                                 border: `1px solid ${CUSTOM_COLORS.inputBorder}`,
                                 fontSize: '14px',
                                 fontFamily: 'inherit',
-                                cursor: loadingStaff ? 'not-allowed' : 'pointer',
+                                cursor: (loadingStaff || form.employee_id !== '') ? 'not-allowed' : 'pointer',
                                 opacity: loadingStaff ? 0.6 : 1,
                             }}
                         >
