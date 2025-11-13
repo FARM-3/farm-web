@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Printer, Download } from 'lucide-react';
 import { generateAndDownloadVoucher, generateQRCode, numberToWords, formatCurrency } from '../utils/voucherGeneration';
 
-const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
+const WAGES_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/wages/`;
 
 function getVoucherIdFromUrl(location) {
   const params = new URLSearchParams(location.search);
