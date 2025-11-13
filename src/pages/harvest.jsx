@@ -476,8 +476,8 @@ import {
     ChevronUp, Search, Edit, Trash2, ChevronDown
 } from 'lucide-react';
 
-// API Endpoints
-const API_BASE_URL = 'http://142.93.94.236:8000/api';
+// API Endpoints - Uses .env configuration
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 const HARVESTS_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
 const BLOCKS_API = `${API_BASE_URL}/harvests/blocks/`;
 

@@ -535,8 +535,8 @@ const CATEGORIES = [
     'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
 ];
 
-const EXPENSE_API_ENDPOINT = 'http://142.93.94.236:8000/api/expenses/';
-const FARMER_HARVEST_API = 'http://142.93.94.236:8000/api/aggregation/farmer-harvest/';
+const EXPENSE_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/expenses/`;
+const FARMER_HARVEST_API = `${import.meta.env.VITE_API_URL}/api/aggregation/farmer-harvest/`;
 
 const TABLE_HEADERS = [
     { key: 'expense_name', label: 'Name', type: 'string' },

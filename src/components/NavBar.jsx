@@ -62,7 +62,7 @@ const NavBar = () => {
 
             // Call Django logout API
             if (token) {
-                await fetch('http://localhost:8000/api/users/logout/', {
+                await fetch(`${import.meta.env.VITE_API_URL}/api/users/logout/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -113,22 +113,18 @@ const NavBar = () => {
                 className="fixed top-0 left-0 w-full p-4 shadow-xl z-10 font-sans"
                 style={{ backgroundColor: CUSTOM_COLORS.headerBg }}
             >
-                <div className="flex justify-between items-center max-w-7xl mx-auto min-w-0 pr-20">
+                <div className="flex justify-between items-center max-w-7xl mx-auto min-w-0">
                     <div className="text-white text-xl font-bold flex items-center min-w-0">
                         <span className="mr-2 text-3xl flex-shrink-0">💰</span>
                         <span className="hidden md:inline truncate">Rugyeyo Farm Management</span>
                         <span className="inline md:hidden truncate">Rugyeyo Farm</span>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-4 flex-shrink-0">
                         <div className="relative flex-shrink-0" ref={profileDropdownRef}>
                             <button
                                 onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors"
+                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors whitespace-nowrap"
                                 style={{
-                                    position: 'absolute',
-                                    right: '1rem',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
                                     zIndex: 60,
                                 }}
                             >

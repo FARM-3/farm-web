@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login.jsx';
+import SecurityQuestions from './pages/SecurityQuestions.jsx';
 import WageEntry from './pages/WageEntry.jsx';
 import Wages from './pages/wages.jsx';
 import SalesEntry from './pages/SalesEntry.jsx';
@@ -34,6 +35,9 @@ function App() {
 
           {/* Path 1: Root path must show Login */}
           <Route path="/" element={<Login />} />
+
+          {/* Security Questions Setup - requires login but shown after login if not yet set */}
+          <Route path="/security-questions" element={<SecurityQuestions />} />
 
           {/* Public Routes - no authentication required */}
           <Route path="/verify-voucher" element={<VoucherVerification />} />

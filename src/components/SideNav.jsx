@@ -185,9 +185,8 @@ export const SideNav = ({ children }) => {
                 if (!token) return;
 
                 // Prefer the deployed API host used across the app. If you run a local
-                // backend, change this to 'http://localhost:8000/api/users/me/' or make
-                // the host configurable via an environment variable.
-                const PROFILE_API = 'http://142.93.94.236:8000/api/users/me/';
+                // Uses .env configuration for API endpoint
+                const PROFILE_API = `${import.meta.env.VITE_API_URL}/api/users/me/`;
 
                 const res = await fetch(PROFILE_API, {
                     headers: {

@@ -267,8 +267,8 @@ function SalesEntry() {
       };
 
       const url = isEditing
-        ? `http://142.93.94.236:8000/api/sales/${editId}/`
-        : 'http://142.93.94.236:8000/api/sales/';
+        ? `${import.meta.env.VITE_API_URL}/api/sales/${editId}/`
+        : `${import.meta.env.VITE_API_URL}/api/sales/`;
 
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',

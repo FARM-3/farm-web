@@ -3,8 +3,8 @@ import { SideNav } from '../components/SideNav';
 import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 import { onHarvestRecorded } from '../utils/autoExpenseCreation';
 
-// API Endpoints
-const API_BASE_URL = 'http://142.93.94.236:8000/api';
+// API Endpoints - Uses .env configuration
+const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 const FARMERS_API = `${API_BASE_URL}/aggregation/farmer/`;
 const FARMER_HARVEST_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
 
@@ -366,9 +366,9 @@ const AggregationPage = () => {
                 return new Date(dateB) - new Date(dateA);
             });
             enrichedHarvests.sort((a, b) => {
-                const dateA = a.date_of_delivery || '';
-                const dateB = b.date_of_delivery || '';
-                return dateA.localeCompare(dateB);
+                const dateA = new Date(a.date_of_delivery || '');
+                const dateB = new Date(b.date_of_delivery || '');
+                return dateB - dateA;
             });
 
             setFarmers(normalizedFarmers);

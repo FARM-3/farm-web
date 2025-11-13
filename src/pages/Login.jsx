@@ -81,9 +81,9 @@ function Login() {
   const [pin, setPin] = useState(["", "", "", ""]);
 
   const [isResetMode, setIsResetMode] = useState(false);
-  const [resetStep, setResetStep] = useState(1); // Step 1: Phone, Step 2: Answer + New PIN
-  const [securityQuestion, setSecurityQuestion] = useState("");
-  const [securityAnswer, setSecurityAnswer] = useState("");
+  const [resetStep, setResetStep] = useState(1); // Step 1: Phone, Step 2: Answer 3 questions + New PIN
+  const [resetSecurityQuestions, setResetSecurityQuestions] = useState([]);
+  const [resetSecurityAnswers, setResetSecurityAnswers] = useState(["", "", ""]);
   const [newPin, setNewPin] = useState(["", "", "", ""]);
   const [confirmPin, setConfirmPin] = useState(["", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -140,10 +140,25 @@ function Login() {
       setMessage("Login successful! Redirecting...");
       setMessageType("success");
 
-      setTimeout(() => {
+      // Check if user needs to set up security questions
+      const userHasSetupSecurityQuestions = response.user?.security_answers_set || response.security_answers_set;
+
+      if (!userHasSetupSecurityQuestions) {
+        console.log('User needs to set up security questions');
+        setTimeout(() => {
+          navigate('/security-questions', {
+            state: {
+              phone: phoneNumber,
+              user: response.user || response,
+            },
+          });
+        }, 800);
+      } else {
         console.log('Navigating to dashboard...');
-        navigate('/dashboard');
-      }, 800);
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 800);
+      }
 
     } catch (err) {
       console.error(' Login Error:', err.message);
@@ -177,7 +192,7 @@ function Login() {
     setMessageType("");
 
     if (resetStep === 1) {
-      // Step 1: Verify phone number and get security question
+      // Step 1: Verify phone number and get the user's 3 security questions
       if (!/^\d{10}$/.test(phoneNumber)) {
         setMessage("Phone number must be exactly 10 digits.");
         setMessageType("error");
@@ -186,29 +201,22 @@ function Login() {
 
       setLoading(true);
       try {
-        const response = await ApiClient.post("security-question/", {
+        const response = await ApiClient.post("user-security-questions/", {
           phone: phoneNumber,
         });
 
-        if (response.security_question) {
-          setSecurityQuestion(response.security_question);
+        if (response.questions && response.questions.length >= 3) {
+          // Load user's specific 3 security questions
+          setResetSecurityQuestions(response.questions.slice(0, 3));
+          setResetSecurityAnswers(["", "", ""]);
           setResetStep(2); // Move to step 2
           setMessage("");
           setMessageType("");
         } else {
-          setMessage("Phone number verified! Check your SMS for reset instructions.");
-          setMessageType("success");
-          setTimeout(() => {
-            setIsResetMode(false);
-            setPhoneNumber("");
-            setSecurityQuestion("");
-            setSecurityAnswer("");
-            setResetStep(1);
-            setMessage("");
-          }, 3000);
+          throw new Error("Unable to load security questions for this account.");
         }
       } catch (error) {
-        console.error(' Reset PIN Error:', error.message);
+        console.error('Reset PIN Error:', error.message);
 
         if (error.message === "USER_NOT_REGISTERED" || error.message.includes("not found")) {
           setMessage("Phone number not found in our system. Please contact support.");
@@ -224,9 +232,17 @@ function Login() {
         setLoading(false);
       }
     } else if (resetStep === 2) {
-      // Step 2: Submit security answer and new PIN
-      if (!securityAnswer.trim()) {
-        setMessage("Please answer the security question.");
+      // Step 2: Submit answers to 3 security questions and new PIN
+      const allAnswersProvided = resetSecurityAnswers.every(a => a.trim().length > 0);
+      if (!allAnswersProvided) {
+        setMessage("Please answer all 3 security questions.");
+        setMessageType("error");
+        return;
+      }
+
+      const allAnswersValid = resetSecurityAnswers.every(a => a.trim().length >= 2);
+      if (!allAnswersValid) {
+        setMessage("Each answer must be at least 2 characters long.");
         setMessageType("error");
         return;
       }
@@ -254,11 +270,17 @@ function Login() {
         return;
       }
 
+      // Format answers for submission
+      const formattedAnswers = resetSecurityQuestions.map((q, idx) => ({
+        question_id: q.id,
+        answer: resetSecurityAnswers[idx].trim().toLowerCase(),
+      }));
+
       setLoading(true);
       try {
-        const response = await ApiClient.post("reset-pin/", {
+        const response = await ApiClient.post("verify-answers-reset-pin/", {
           phone: phoneNumber,
-          security_answer: securityAnswer,
+          answers: formattedAnswers,
           new_pin: newPinValue,
         });
 
@@ -268,17 +290,25 @@ function Login() {
         setTimeout(() => {
           setIsResetMode(false);
           setPhoneNumber("");
-          setSecurityQuestion("");
-          setSecurityAnswer("");
+          setResetSecurityQuestions([]);
+          setResetSecurityAnswers(["", "", ""]);
           setNewPin(["", "", "", ""]);
+          setConfirmPin(["", "", "", ""]);
           setResetStep(1);
           setMessage("");
           setShowLoginForm(true);
-        }, 3000);
+        }, 2000);
       } catch (error) {
-        console.error(' Reset PIN Error:', error.message);
-        setMessage(error.message || "PIN reset failed. Please try again.");
-        setMessageType("error");
+        console.error('Reset PIN Error:', error.message);
+
+        if (error.message.includes("incorrect") || error.message.includes("wrong")) {
+          setMessage("One or more answers are incorrect. Please check and try again.");
+          setMessageType("error");
+          // Keep answers visible for user to correct
+        } else {
+          setMessage(error.message || "PIN reset failed. Please try again.");
+          setMessageType("error");
+        }
       } finally {
         setLoading(false);
       }
@@ -516,61 +546,89 @@ function Login() {
 
               {resetStep === 2 && (
                 <>
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{
-                      fontSize: '14px',
-                      color: 'rgba(255, 255, 255, 0.9)',
-                      marginBottom: '8px',
-                      fontWeight: '600',
-                      display: 'block',
-                    }}>Security Question</label>
-                    <div style={{
-                      width: '100%',
-                      padding: '15px',
-                      background: 'rgba(255, 255, 255, 0.15)',
-                      backdropFilter: 'blur(10px)',
-                      borderRadius: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      fontSize: '14px',
-                      color: 'white',
-                      fontWeight: '500',
-                    }}>
-                      {securityQuestion}
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: '20px' }}>
-                    <label style={{
-                      fontSize: '14px',
-                      color: 'white',
-                      marginBottom: '8px',
-                      fontWeight: '600',
-                      display: 'block',
-                    }}>Your Answer</label>
-
-                    <input
-                      type="text"
-                      value={securityAnswer}
-                      onChange={(e) => {
-                        setSecurityAnswer(e.target.value);
-                        setMessage("");
-                      }}
-                      placeholder="Enter your answer"
-                      disabled={loading}
-                      style={{
-                        width: '100%',
-                        height: '50px',
-                        background: 'rgba(255, 255, 255, 0.2)',
-                        backdropFilter: 'blur(10px)',
-                        borderRadius: '12px',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        padding: '0 15px',
-                        fontSize: '16px',
+                  {/* Display 3 Security Questions */}
+                  {resetSecurityQuestions.map((question, index) => (
+                    <div key={question.id || index} style={{ marginBottom: '20px' }}>
+                      <label style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
                         color: 'white',
-                        outline: 'none',
-                      }}
-                    />
-                  </div>
+                        marginBottom: '10px',
+                        display: 'block',
+                        paddingRight: '20px',
+                      }}>
+                        <span style={{
+                          background: 'rgba(139, 69, 19, 0.5)',
+                          padding: '2px 8px',
+                          borderRadius: '50%',
+                          marginRight: '8px',
+                          fontWeight: '700',
+                        }}>
+                          {index + 1}
+                        </span>
+                        {question.text}
+                      </label>
+
+                      <input
+                        type="text"
+                        value={resetSecurityAnswers[index]}
+                        onChange={(e) => {
+                          // Only allow alphanumeric characters and spaces
+                          const cleaned = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '');
+                          const newAnswers = [...resetSecurityAnswers];
+                          newAnswers[index] = cleaned;
+                          setResetSecurityAnswers(newAnswers);
+                          setMessage("");
+                        }}
+                        placeholder={`Your answer (min. 2 characters)`}
+                        maxLength={100}
+                        disabled={loading}
+                        style={{
+                          width: '100%',
+                          height: '50px',
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          backdropFilter: 'blur(10px)',
+                          borderRadius: '12px',
+                          border: '1px solid rgba(255, 255, 255, 0.3)',
+                          padding: '0 15px',
+                          fontSize: '16px',
+                          color: 'white',
+                          outline: 'none',
+                          transition: 'all 0.3s ease',
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.border = '1px solid rgba(139, 69, 19, 0.8)';
+                          e.target.style.background = 'rgba(255, 255, 255, 0.25)';
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+                          e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                        }}
+                      />
+
+                      {resetSecurityAnswers[index].length > 0 && resetSecurityAnswers[index].length < 2 && (
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#FFB74D',
+                          marginTop: '6px',
+                          fontWeight: '500',
+                        }}>
+                          ⚠ Minimum 2 characters required
+                        </p>
+                      )}
+
+                      {resetSecurityAnswers[index].length >= 2 && (
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#4CAF50',
+                          marginTop: '6px',
+                          fontWeight: '500',
+                        }}>
+                          ✓ Answer looks good
+                        </p>
+                      )}
+                    </div>
+                  ))}
 
                   <div style={{ marginBottom: '20px' }}>
                     <label style={{
@@ -700,7 +758,7 @@ function Login() {
 
               <button
                 type="submit"
-                disabled={loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (!securityAnswer.trim() || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join("")))}
+                disabled={loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (resetSecurityAnswers.some(a => a.trim().length < 2) || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join("")))}
                 style={{
                   background: '#D2A679',
                   width: '100%',
@@ -711,14 +769,14 @@ function Login() {
                   fontSize: '16px',
                   fontWeight: '700',
                   letterSpacing: '0.5px',
-                  cursor: loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (!securityAnswer.trim() || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join(""))) ? 'not-allowed' : 'pointer',
-                  opacity: loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (!securityAnswer.trim() || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join(""))) ? 0.6 : 1,
+                  cursor: loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (resetSecurityAnswers.some(a => a.trim().length < 2) || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join(""))) ? 'not-allowed' : 'pointer',
+                  opacity: loading || (resetStep === 1 && phoneNumber.length !== 10) || (resetStep === 2 && (resetSecurityAnswers.some(a => a.trim().length < 2) || newPin.join("").length !== 4 || confirmPin.join("").length !== 4 || newPin.join("") !== confirmPin.join(""))) ? 0.6 : 1,
                   marginBottom: '15px',
                   textTransform: 'uppercase',
                   transition: 'all 0.3s ease',
                 }}
                 onMouseEnter={(e) => {
-                  if (!loading && ((resetStep === 1 && phoneNumber.length === 10) || (resetStep === 2 && securityAnswer.trim() && newPin.join("").length === 4 && confirmPin.join("").length === 4 && newPin.join("") === confirmPin.join("")))) {
+                  if (!loading && ((resetStep === 1 && phoneNumber.length === 10) || (resetStep === 2 && resetSecurityAnswers.every(a => a.trim().length >= 2) && newPin.join("").length === 4 && confirmPin.join("").length === 4 && newPin.join("") === confirmPin.join("")))) {
                     e.target.style.background = '#C19763';
                     e.target.style.transform = 'translateY(-2px)';
                     e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
@@ -739,8 +797,8 @@ function Login() {
                     type="button"
                     onClick={() => {
                       setResetStep(1);
-                      setSecurityQuestion("");
-                      setSecurityAnswer("");
+                      setResetSecurityQuestions([]);
+                      setResetSecurityAnswers(["", "", ""]);
                       setNewPin(["", "", "", ""]);
                       setConfirmPin(["", "", "", ""]);
                       setMessage("");
@@ -767,8 +825,8 @@ function Login() {
                     setIsResetMode(false);
                     setShowLoginForm(true);
                     setPhoneNumber("");
-                    setSecurityQuestion("");
-                    setSecurityAnswer("");
+                    setResetSecurityQuestions([]);
+                    setResetSecurityAnswers(["", "", ""]);
                     setNewPin(["", "", "", ""]);
                     setConfirmPin(["", "", "", ""]);
                     setResetStep(1);
