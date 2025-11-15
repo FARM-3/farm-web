@@ -827,7 +827,7 @@ const BulkWageRecordModal = ({ isOpen, onClose, onSaveSuccess }) => {
                         disabled={submitting || selectedStaffIds.length === 0}
                         className="px-8 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                         style={{
-                            background: submitting ? '#795548' : 'linear-gradient(135deg, #8B4513 0%, #6d3410 100%)',
+                            background: submitting ? '#795548' : '#8B4513',
                         }}
                     >
                         {submitting ? (
@@ -1939,7 +1939,7 @@ function Wages() {
                         <button
                             onClick={() => setShowBulkRecordModal(true)}
                             className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
-                            style={{ backgroundColor: '#6d3410' }}
+                            style={{ backgroundColor: '#8B4513' }}
                             title="Record wages for multiple employees at once"
                         >
                             <DollarSign className="w-4 h-4 mr-2" />
@@ -1947,6 +1947,15 @@ function Wages() {
                         </button>
                         <Button type="secondary" onClick={() => alert('Exporting data...')} className="py-2 px-4 shadow-xl">
                             Export to Excel
+                        </Button>
+                        <button
+                            onClick={() => fetchWages(currentPage)}
+                            disabled={loading}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
+                        >
+                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh Data
                         </button>
                     </div>
 
@@ -1962,16 +1971,6 @@ function Wages() {
                                 className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-[#795548] focus:border-[#795548] transition-colors shadow-lg"
                             />
                         </div>
-
-                        <button
-                            onClick={() => fetchWages(currentPage)}
-                            disabled={loading}
-                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
-                        >
-                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                            Refresh Data
-                        </button>
 
                         <div className="relative inline-block text-left">
                             <select className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-[#795548] focus:border-[#795548] shadow-lg hover:shadow-xl transition duration-300 ease-in-out" defaultValue="">
