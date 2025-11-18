@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, ShoppingBag, X, Plus, Send } from 'lucide-react';
+import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, Eye, X, Plus, Send } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 // 💡 IMPORTANT: ADJUST THE PATH BELOW TO YOUR ACTUAL SideNav COMPONENT
@@ -129,7 +129,8 @@ const Button = ({ children, onClick, className, disabled, type = 'primary' }) =>
 // --- SALES ENTRY LOGIC ---
 
 const initialFormData = {
-    customer_name: '',
+    first_name: '',
+    last_name: '',
     item: '',
     quantity: '',
     rate: '',
@@ -163,15 +164,27 @@ const useSalesForm = (onSuccess, editData = null) => {
 
     const validateField = (name, value) => {
         switch (name) {
-            case 'customer_name':
+            case 'first_name':
                 if (!value || value.trim().length === 0) {
-                    return 'Customer name is required';
+                    return 'First name is required';
                 }
                 if (value.trim().length < 2) {
-                    return 'Customer name must be at least 2 characters';
+                    return 'First name must be at least 2 characters';
                 }
-                if (value.trim().length > 100) {
-                    return 'Customer name must not exceed 100 characters';
+                if (value.trim().length > 50) {
+                    return 'First name must not exceed 50 characters';
+                }
+                return '';
+
+            case 'last_name':
+                if (!value || value.trim().length === 0) {
+                    return 'Last name is required';
+                }
+                if (value.trim().length < 2) {
+                    return 'Last name must be at least 2 characters';
+                }
+                if (value.trim().length > 50) {
+                    return 'Last name must not exceed 50 characters';
                 }
                 return '';
 
@@ -204,9 +217,6 @@ const useSalesForm = (onSuccess, editData = null) => {
                 }
                 if (rate <= 0) {
                     return 'Rate must be greater than 0';
-                }
-                if (rate < 100) {
-                    return 'Rate seems too low (minimum 100 UGX)';
                 }
                 return '';
 
@@ -259,19 +269,37 @@ const useSalesForm = (onSuccess, editData = null) => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        let updatedData = { ...formData, [name]: value };
+
+        // Special handling for rate and amount fields - only allow positive numbers, no rounding
+        if (name === 'rate' || name === 'amount') {
+            // Remove commas from the input value to get the raw number
+            const rawValue = value.replace(/,/g, '');
+
+            // Allow empty string, or only digits and optional decimal point
+            if (rawValue !== '' && !/^\d*\.?\d*$/.test(rawValue)) {
+                return; // Don't update if invalid characters
+            }
+            // Don't allow negative values
+            if (rawValue.startsWith('-')) {
+                return;
+            }
+        }
+
+        // Remove commas before storing the value
+        const rawValue = (name === 'rate' || name === 'amount') ? value.replace(/,/g, '') : value;
+        let updatedData = { ...formData, [name]: rawValue };
 
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
 
         if (name === 'quantity' || name === 'rate') {
-            const qty = parseFloat(name === 'quantity' ? value : formData.quantity);
-            const rte = parseFloat(name === 'rate' ? value : formData.rate);
+            const qty = parseFloat(name === 'quantity' ? rawValue : formData.quantity);
+            const rte = parseFloat(name === 'rate' ? rawValue : formData.rate);
             if (!isNaN(qty) && !isNaN(rte) && qty > 0 && rte > 0) {
                 updatedData.amount = (qty * rte).toFixed(2);
             } else {
-                updatedData.amount = '0.00'; 
+                updatedData.amount = '0.00';
             }
         }
 
@@ -347,6 +375,18 @@ const InputField = ({ label, name, value, onChange, onBlur, placeholder, showReq
         ? MODAL_COLORS.INVALID_BORDER
         : MODAL_COLORS.INPUT_BORDER;
 
+    // Format value with commas for rate and amount fields
+    const formatWithCommas = (val) => {
+        if (!val || val === '') return '';
+        // Split by decimal point
+        const parts = val.toString().split('.');
+        // Add commas to the integer part
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return parts.join('.');
+    };
+
+    const displayValue = (name === 'rate' || name === 'amount') ? formatWithCommas(value) : value;
+
     return (
         <div className="flex flex-col space-y-1">
             <label htmlFor={name} className="text-sm font-medium" style={{ color: MODAL_COLORS.TEXT_SECONDARY }}>
@@ -356,7 +396,7 @@ const InputField = ({ label, name, value, onChange, onBlur, placeholder, showReq
             <input
                 id={name}
                 name={name}
-                value={value}
+                value={displayValue}
                 onChange={onChange}
                 onBlur={onBlur}
                 placeholder={placeholder}
@@ -471,15 +511,26 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                             <ModalSectionHeader icon={User} title="Customer & Item Information" />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <InputField
-                                    label="Customer Name"
-                                    name="customer_name"
-                                    value={formData.customer_name}
+                                    label="First Name"
+                                    name="first_name"
+                                    value={formData.first_name}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    placeholder="e.g., John Doe"
+                                    placeholder="e.g., John"
                                     showRequired={true}
-                                    status={getFieldStatus('customer_name')}
-                                    error={errors.customer_name}
+                                    status={getFieldStatus('first_name')}
+                                    error={errors.first_name}
+                                />
+                                <InputField
+                                    label="Last Name"
+                                    name="last_name"
+                                    value={formData.last_name}
+                                    onChange={handleChange}
+                                    onBlur={handleBlur}
+                                    placeholder="e.g., Doe"
+                                    showRequired={true}
+                                    status={getFieldStatus('last_name')}
+                                    error={errors.last_name}
                                 />
                                 <InputField
                                     label="Item"
@@ -497,7 +548,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
 
                         {/* Transaction Details Section */}
                         <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: MODAL_COLORS.SECTION_BG }}>
-                            <ModalSectionHeader icon={ShoppingBag} title="Transaction Details" />
+                            <ModalSectionHeader icon={DollarSign} title="Transaction Details" />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <InputField
                                     label="Quantity (Kgs/Units)"
@@ -518,7 +569,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="e.g., 5000"
-                                    type="number"
+                                    type="text"
                                     showRequired={true}
                                     status={getFieldStatus('rate')}
                                     error={errors.rate}
@@ -530,7 +581,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="e.g., 250000"
-                                    type="number"
+                                    type="text"
                                     showRequired={true}
                                     status={getFieldStatus('amount')}
                                     error={errors.amount}
@@ -617,7 +668,7 @@ function SalesPage() {
     const [sales, setSales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: 'date_of_payment', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'descending' });
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -638,9 +689,15 @@ function SalesPage() {
 
             // Handle paginated response
             if (data.results) {
+                console.log('First sale record structure:', data.results[0]);
+                console.log('Does first sale have first_name?', data.results[0]?.first_name);
+                console.log('Does first sale have last_name?', data.results[0]?.last_name);
                 setSales(data.results);
                 setTotalPages(Math.ceil((data.count || 0) / itemsPerPage));
             } else if (Array.isArray(data)) {
+                console.log('First sale record structure:', data[0]);
+                console.log('Does first sale have first_name?', data[0]?.first_name);
+                console.log('Does first sale have last_name?', data[0]?.last_name);
                 setSales(data);
                 setTotalPages(Math.ceil(data.length / itemsPerPage));
             } else {
@@ -722,10 +779,13 @@ function SalesPage() {
     
     const handleSalesSubmit = async (data) => {
         console.log('New Sales Record Submitted:', data);
+        console.log('First Name from form:', data.first_name);
+        console.log('Last Name from form:', data.last_name);
 
         // Prepare data for API - convert numbers to strings for decimal fields
         const apiData = {
-            customer_name: data.customer_name?.trim() || null,
+            first_name: data.first_name?.trim() || '',
+            last_name: data.last_name?.trim() || '',
             item: data.item?.trim() || '',
             quantity: parseInt(data.quantity) || 0,
             rate: String(data.rate || '0'), // API expects string for decimal
@@ -734,8 +794,10 @@ function SalesPage() {
             method_of_payment: data.method_of_payment?.trim() || ''
         };
 
-        // Validate required fields
-        const requiredFields = ['item', 'quantity', 'rate', 'amount', 'date_of_payment', 'method_of_payment'];
+        console.log('API Data being sent:', JSON.stringify(apiData, null, 2));
+
+        // Validate required fields (first_name and last_name should also be required)
+        const requiredFields = ['first_name', 'last_name', 'item', 'quantity', 'rate', 'amount', 'date_of_payment', 'method_of_payment'];
         const missingFields = requiredFields.filter(field => !apiData[field] || apiData[field] === '0');
 
         if (missingFields.length > 0) {
@@ -743,8 +805,6 @@ function SalesPage() {
             alert(`Missing required fields: ${missingFields.join(', ')}`);
             return;
         }
-
-        console.log('Sending to API:', JSON.stringify(apiData, null, 2));
 
         try {
             if (editingSale) {
@@ -1112,9 +1172,18 @@ function SalesPage() {
             // Support both field names: method_of_payment (from API) and payment_method (from mock data)
             const paymentMethod = sale.method_of_payment || sale.payment_method || 'N/A';
 
+            // Display customer name: prioritize first_name + last_name, fallback to customer_name
+            const customerName = (sale.first_name && sale.last_name)
+                ? `${sale.first_name} ${sale.last_name}`.trim()
+                : (sale.customer_name && sale.customer_name.trim())
+                    ? sale.customer_name.trim()
+                    : 'N/A';
+
             return (
                 <tr key={sale.id || index} className="border-b border-gray-100 transition-colors duration-150 hover:bg-light-coffee-brown/40">
-                    <td className="px-3 py-2 text-left font-medium text-text-default text-xs">{sale.customer_name || 'N/A'}</td>
+                    <td className="px-3 py-2 text-left font-medium text-text-default text-xs">
+                        {customerName}
+                    </td>
                     <td className="px-3 py-2 text-left text-gray-600 text-xs">{sale.item || 'N/A'}</td>
                     <td className="px-3 py-2 text-center text-gray-600 text-xs">{sale.quantity || 0}</td>
                     <td className="px-3 py-2 text-right text-gray-700 font-semibold text-xs">
@@ -1159,7 +1228,7 @@ function SalesPage() {
                                 onMouseLeave={(e) => e.currentTarget.style.color = '#000000'}
                                 title="View Receipt"
                             >
-                                <ShoppingBag className="w-4 h-4" />
+                                <Eye className="w-4 h-4" />
                             </button>
                         </div>
                     </td>
@@ -1230,15 +1299,23 @@ function SalesPage() {
                         <button
                             onClick={() => {
                                 // Create Excel export functionality
-                                const data = sortedSales.map(sale => ({
-                                    'Customer Name': sale.customer_name || '',
-                                    'Item': sale.item || '',
-                                    'Quantity': sale.quantity || 0,
-                                    'Rate (UGX)': parseFloat(sale.rate || 0),
-                                    'Amount (UGX)': parseFloat(sale.amount || 0),
-                                    'Date of Payment': sale.date_of_payment || sale.date || '',
-                                    'Payment Method': sale.method_of_payment || sale.payment_method || ''
-                                }));
+                                const data = sortedSales.map(sale => {
+                                    const customerName = (sale.first_name && sale.last_name)
+                                        ? `${sale.first_name} ${sale.last_name}`.trim()
+                                        : (sale.customer_name && sale.customer_name.trim())
+                                            ? sale.customer_name.trim()
+                                            : '';
+
+                                    return {
+                                        'Customer Name': customerName,
+                                        'Item': sale.item || '',
+                                        'Quantity': sale.quantity || 0,
+                                        'Rate (UGX)': parseFloat(sale.rate || 0),
+                                        'Amount (UGX)': parseFloat(sale.amount || 0),
+                                        'Date of Payment': sale.date_of_payment || sale.date || '',
+                                        'Payment Method': sale.method_of_payment || sale.payment_method || ''
+                                    };
+                                });
 
                                 // Create workbook and worksheet
                                 const wb = XLSX.utils.book_new();

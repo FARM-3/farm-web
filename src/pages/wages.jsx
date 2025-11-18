@@ -388,7 +388,7 @@ import { useNavigate } from 'react-router-dom';
 import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, ArrowUp, ArrowDown, Plus, X, UserIcon, Edit, Trash2, Search, Eye } from 'lucide-react';
 import { SideNav } from '../components/SideNav';
 import { generateAndDownloadVoucher, validateWageRecordForVoucher } from '../utils/voucherGeneration';
-import * as XLSX from 'xlsx';
+import BulkWageSpreadsheet from '../components/BulkWageSpreadsheet';
 
 const styleElement = document.createElement('style');
 styleElement.innerHTML = `
@@ -467,6 +467,408 @@ const Input = ({ type = 'text', name, id, value, onChange, placeholder, classNam
 // --- WagesModal Component (The Popup Form) ---
 // =========================================================
 
+// =========================================================
+// --- BulkWageRecordModal Component (Bulk Recording) ---
+// =========================================================
+
+const BulkWageRecordModal = ({ isOpen, onClose, onSaveSuccess }) => {
+    const [staff, setStaff] = useState([]);
+    const [loadingStaff, setLoadingStaff] = useState(true);
+    const [selectedStaffIds, setSelectedStaffIds] = useState([]);
+    const [commonData, setCommonData] = useState({
+        date_of_payment: new Date().toISOString().substring(0, 10),
+        days_missed: '',
+    });
+    const [submitting, setSubmitting] = useState(false);
+    const [message, setMessage] = useState('');
+    const [errors, setErrors] = useState({});
+
+    useEffect(() => {
+        const fetchStaff = async () => {
+            try {
+                setLoadingStaff(true);
+                const response = await fetch('http://142.93.94.236:8000/api/staff/');
+                if (!response.ok) throw new Error('Failed to fetch staff');
+                const data = await response.json();
+                const staffList = Array.isArray(data) ? data : data.results || [];
+                setStaff(staffList);
+            } catch (err) {
+                console.error('Error fetching staff:', err);
+                setStaff([]);
+            } finally {
+                setLoadingStaff(false);
+            }
+        };
+
+        if (isOpen) {
+            fetchStaff();
+            setSelectedStaffIds([]);
+            setCommonData({
+                date_of_payment: new Date().toISOString().substring(0, 10),
+                days_missed: '',
+            });
+            setErrors({});
+            setMessage('');
+        }
+    }, [isOpen]);
+
+    const handleStaffToggle = (staffId) => {
+        console.log('Toggling staff ID:', staffId);
+        console.log('Current selected IDs:', selectedStaffIds);
+        setSelectedStaffIds(prev => {
+            const newSelection = prev.includes(staffId)
+                ? prev.filter(id => id !== staffId)
+                : [...prev, staffId];
+            console.log('New selected IDs:', newSelection);
+            return newSelection;
+        });
+    };
+
+    const handleSelectAll = () => {
+        if (selectedStaffIds.length === staff.length) {
+            setSelectedStaffIds([]);
+        } else {
+            setSelectedStaffIds(staff.map(s => s.id));
+        }
+    };
+
+    const handleCommonDataChange = (e) => {
+        const { name, value } = e.target;
+        setCommonData(prev => ({ ...prev, [name]: value }));
+        setErrors(prev => ({ ...prev, [name]: '' }));
+    };
+
+    const validate = () => {
+        const newErrors = {};
+        if (selectedStaffIds.length === 0) {
+            newErrors.staff = 'Please select at least one employee';
+        }
+        if (!commonData.date_of_payment) {
+            newErrors.date_of_payment = 'Date of payment is required';
+        }
+        if (commonData.days_missed === '' || isNaN(Number(commonData.days_missed)) || Number(commonData.days_missed) < 0) {
+            newErrors.days_missed = 'Valid days missed required';
+        } else if (Number(commonData.days_missed) >= 30) {
+            newErrors.days_missed = 'Days missed must be less than 30';
+        }
+        return newErrors;
+    };
+
+    const calculateAmountPaid = (monthlySalary, daysMissed) => {
+        const salary = parseFloat(monthlySalary) || 0;
+        const missed = parseFloat(daysMissed) || 0;
+        if (salary <= 0) return 0;
+        const dailyRate = salary / 30;
+        const daysWorked = 30 - missed;
+        const amountPaid = dailyRate * daysWorked;
+        return Math.max(0, Math.round(amountPaid / 100) * 100);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const validation = validate();
+        setErrors(validation);
+
+        if (Object.keys(validation).length > 0) {
+            setMessage('Please fix the errors before submitting');
+            return;
+        }
+
+        setSubmitting(true);
+        setMessage('');
+
+        try {
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Token ${token}`;
+
+            // Fetch logged-in user's name
+            let recordedBy = 'Unknown User';
+            try {
+                const userPhone = localStorage.getItem('userPhone') || sessionStorage.getItem('userPhone');
+                if (userPhone) {
+                    const userResponse = await fetch('http://142.93.94.236:8000/api/users/', { headers: token ? { 'Authorization': `Token ${token}` } : {} });
+                    if (userResponse.ok) {
+                        const users = await userResponse.json();
+                        const usersList = Array.isArray(users) ? users : users.results || [];
+                        const currentUser = usersList.find(user => user.phone === userPhone);
+                        if (currentUser) {
+                            recordedBy = currentUser.full_name ||
+                                       `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() ||
+                                       currentUser.name ||
+                                       currentUser.username ||
+                                       localStorage.getItem('userName') ||
+                                       'Unknown User';
+                        }
+                    }
+                }
+            } catch (userErr) {
+                console.error('Error fetching user:', userErr);
+                recordedBy = localStorage.getItem('userName') || 'Unknown User';
+            }
+
+            const staffMember = staff.find(s => s.id === selectedStaffId);
+            if (!staffMember) {
+                setMessage('Selected employee not found');
+                setSubmitting(false);
+                return;
+            }
+
+            const monthlySalary = staffMember.monthly_salary || staffMember.base_pay || 0;
+            const amountPaid = calculateAmountPaid(monthlySalary, commonData.days_missed);
+
+            const payload = {
+                employee_name: `${staffMember.first_name} ${staffMember.last_name}`,
+                staff: staffMember.id,
+                date_of_payment: commonData.date_of_payment,
+                days_missed: parseInt(commonData.days_missed, 10) || 0,
+                amount_paid: amountPaid,
+                recorded_by: recordedBy,
+            };
+
+            const response = await fetch(WAGES_API_ENDPOINT, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(payload),
+            });
+
+            if (response.ok) {
+                setMessage(`Successfully recorded wage for ${staffMember.first_name} ${staffMember.last_name}!`);
+                setTimeout(() => {
+                    // Reset form for next entry
+                    setSelectedStaffId(null);
+                    setCommonData({
+                        date_of_payment: new Date().toISOString().substring(0, 10),
+                        days_missed: '',
+                    });
+                    setMessage('');
+                    onSaveSuccess();
+                }, 1500);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                setMessage(`Failed to record wage. ${errorData.detail || 'Please try again.'}`);
+            }
+        } catch (err) {
+            console.error('Bulk recording error:', err);
+            setMessage('An error occurred. Please try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const getTodayDate = () => {
+        return new Date().toISOString().split('T')[0];
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 overflow-y-auto flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+            style={{
+                background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                animation: 'fadeIn 0.3s ease-out'
+            }}
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] transition-all duration-300 ease-out transform scale-100 flex flex-col m-4"
+                style={{
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 15px rgba(139, 69, 19, 0.1)',
+                    animation: 'slideUp 0.3s ease-out'
+                }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                <header className="flex items-center justify-between p-4 border-b border-gray-200" style={{ backgroundColor: '#FFFFFF' }}>
+                    <h2 className="text-xl font-semibold" style={{ color: '#333333' }}>
+                        Bulk Wage Recording
+                    </h2>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                        <X className="w-5 h-5" style={{ color: '#6B7280' }} />
+                    </button>
+                </header>
+
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6">
+                    {/* Common Fields */}
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-[#4A3423] mb-4">Common Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-gray-700">Date of Payment</label>
+                                <Input
+                                    type="date"
+                                    name="date_of_payment"
+                                    value={commonData.date_of_payment}
+                                    onChange={handleCommonDataChange}
+                                    max={getTodayDate()}
+                                    className={`py-2.5 ${errors.date_of_payment ? 'border-2 border-[#EA4335]' : ''}`}
+                                />
+                                {errors.date_of_payment && <p className="mt-1 text-xs text-[#EA4335]">{errors.date_of_payment}</p>}
+                            </div>
+                            <div>
+                                <label className="block mb-1 text-sm font-medium text-gray-700">Days Missed (Common for all)</label>
+                                <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    name="days_missed"
+                                    value={commonData.days_missed}
+                                    onChange={handleCommonDataChange}
+                                    placeholder="e.g. 2"
+                                    min="0"
+                                    max="29"
+                                    className={`py-2.5 ${errors.days_missed ? 'border-2 border-[#EA4335]' : ''}`}
+                                />
+                                {errors.days_missed && <p className="mt-1 text-xs text-[#EA4335]">{errors.days_missed}</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Staff Selection */}
+                    <div className="mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-[#4A3423]">
+                                Select Employees ({selectedStaffIds.length} selected)
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={handleSelectAll}
+                                className="px-4 py-2 text-sm font-medium text-[#795548] bg-[#efebe9] rounded-lg hover:bg-[#e0d5c7] transition-colors"
+                            >
+                                {selectedStaffIds.length === staff.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                        </div>
+
+                        {loadingStaff ? (
+                            <div className="text-center py-8">
+                                <Loader2 className="w-8 h-8 animate-spin inline-block text-[#795548]" />
+                                <p className="text-gray-600 mt-2">Loading staff...</p>
+                            </div>
+                        ) : (
+                            <div className="border border-gray-200 rounded-lg max-h-96 overflow-y-auto">
+                                {staff.length === 0 ? (
+                                    <p className="text-center py-8 text-gray-500">No staff members found</p>
+                                ) : (
+                                    staff.map(staffMember => {
+                                        const monthlySalary = staffMember.monthly_salary || staffMember.base_pay || 0;
+                                        const estimatedPay = calculateAmountPaid(monthlySalary, commonData.days_missed);
+                                        const isSelected = selectedStaffIds.includes(staffMember.id);
+                                        console.log(`Staff ${staffMember.id} (${staffMember.first_name}):`, isSelected, 'Selected IDs:', selectedStaffIds);
+                                        return (
+                                            <div
+                                                key={staffMember.id}
+                                                className={`p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-[#efebe9]' : ''}`}
+                                            >
+                                                <div className="flex items-center">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={(e) => {
+                                                            e.stopPropagation();
+                                                            e.preventDefault();
+                                                            handleStaffToggle(staffMember.id);
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="w-5 h-5 text-[#795548] border-gray-300 rounded focus:ring-[#795548] cursor-pointer mr-4"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="font-semibold text-[#4A3423]">
+                                                            {staffMember.first_name} {staffMember.last_name}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 flex items-center gap-4 mt-1">
+                                                            <span>ID: {staffMember.staff_id || 'N/A'}</span>
+                                                            <span>Monthly: UGX {formatUGX(monthlySalary)}</span>
+                                                            {commonData.days_missed !== '' && (
+                                                                <span className="text-[#34A853] font-medium">
+                                                                    Estimated: UGX {formatUGX(estimatedPay)}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )}
+                        {errors.staff && <p className="mt-2 text-xs text-[#EA4335]">{errors.staff}</p>}
+                    </div>
+
+                    {message && (
+                        <div style={{
+                            marginTop: '15px',
+                            padding: '10px',
+                            borderRadius: '6px',
+                            backgroundColor: message.includes('Successfully') ? '#E8F5E8' : '#FFEBEE',
+                            border: `1px solid ${message.includes('Successfully') ? CoffeeColors.SUCCESS_GREEN : CoffeeColors.ERROR_RED}`,
+                            color: message.includes('Successfully') ? CoffeeColors.SUCCESS_GREEN : CoffeeColors.ERROR_RED,
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            textAlign: 'center'
+                        }}>
+                            {message}
+                        </div>
+                    )}
+                </form>
+
+                <div className="p-5 flex justify-end space-x-3 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                    <button
+                        onClick={onClose}
+                        type="button"
+                        disabled={submitting}
+                        className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        onClick={handleSubmit}
+                        type="submit"
+                        disabled={submitting || selectedStaffIds.length === 0}
+                        className="px-8 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        style={{
+                            background: submitting ? '#795548' : '#8B4513',
+                        }}
+                    >
+                        {submitting ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Recording {selectedStaffIds.length} wage(s)...
+                            </>
+                        ) : (
+                            <>
+                                <DollarSign className="w-4 h-4 mr-2" />
+                                Record {selectedStaffIds.length} Wage(s)
+                            </>
+                        )}
+                    </button>
+                </div>
+
+                <style>{`
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes slideUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(20px) scale(0.95);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0) scale(1);
+                        }
+                    }
+                `}</style>
+            </div>
+        </div>
+    );
+};
+
+// =========================================================
+// --- WagesModal Component (The Popup Form) ---
+// =========================================================
+
 const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
     const safeInitial = initialData || {};
     const [form, setForm] = useState({
@@ -477,6 +879,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         days_missed: safeInitial.days_missed || '',
         amount_paid: safeInitial.amount_paid || '',
         monthly_salary: safeInitial.monthly_salary || '',
+        recorded_by: safeInitial.recorded_by || localStorage.getItem('userName') || 'Unknown User',
     });
 
     const [staff, setStaff] = useState([]);
@@ -521,21 +924,78 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
             }
         };
 
+        const fetchLoggedInUser = async () => {
+            try {
+                const userPhone = localStorage.getItem('userPhone') || sessionStorage.getItem('userPhone');
+                if (!userPhone) {
+                    return localStorage.getItem('userName') || 'Unknown User';
+                }
+
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const headers = {};
+                if (token) headers['Authorization'] = `Token ${token}`;
+
+                const response = await fetch('http://142.93.94.236:8000/api/users/', {
+                    method: 'GET',
+                    headers: headers
+                });
+                if (!response.ok) {
+                    return localStorage.getItem('userName') || 'Unknown User';
+                }
+
+                const users = await response.json();
+                const usersList = Array.isArray(users) ? users : users.results || [];
+                const currentUser = usersList.find(user => user.phone === userPhone);
+
+                if (currentUser) {
+                    const fullName = currentUser.full_name ||
+                                   `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() ||
+                                   currentUser.name ||
+                                   currentUser.username ||
+                                   'Unknown User';
+                    return fullName;
+                }
+
+                return localStorage.getItem('userName') || 'Unknown User';
+            } catch (err) {
+                console.error('Error fetching user details:', err);
+                return localStorage.getItem('userName') || 'Unknown User';
+            }
+        };
+
         if (isOpen) {
             fetchStaff();
-            const safeData = initialData || {};
-            setForm({
-                employee_id: safeData.employee_id || safeData.staff || '',
-                staff_id: safeData.staff_id || '',
-                employee_name: safeData.employee_name || '',
-                date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
-                days_missed: safeData.days_missed || '',
-                amount_paid: safeData.amount_paid || '',
-                monthly_salary: safeData.monthly_salary || '',
-            });
             setErrors({});
             setMessage('');
             setAttemptedSubmit(false);
+
+            // Fetch logged-in user's name and initialize form
+            fetchLoggedInUser().then(userName => {
+                const safeData = initialData || {};
+                setForm({
+                    employee_id: safeData.employee_id || safeData.staff || '',
+                    staff_id: safeData.staff_id || '',
+                    employee_name: safeData.employee_name || '',
+                    date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
+                    days_missed: safeData.days_missed || '',
+                    amount_paid: safeData.amount_paid || '',
+                    monthly_salary: safeData.monthly_salary || '',
+                    recorded_by: safeData.recorded_by || userName,
+                });
+            }).catch(err => {
+                console.error('Error initializing form:', err);
+                const safeData = initialData || {};
+                setForm({
+                    employee_id: safeData.employee_id || safeData.staff || '',
+                    staff_id: safeData.staff_id || '',
+                    employee_name: safeData.employee_name || '',
+                    date_of_payment: safeData.date_of_payment || new Date().toISOString().substring(0, 10),
+                    days_missed: safeData.days_missed || '',
+                    amount_paid: safeData.amount_paid || '',
+                    monthly_salary: safeData.monthly_salary || '',
+                    recorded_by: localStorage.getItem('userName') || 'Unknown User',
+                });
+            });
         }
     }, [isOpen, initialData]);
 
@@ -673,6 +1133,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
             date_of_payment: form.date_of_payment,
             days_missed: parseInt(daysMissed, 10) || 0,
             amount_paid: amountPaid, // Include calculated amount (as number)
+            recorded_by: form.recorded_by, // Logged-in user's name
         };
 
         console.log('🔍 Form Data Before Payload:', {
@@ -780,13 +1241,13 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             name="employee_name"
                             value={form.employee_name}
                             onChange={handleChange}
-                            onFocus={() => setShowStaffDropdown(true)}
-                            disabled={loadingStaff}
-                            placeholder={loadingStaff ? 'Loading staff...' : 'Type employee name or select from list'}
-                            className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium bg-white ${getBorderClass('employee_name')} ${loadingStaff ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onFocus={() => !initialData?.id && setShowStaffDropdown(true)}
+                            disabled={loadingStaff || initialData?.id}
+                            placeholder={loadingStaff ? 'Loading staff...' : (initialData?.id ? 'Employee (locked)' : 'Type employee name or select from list')}
+                            className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium ${(loadingStaff || initialData?.id) ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'} ${getBorderClass('employee_name')} ${loadingStaff ? 'opacity-50' : ''}`}
                             autoComplete="off"
                         />
-                        {showStaffDropdown && !loadingStaff && staff.length > 0 && (
+                        {showStaffDropdown && !loadingStaff && !initialData?.id && staff.length > 0 && (
                             <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                                 {staff
                                     .filter(member => {
@@ -859,6 +1320,17 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             className={`py-2.5 ${getBorderClass('days_missed')}`}
                         />
                         {errors.days_missed && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.days_missed}</p>}
+                    </div>
+
+                    <div>
+                        <label htmlFor="recorded_by" className="block mb-1 text-sm font-medium text-gray-700">Recorded By</label>
+                        <Input
+                            type="text"
+                            name="recorded_by"
+                            value={form.recorded_by}
+                            readOnly
+                            className="py-2.5 bg-gray-50 cursor-not-allowed font-medium text-gray-700"
+                        />
                     </div>
                 </div>
 
@@ -1014,6 +1486,8 @@ function Wages() {
     const [wageToDelete, setWageToDelete] = useState(null);
     const [allWagesForKPI, setAllWagesForKPI] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [deleting, setDeleting] = useState(false);
+    const [showBulkRecordModal, setShowBulkRecordModal] = useState(false);
     const itemsPerPage = 7;
 
     // Helper function to round amount_paid to nearest 100
@@ -1463,42 +1937,25 @@ function Wages() {
                             Record New Wage
                         </button>
                         <button
-                            onClick={() => {
-                                // Create Excel export functionality
-                                const data = sortedWages.map(wage => ({
-                                    'Employee Name': wage.employee_name || '',
-                                    'Date of Payment': wage.date_of_payment || '',
-                                    'Days Missed': wage.days_missed || 0,
-                                    'Amount Paid (UGX)': parseFloat(wage.amount_paid || 0),
-                                    'Monthly Salary (UGX)': parseFloat(wage.monthly_salary || wage.monthly_pay || 0),
-                                    'Staff ID': wage.staff_id || '',
-                                }));
-
-                                // Create workbook and worksheet
-                                const wb = XLSX.utils.book_new();
-                                const ws = XLSX.utils.json_to_sheet(data);
-
-                                // Auto-size columns
-                                const colWidths = [
-                                    { wch: 20 }, // Employee Name
-                                    { wch: 15 }, // Date of Payment
-                                    { wch: 12 }, // Days Missed
-                                    { wch: 18 }, // Amount Paid (UGX)
-                                    { wch: 20 }, // Monthly Salary (UGX)
-                                    { wch: 10 }  // Staff ID
-                                ];
-                                ws['!cols'] = colWidths;
-
-                                // Add worksheet to workbook
-                                XLSX.utils.book_append_sheet(wb, ws, 'Wages Data');
-
-                                // Generate and download file
-                                XLSX.writeFile(wb, `wages_export_${new Date().toISOString().split('T')[0]}.xlsx`);
-                            }}
-                            className="py-2 px-4 shadow-xl rounded-xl font-semibold hover:shadow-2xl transition-all duration-200"
+                            onClick={() => setShowBulkRecordModal(true)}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
+                            style={{ backgroundColor: '#8B4513' }}
+                            title="Record wages for multiple employees at once"
+                        >
+                            <DollarSign className="w-4 h-4 mr-2" />
+                            Bulk Record Wages
+                        </button>
+                        <Button type="secondary" onClick={() => alert('Exporting data...')} className="py-2 px-4 shadow-xl">
+                            Export to Excel
+                        </Button>
+                        <button
+                            onClick={() => fetchWages(currentPage)}
+                            disabled={loading}
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
-                            Export to Excel
+                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                            Refresh Data
                         </button>
                     </div>
 
@@ -1514,16 +1971,6 @@ function Wages() {
                                 className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-[#795548] focus:border-[#795548] transition-colors shadow-lg"
                             />
                         </div>
-
-                        <button
-                            onClick={() => fetchWages(currentPage)}
-                            disabled={loading}
-                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
-                        >
-                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                            Refresh Data
-                        </button>
 
                         <div className="relative inline-block text-left">
                             <select className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-[#795548] focus:border-[#795548] shadow-lg hover:shadow-xl transition duration-300 ease-in-out" defaultValue="">
@@ -1580,6 +2027,15 @@ function Wages() {
                 </div>
 
                 <WagesModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingWage(null); }} onSaveSuccess={handleSaveSuccess} initialData={editingWage} />
+
+                <BulkWageSpreadsheet
+                    isOpen={showBulkRecordModal}
+                    onClose={() => setShowBulkRecordModal(false)}
+                    onSaveSuccess={() => {
+                        setShowBulkRecordModal(false);
+                        fetchWages(currentPage);
+                    }}
+                />
 
                 {/* Delete Confirmation Modal */}
                 {showDeleteModal && (
