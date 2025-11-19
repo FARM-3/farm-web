@@ -540,13 +540,17 @@ const EXPENSE_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/expenses/`;
 const FARMER_HARVEST_API = `${import.meta.env.VITE_API_URL}/api/aggregation/farmer-harvest/`;
 
 const TABLE_HEADERS = [
-    { key: 'expense_name', label: 'Name', type: 'string' },
-    { key: 'category', label: 'Category', type: 'string' },
-    { key: 'date', label: 'Date', type: 'date' },
-    { key: 'amount', label: 'Amount', type: 'number' },
-    { key: 'supplier', label: 'Supplier', type: 'string' },
-    { key: 'location', label: 'Location', type: 'string' },
-];
+ { key: 'expense_name', label: 'Name', type: 'string' },
+ { key: 'category', label: 'Category', type: 'string' },
+ { key: 'item', label: 'Item', type: 'string' },
+ { key: 'unit_cost', label: 'Unit Cost', type: 'number' },
+ { key: 'quantity', label: 'Quantity', type: 'number' },
+ { key: 'amount', label: 'Amount', type: 'number' },
+ { key: 'supplier', label: 'Supplier', type: 'string' },
+ { key: 'location', label: 'Location', type: 'string' },
+ { key: 'description', label: 'Description', type: 'string' },
+ { key: 'date', label: 'Date', type: 'date' },
+ ];
 
 // --- Helper Functions and Components (Modified for Validation) ---
 
@@ -589,6 +593,24 @@ const getFieldErrorMessage = (name, value) => {
         if (isNaN(numValue)) return 'Must be a valid number';
         if (numValue <= 0) return 'Must be a positive number';
         if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Must be a valid currency format';
+        return null; // No error
+    }
+
+    if (name === 'unit_cost') {
+        if (!value || value.trim() === '') return 'Unit cost is required';
+        const numValue = parseFloat(value);
+        if (isNaN(numValue)) return 'Must be a valid number';
+        if (numValue <= 0) return 'Must be a positive number';
+        if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Must be a valid currency format';
+        return null; // No error
+    }
+
+    if (name === 'quantity') {
+        if (!value || value.trim() === '') return 'Quantity is required';
+        const numValue = parseInt(value);
+        if (isNaN(numValue)) return 'Must be a valid integer';
+        if (numValue <= 0) return 'Must be a positive integer';
+        if (!Number.isInteger(numValue)) return 'Must be a whole number';
         return null; // No error
     }
 
@@ -724,7 +746,7 @@ const SelectField = ({ label, name, value, onChange, options, required, status =
 
 function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted }) {
     const initialFormData = {
-        expense_name: '', category: '', item: '', supplier: '', description: '', amount: '',
+        expense_name: '', category: '', item: '', supplier: '', description: '', unit_cost: '', quantity: '', amount: '',
         date: new Date().toISOString().substring(0, 10), location: '',
     };
 
@@ -745,13 +767,16 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
         if (isOpen) {
             if (editExpense) {
                 setIsEditing(true);
-                setEditId(editExpense.id);
+                setEditId(String(editExpense.id));
+                console.log('Setting editId to:', String(editExpense.id));
                 setFormData({
                     expense_name: editExpense.expense_name || '',
                     category: editExpense.category || '',
                     item: editExpense.item || '',
                     supplier: editExpense.supplier || '',
                     description: editExpense.description || '',
+                    unit_cost: editExpense.unit_cost?.toString() || '',
+                    quantity: editExpense.quantity?.toString() || '',
                     amount: editExpense.amount?.toString() || '',
                     date: editExpense.date || new Date().toISOString().substring(0, 10),
                     location: editExpense.location || '',
@@ -805,13 +830,44 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
         validateField('amount', value);
     };
 
+    const handleUnitCostQuantityChange = (e) => {
+        const { name, value } = e.target;
+
+        // Allow only valid inputs
+        let validValue = value;
+        if (name === 'unit_cost') {
+            if (!/^\d*\.?\d*$/.test(value) && value !== '') validValue = '';
+        } else if (name === 'quantity') {
+            if (!/^\d*$/.test(value)) validValue = '';
+        }
+
+        setFormData(prev => {
+            const newData = { ...prev, [name]: validValue };
+
+            // Auto-calculate amount
+            const unitCost = parseFloat(newData.unit_cost);
+            const quantity = parseInt(newData.quantity);
+            if (!isNaN(unitCost) && !isNaN(quantity) && unitCost > 0 && quantity > 0) {
+                newData.amount = (unitCost * quantity).toFixed(2);
+            } else {
+                newData.amount = '';
+            }
+
+            return newData;
+        });
+        setMessage(null);
+
+        // Immediate validation
+        validateField(name, validValue);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
 
         // Final Validation Check for all required fields
-        const requiredFields = ['expense_name', 'category', 'amount', 'date'];
+        const requiredFields = ['expense_name', 'category', 'unit_cost', 'quantity', 'amount', 'date'];
         let allValid = true;
         const newValidationStatus = {};
         const newFieldErrors = {};
@@ -835,7 +891,12 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
             return;
         }
 
-        const dataToSend = { ...formData, amount: parseFloat(formData.amount).toFixed(2) };
+        const dataToSend = {
+            ...formData,
+            unit_cost: parseFloat(formData.unit_cost).toFixed(2),
+            quantity: parseInt(formData.quantity),
+            amount: parseFloat(formData.amount).toFixed(2)
+        };
 
         try {
             const url = isEditing ? `${EXPENSE_API_ENDPOINT}${editId}/` : EXPENSE_API_ENDPOINT;
@@ -848,6 +909,13 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
 
             if (response.ok) {
                 setMessage({ type: 'success', text: isEditing ? 'Expense updated successfully!' : 'Expense recorded successfully!' });
+                if (isEditing && editId) {
+                    setRecentlyEdited(prev => {
+                        const newSet = new Set([...prev, String(editId)]);
+                        console.log('Recently edited set updated:', Array.from(newSet));
+                        return newSet;
+                    });
+                }
                 if (onExpenseSubmitted) onExpenseSubmitted();
                 setTimeout(onClose, 1500);
             } else {
@@ -913,12 +981,24 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                                 errorMessage={fieldErrors.supplier}
                             />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <InputField
-                                label="Amount (UGX)" name="amount" value={formData.amount} onChange={handleAmountChange} placeholder="0.00" required type="text"
+                                label="Unit Cost (UGX)" name="unit_cost" value={formData.unit_cost} onChange={handleUnitCostQuantityChange} placeholder="0.00" required type="text"
+                                status={validationStatus.unit_cost}
+                                errorMessage={fieldErrors.unit_cost}
+                            />
+                            <InputField
+                                label="Quantity" name="quantity" value={formData.quantity} onChange={handleUnitCostQuantityChange} placeholder="0" required type="number" min="1"
+                                status={validationStatus.quantity}
+                                errorMessage={fieldErrors.quantity}
+                            />
+                            <InputField
+                                label="Total Amount (UGX)" name="amount" value={formData.amount} placeholder="Auto-calculated" required type="text" readOnly
                                 status={validationStatus.amount}
                                 errorMessage={fieldErrors.amount}
                             />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <InputField
                                 label="Date of Expense" name="date" value={formData.date} onChange={handleChange} required type="date"
                                 status={validationStatus.date}
@@ -988,12 +1068,13 @@ export function ExpensesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     // profile UI removed from this page; use shared NavBar for profile access
-    const [showExpenseModal, setShowExpenseModal] = useState(false);
-    const [expenseToEdit, setExpenseToEdit] = useState(null);
-    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [showExpenseModal, setShowExpenseModal] = useState(false);
+const [expenseToEdit, setExpenseToEdit] = useState(null);
+const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
+const [showDeleteModal, setShowDeleteModal] = useState(false);
 const [expenseToDelete, setExpenseToDelete] = useState(null);
-    const [deleting, setDeleting] = useState(false);
+const [deleting, setDeleting] = useState(false);
+const [recentlyEdited, setRecentlyEdited] = useState(new Set());
 
     const fetchExpenses = useCallback(async (retries = 3) => {
         setLoading(true);
@@ -1059,7 +1140,12 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
 
     const filteredExpenses = useMemo(() => {
         let filtered = expenses;
-        if (searchTerm) filtered = filtered.filter(e => e.expense_name?.toLowerCase().includes(searchTerm.toLowerCase()) || e.supplier?.toLowerCase().includes(searchTerm.toLowerCase()));
+        if (searchTerm) filtered = filtered.filter(e =>
+            e.expense_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            e.supplier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            e.item?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            e.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
         if (filterCategory) filtered = filtered.filter(e => e.category === filterCategory);
         return filtered;
     }, [expenses, searchTerm, filterCategory]);
@@ -1163,40 +1249,52 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
     };
 
     const renderTableContent = () => {
-        if (loading) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-600"><Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: ACCENT_COLORS.ACCENT_BROWN }} />Loading expense records...</td></tr>;
-        if (error) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-red-600 font-medium">{error}</td></tr>;
-        if (sortedExpenses.length === 0) return <tr><td colSpan={TABLE_HEADERS.length + 1} className="text-center py-6 text-gray-500 italic">No expense records found matching your criteria.</td></tr>;
+        if (loading) return <tr><td colSpan="11" className="text-center py-6 text-gray-600"><Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: ACCENT_COLORS.ACCENT_BROWN }} />Loading expense records...</td></tr>;
+        if (error) return <tr><td colSpan="11" className="text-center py-6 text-red-600 font-medium">{error}</td></tr>;
+        if (sortedExpenses.length === 0) return <tr><td colSpan="11" className="text-center py-6 text-gray-500 italic">No expense records found matching your criteria.</td></tr>;
 
         return sortedExpenses.map((expense, index) => (
-            <tr key={expense.id || index} className="border-b transition-colors duration-150 hover:bg-gray-50">
-                <td className="px-6 py-3 text-left font-medium text-gray-800">
+            <tr
+                key={expense.id || index}
+                className={`border-b transition-colors duration-150 hover:bg-gray-50 ${recentlyEdited.has(String(expense.id)) ? 'bg-yellow-100' : ''}`}
+                title={recentlyEdited.has(String(expense.id)) ? 'Recently edited' : ''}
+                onMouseEnter={() => console.log('Hovering over expense:', expense.id, 'Recently edited:', recentlyEdited.has(String(expense.id)))}
+            >
+                <td className="px-3 py-2 text-left font-medium text-gray-800 text-xs">
                     {expense.expense_name || 'N/A'}
+                    {recentlyEdited.has(String(expense.id)) && (
+                        <span className="ml-1 text-xs bg-green-100 text-green-700 px-1 py-0.5 rounded">Edited</span>
+                    )}
                     {expense._source === 'harvest' && (
-                        <span className="ml-2 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Auto</span>
+                        <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-1 py-0.5 rounded-full">Auto</span>
                     )}
                 </td>
-                <td className="px-6 py-3 text-left text-gray-600">{expense.category || '-'}</td>
-                <td className="px-6 py-3 text-center text-gray-600">{expense.date || 'N/A'}</td>
-                <td className="px-6 py-3 text-right font-bold" style={{ color: ACCENT_COLORS.ACCENT_BROWN }}>{formatCurrency(expense.amount)}</td>
-                <td className="px-6 py-3 text-left text-gray-700">{expense.supplier || '-'}</td>
-                <td className="px-6 py-3 text-left text-gray-600">{expense.location || '-'}</td>
-                <td className="px-6 py-3 text-center">
-                    <div className="flex items-center justify-center space-x-2">
+                <td className="px-3 py-2 text-left text-gray-600 text-xs">{expense.category || '-'}</td>
+                <td className="px-3 py-2 text-left text-gray-600 text-xs">{expense.item || '-'}</td>
+                <td className="px-3 py-2 text-right text-gray-700 text-xs">{expense.unit_cost ? formatCurrency(expense.unit_cost) : '-'}</td>
+                <td className="px-3 py-2 text-center text-gray-600 text-xs">{expense.quantity || '-'}</td>
+                <td className="px-3 py-2 text-right font-bold text-xs" style={{ color: ACCENT_COLORS.ACCENT_BROWN }}>{formatCurrency(expense.amount)}</td>
+                <td className="px-3 py-2 text-left text-gray-700 text-xs">{expense.supplier || '-'}</td>
+                <td className="px-3 py-2 text-left text-gray-600 text-xs">{expense.location || '-'}</td>
+                <td className="px-3 py-2 text-left text-gray-600 text-xs">{expense.description || '-'}</td>
+                <td className="px-3 py-2 text-center text-gray-600 text-xs">{expense.date || 'N/A'}</td>
+                <td className="px-3 py-2 text-center">
+                    <div className="flex items-center justify-center space-x-1">
                         <button
                             onClick={() => handleEditExpense(expense)}
-                            className={`p-1 rounded-md transition-colors ${expense._source === 'harvest' ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'}`}
+                            className={`p-0.5 rounded transition-colors ${expense._source === 'harvest' ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-blue-600 hover:bg-gray-100'}`}
                             disabled={expense._source === 'harvest'}
                             title={expense._source === 'harvest' ? 'Harvest expenses cannot be edited here' : 'Edit expense'}
                         >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3 h-3" />
                         </button>
                         <button
                             onClick={() => { setExpenseToDelete(expense); setShowDeleteModal(true); }}
-                            className={`p-1 rounded-md transition-colors ${expense._source === 'harvest' ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-700 hover:bg-red-50'}`}
+                            className={`p-0.5 rounded transition-colors ${expense._source === 'harvest' ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 hover:text-red-700 hover:bg-red-50'}`}
                             disabled={expense._source === 'harvest'}
                             title={expense._source === 'harvest' ? 'Harvest expenses cannot be deleted here' : 'Delete expense'}
                         >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3" />
                         </button>
                     </div>
                 </td>
@@ -1299,23 +1397,23 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                 </div>
 
                 {/* Action Bar & Filter */}
-                <div className="mb-4 flex flex-wrap justify-between items-center gap-3">
-                    <div className="flex gap-3 items-center w-full sm:w-auto order-2 sm:order-1">
+                <div className="mb-4 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                         <div className="relative flex-grow">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                                 type="search"
-                                placeholder="Search by expense/supplier..."
+                                placeholder="Search by expense/supplier/item..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg"
+                                className="p-2 pl-10 text-sm w-full border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg"
                             />
                         </div>
                         <div className="relative inline-block text-left">
                             <select
                                 value={filterCategory}
                                 onChange={(e) => setFilterCategory(e.target.value)}
-                                className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-accent-btn focus:border-accent-btn shadow-lg transition duration-300 ease-in-out"
+                                className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-accent-btn focus:border-accent-btn shadow-lg transition duration-300 ease-in-out w-full sm:w-auto"
                             >
                                 <option value="">Filter by Category</option>
                                 {uniqueCategories.map(category => (<option key={category} value={category}>{category}</option>))}
@@ -1327,7 +1425,7 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                         <button
                             onClick={() => fetchExpenses()}
                             disabled={loading}
-                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
@@ -1335,10 +1433,10 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                         </button>
                     </div>
 
-                    <div className="flex gap-3 order-1 sm:order-2">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <button
                             onClick={handleAddNewExpense}
-                            className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
                             style={{ backgroundColor: '#8B4513' }}
                         >
                             <Plus className="w-4 h-4 mr-2" />
@@ -1350,12 +1448,14 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                                 const data = sortedExpenses.map(expense => ({
                                     'Expense Name': expense.expense_name || '',
                                     'Category': expense.category || '',
-                                    'Date': expense.date || '',
+                                    'Item': expense.item || '',
+                                    'Unit Cost (UGX)': parseFloat(expense.unit_cost || 0),
+                                    'Quantity': parseInt(expense.quantity || 0),
                                     'Amount (UGX)': parseFloat(expense.amount || 0),
                                     'Supplier': expense.supplier || '',
                                     'Location': expense.location || '',
-                                    'Item': expense.item || '',
-                                    'Description': expense.description || ''
+                                    'Description': expense.description || '',
+                                    'Date': expense.date || ''
                                 }));
 
                                 // Create workbook and worksheet
@@ -1366,12 +1466,14 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                                 const colWidths = [
                                     { wch: 20 }, // Expense Name
                                     { wch: 15 }, // Category
-                                    { wch: 12 }, // Date
+                                    { wch: 15 }, // Item
+                                    { wch: 15 }, // Unit Cost (UGX)
+                                    { wch: 10 }, // Quantity
                                     { wch: 15 }, // Amount (UGX)
                                     { wch: 20 }, // Supplier
                                     { wch: 15 }, // Location
-                                    { wch: 15 }, // Item
-                                    { wch: 30 }  // Description
+                                    { wch: 30 }, // Description
+                                    { wch: 12 }  // Date
                                 ];
                                 ws['!cols'] = colWidths;
 
@@ -1381,7 +1483,7 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                                 // Generate and download file
                                 XLSX.writeFile(wb, `expenses_export_${new Date().toISOString().split('T')[0]}.xlsx`);
                             }}
-                            className="py-2 px-4 shadow-xl rounded-xl"
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             Export to Excel
@@ -1397,7 +1499,7 @@ const [expenseToDelete, setExpenseToDelete] = useState(null);
                         <thead style={{ backgroundColor: '#efebe9', color: '#4A3423' }}>
                             <tr>
                                 {TABLE_HEADERS.map((header) => (
-                                    <th key={header.key} onClick={() => requestSort(header.key)} scope="col" className="px-6 py-3 text-sm font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150">
+                                    <th key={header.key} onClick={() => requestSort(header.key)} scope="col" className="px-3 py-2 text-xs font-semibold uppercase tracking-wider cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-150">
                                         <div className={`flex items-center ${header.type === 'number' ? 'justify-end' : 'justify-start'}`}>
                                             {header.label}
                                             {getSortIcon(header.key)}
