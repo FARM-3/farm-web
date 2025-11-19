@@ -583,30 +583,7 @@ const BulkWageRecordModal = ({ isOpen, onClose, onSaveSuccess }) => {
             if (token) headers['Authorization'] = `Token ${token}`;
 
             // Fetch logged-in user's name
-            let recordedBy = 'Unknown User';
-            try {
-                const userPhone = localStorage.getItem('userPhone') || sessionStorage.getItem('userPhone');
-                if (userPhone) {
-                    const userResponse = await fetch('http://142.93.94.236:8000/api/users/', { headers: token ? { 'Authorization': `Token ${token}` } : {} });
-                    if (userResponse.ok) {
-                        const users = await userResponse.json();
-                        const usersList = Array.isArray(users) ? users : users.results || [];
-                        const currentUser = usersList.find(user => user.phone === userPhone);
-                        if (currentUser) {
-                            recordedBy = currentUser.full_name ||
-                                       `${currentUser.first_name || ''} ${currentUser.last_name || ''}`.trim() ||
-                                       currentUser.name ||
-                                       currentUser.username ||
-                                       localStorage.getItem('userName') ||
-                                       'Unknown User';
-                        }
-                    }
-                }
-            } catch (userErr) {
-                console.error('Error fetching user:', userErr);
-                recordedBy = localStorage.getItem('userName') || 'Unknown User';
-            }
-
+            
             const staffMember = staff.find(s => s.id === selectedStaffId);
             if (!staffMember) {
                 setMessage('Selected employee not found');
@@ -1320,17 +1297,6 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             className={`py-2.5 ${getBorderClass('days_missed')}`}
                         />
                         {errors.days_missed && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.days_missed}</p>}
-                    </div>
-
-                    <div>
-                        <label htmlFor="recorded_by" className="block mb-1 text-sm font-medium text-gray-700">Recorded By</label>
-                        <Input
-                            type="text"
-                            name="recorded_by"
-                            value={form.recorded_by}
-                            readOnly
-                            className="py-2.5 bg-gray-50 cursor-not-allowed font-medium text-gray-700"
-                        />
                     </div>
                 </div>
 
