@@ -18,6 +18,13 @@ import ReceiptVerification from './pages/ReceiptVerification.jsx';
 import { HarvestPage } from './pages/harvest.jsx';
 import Settings from './pages/Settings.jsx';
 import LocationSelector from './components/LocationSelector';
+import Processing from './pages/Processing.jsx';
+import ProcessingOverview from './pages/ProcessingOverview.jsx';
+import QualityControl from './pages/QualityControl.jsx';
+import ProcessingType from './pages/ProcessingType.jsx';
+import Drying from './pages/Drying.jsx';
+import Bagging from './pages/Bagging.jsx';
+import Hulling from './pages/Hulling.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
@@ -59,6 +66,15 @@ function App() {
           <Route path="/harvest" element={<ProtectedRoute><HarvestPage /></ProtectedRoute>} />
           <Route path="/voucher" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+
+          {/* Processing Routes */}
+          <Route path="/processing" element={<ProtectedRoute><Processing /></ProtectedRoute>} />
+          <Route path="/processing/overview" element={<ProtectedRoute><ProcessingOverview /></ProtectedRoute>} />
+          <Route path="/processing/quality-control" element={<ProtectedRoute><QualityControl /></ProtectedRoute>} />
+          <Route path="/processing/processing-type" element={<ProtectedRoute><ProcessingType /></ProtectedRoute>} />
+          <Route path="/processing/drying" element={<ProtectedRoute><Drying /></ProtectedRoute>} />
+          <Route path="/processing/bagging" element={<ProtectedRoute><Bagging /></ProtectedRoute>} />
+          <Route path="/processing/hulling" element={<ProtectedRoute><Hulling /></ProtectedRoute>} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>

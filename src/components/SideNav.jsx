@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings,
-    BarChart3, TreePine, TrendingUp, TrendingDown, ClipboardCheck
+    BarChart3, TreePine, TrendingUp, TrendingDown, ClipboardCheck, Factory
 } from 'lucide-react';
 import rugyeyoLogo from '../assets/rugyeyo_logo.png';
 
@@ -29,6 +29,7 @@ const navItems = [
     { key: 'staff', name: 'Staff', icon: Users, href: '/staff' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
+    { key: 'processing', name: 'Processing', icon: Factory, href: '/processing' },
 ];
 
 const footerNavItems = [
@@ -46,6 +47,7 @@ const getCurrentPageKey = () => {
     if (path.startsWith('wages')) return 'wages';
     if (path.startsWith('settings')) return 'settings';
     if (path.startsWith('receipt')) return 'receipt';
+    if (path.startsWith('processing')) return 'processing';
 
     const item = [...navItems, ...footerNavItems].find(item => item.key === path);
     if (item) return path;
