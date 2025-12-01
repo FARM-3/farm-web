@@ -120,13 +120,17 @@ const QualityControl = () => {
         setLoading(true);
         try {
             // Fetch floating records
-            const floatingRes = await fetch(`${API_BASE_URL}/floating/`);
-            const floatingData = await floatingRes.json();
-            setFloatingRecords(Array.isArray(floatingData) ? floatingData : []);
+            const [floatingRes, summaryRes] = await Promise.all([
+                fetch(API_ENDPOINTS.FLOATING),
+                fetch(API_ENDPOINTS.FLOATING_SUMMARY)
+            ]);
 
-            // Fetch floating summary
-            const summaryRes = await fetch(`${API_BASE_URL}/floating/summary/`);
+            const floatingData = await floatingRes.json();
             const summaryData = await summaryRes.json();
+
+            // Handle paginated response
+            const records = floatingData.results || floatingData;
+            setFloatingRecords(Array.isArray(records) ? records : []);
             setFloatingSummary(summaryData);
         } catch (error) {
             console.error('Error fetching floating data:', error);
@@ -500,7 +504,7 @@ const QualityControl = () => {
                                                     <td className="px-6 py-4 text-gray-700">{record.harvest_id}</td>
                                                     <td className="px-6 py-4 text-gray-700">{getFarmerName(record.harvest_id)}</td>
                                                     <td className="px-6 py-4 text-center">
-                                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+                                                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 whitespace-nowrap">
                                                             Grade {record.grade}
                                                         </span>
                                                     </td>
