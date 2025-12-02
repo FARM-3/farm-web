@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogOut, User } from 'lucide-react';
+import ProfilePopup from './ProfilePopup';
 
 // --- Coffee Theme Colors (matching login page) ---
 const CoffeeColors = {
@@ -27,6 +28,7 @@ const NavBar = () => {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+    const [showProfilePopup, setShowProfilePopup] = useState(false);
 
     const handleLogout = async () => {
         setShowLogoutConfirm(true);
@@ -100,53 +102,21 @@ const NavBar = () => {
                         <span className="inline md:hidden truncate">Rugyeyo Farm</span>
                     </div>
                     <div className="flex items-center space-x-4 flex-shrink-0">
-                        <div className="relative flex-shrink-0" ref={profileDropdownRef}>
-                            <button
-                                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                                className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors whitespace-nowrap"
-                                style={{
-                                    zIndex: 60,
-                                }}
-                            >
-                                <User size={20} />
-                                <span className="hidden sm:inline">{userProfile.name || 'Profile'}</span>
-                            </button>
-
-                            {showProfileDropdown && (
-                                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg py-2 z-50">
-                                    <div className="px-4 py-3 border-b border-gray-200">
-                                        <p className="text-sm font-medium text-gray-900">{userProfile.name}</p>
-                                        <p className="text-sm text-gray-500">{userProfile.role}</p>
-                                        <p className="text-xs text-gray-500">{userProfile.phone}</p>
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setShowProfileModal(true);
-                                            setShowProfileDropdown(false);
-                                        }}
-                                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                    >
-                                        <User size={16} className="mr-2" />
-                                        View Profile
-                                    </button>
-                                    <button
-                                        onClick={() => navigate('/settings')}
-                                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                    >
-                                        <Settings size={16} className="mr-2" />
-                                        Settings
-                                    </button>
-                                    <button
-                                        onClick={handleLogout}
-                                        disabled={isLoggingOut}
-                                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                                    >
-                                        <LogOut size={16} className="mr-2" />
-                                        {isLoggingOut ? 'Logging out...' : 'Logout'}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                        <button
+                            onClick={() => setShowProfilePopup(true)}
+                            className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors whitespace-nowrap"
+                        >
+                            <User size={20} />
+                            <span className="hidden sm:inline">Profile</span>
+                        </button>
+                        <button
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                            className="flex items-center space-x-2 text-white hover:text-gray-200 px-3 py-2 rounded transition-colors whitespace-nowrap"
+                        >
+                            <LogOut size={20} />
+                            <span className="hidden sm:inline">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+                        </button>
                     </div>
                 </div>
             </nav>
@@ -336,6 +306,12 @@ const NavBar = () => {
                     </div>
                 </div>
             )}
+
+            {/* Profile Popup */}
+            <ProfilePopup
+                isOpen={showProfilePopup}
+                onClose={() => setShowProfilePopup(false)}
+            />
         </>
     );
 };

@@ -70,6 +70,9 @@ export const API_ENDPOINTS = {
   // Floating endpoints (if needed)
   FLOATING: `${API_BASE_URL}/api/processing/floating/`,
   FLOATING_SUMMARY: `${API_BASE_URL}/api/processing/floating/summary/`,
+
+  // Profile endpoints
+  PROFILE: `${API_BASE_URL}/api/users/profile/`,
 };
 
 /**
