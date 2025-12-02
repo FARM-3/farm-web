@@ -59,6 +59,20 @@ export const API_ENDPOINTS = {
 
   // Aggregation endpoints
   FARMER_HARVEST: `${API_BASE_URL}/api/aggregation/farmer-harvest/`,
+
+  // Harvest endpoints
+  HARVESTS: `${API_BASE_URL}/api/harvests/`,
+
+  // Ripeness Score endpoints
+  RIPENESS: `${API_BASE_URL}/api/processing/ripeness/`,
+  RIPENESS_SUMMARY: `${API_BASE_URL}/api/processing/ripeness/summary/`,
+
+  // Floating endpoints (if needed)
+  FLOATING: `${API_BASE_URL}/api/processing/floating/`,
+  FLOATING_SUMMARY: `${API_BASE_URL}/api/processing/floating/summary/`,
+
+  // Profile endpoints
+  PROFILE: `${API_BASE_URL}/api/users/profile/`,
 };
 
 /**

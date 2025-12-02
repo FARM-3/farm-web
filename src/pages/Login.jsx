@@ -125,14 +125,24 @@ function Login() {
       const token = response.access || response.token || response.access_token;
       const refreshToken = response.refresh || response.refresh_token;
 
+      // Extract user name
+      const user = response.user || response;
+      const userName = user.full_name ||
+                      `${user.first_name || ''} ${user.last_name || ''}`.trim() ||
+                      user.name ||
+                      user.username ||
+                      'Unknown User';
+
       if (token) {
         if (rememberMe) {
           localStorage.setItem('authToken', token);
           localStorage.setItem('userPhone', phoneNumber);
+          localStorage.setItem('userName', userName);
           if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
         } else {
           sessionStorage.setItem('authToken', token);
           sessionStorage.setItem('userPhone', phoneNumber);
+          sessionStorage.setItem('userName', userName);
           if (refreshToken) sessionStorage.setItem('refreshToken', refreshToken);
         }
       }
