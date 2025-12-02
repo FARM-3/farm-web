@@ -25,6 +25,9 @@ import ProcessingType from './pages/ProcessingType.jsx';
 import Drying from './pages/Drying.jsx';
 import Bagging from './pages/Bagging.jsx';
 import Hulling from './pages/Hulling.jsx';
+import Fermenting from './pages/Fermenting.jsx';
+import NaturalSundrying from './pages/NaturalSundrying.jsx';
+import Washing from './pages/Washing.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
@@ -75,6 +78,11 @@ function App() {
           <Route path="/processing/drying" element={<ProtectedRoute><Drying /></ProtectedRoute>} />
           <Route path="/processing/bagging" element={<ProtectedRoute><Bagging /></ProtectedRoute>} />
           <Route path="/processing/hulling" element={<ProtectedRoute><Hulling /></ProtectedRoute>} />
+
+          {/* Processing Type Routes */}
+          <Route path="/processing/fermenting" element={<ProtectedRoute><Fermenting /></ProtectedRoute>} />
+          <Route path="/processing/natural-sundrying" element={<ProtectedRoute><NaturalSundrying /></ProtectedRoute>} />
+          <Route path="/processing/washing" element={<ProtectedRoute><Washing /></ProtectedRoute>} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>

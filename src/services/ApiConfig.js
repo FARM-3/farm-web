@@ -71,6 +71,11 @@ export const API_ENDPOINTS = {
   FLOATING: `${API_BASE_URL}/api/processing/floating/`,
   FLOATING_SUMMARY: `${API_BASE_URL}/api/processing/floating/summary/`,
 
+  // Processing Type endpoints
+  FERMENTING: `${API_BASE_URL}/api/processing/fermenting/`,
+  NATURAL_SUNDRYING: `${API_BASE_URL}/api/processing/natural-sundrying/`,
+  WASHING: `${API_BASE_URL}/api/processing/washing/`,
+
   // Profile endpoints
   PROFILE: `${API_BASE_URL}/api/users/profile/`,
 };
