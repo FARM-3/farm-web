@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SideNav } from '../components/SideNav';
 import { ProcessingNav } from '../components/ProcessingNav';
 import {
@@ -8,7 +9,10 @@ import {
     Loader2,
     RefreshCw,
     Settings,
-    Coffee
+    Coffee,
+    Droplet,
+    Sun,
+    Sparkles
 } from 'lucide-react';
 
 const CoffeeColors = {
@@ -36,9 +40,54 @@ const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
     </div>
 );
 
+const ProcessingTypeButton = ({ icon: Icon, title, description, onClick, bgColor }) => (
+    <button
+        onClick={onClick}
+        className="bg-white p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 flex flex-col items-center text-center group w-full"
+    >
+        <div
+            className="w-20 h-20 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+            style={{ backgroundColor: bgColor || '#efebe9' }}
+        >
+            <Icon size={40} style={{ color: '#FFFFFF' }} />
+        </div>
+        <h3 className="text-xl font-bold mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
+            {title}
+        </h3>
+        <p className="text-sm text-gray-600">
+            {description}
+        </p>
+    </button>
+);
+
 const ProcessingType = () => {
+    const navigate = useNavigate();
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const processingTypes = [
+        {
+            icon: Sparkles,
+            title: 'Fermenting',
+            description: 'Manage fermenting process and records',
+            path: '/processing/fermenting',
+            bgColor: '#8B4513'
+        },
+        {
+            icon: Sun,
+            title: 'Natural Sundrying',
+            description: 'Track natural sundrying operations',
+            path: '/processing/natural-sundrying',
+            bgColor: '#FFA500'
+        },
+        {
+            icon: Droplet,
+            title: 'Washing',
+            description: 'Monitor washing process and quality',
+            path: '/processing/washing',
+            bgColor: '#4682B4'
+        }
+    ];
 
     const fetchRecords = useCallback(async () => {
         setLoading(true);
@@ -107,6 +156,25 @@ const ProcessingType = () => {
                         icon={Coffee}
                         loading={loading}
                     />
+                </div>
+
+                {/* Processing Type Selection Buttons */}
+                <div className="mb-8">
+                    <h2 className="text-xl font-bold mb-4" style={{ color: CoffeeColors.DARK_BROWN }}>
+                        Select Processing Type
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {processingTypes.map((type, index) => (
+                            <ProcessingTypeButton
+                                key={index}
+                                icon={type.icon}
+                                title={type.title}
+                                description={type.description}
+                                onClick={() => navigate(type.path)}
+                                bgColor={type.bgColor}
+                            />
+                        ))}
+                    </div>
                 </div>
 
                 <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
