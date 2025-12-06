@@ -53,9 +53,20 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 10m
           script: |
+            set -e  # Exit immediately if any command fails
+
+            echo "📥 Pulling latest code..."
             cd ~/frontend-web/web
             git pull origin main
+
+            echo "🔨 Building Docker container..."
             cd ~
             docker-compose build frontend-web-builder
+
+            echo "🚀 Starting container..."
             docker-compose up -d frontend-web-builder
+
+            echo "🔄 Restarting nginx..."
             docker restart rugyeyo-nginx-webapp
+
+            echo "✅ Deployment completed successfully!"
