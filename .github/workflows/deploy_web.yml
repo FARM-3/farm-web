@@ -39,34 +39,44 @@ jobs:
       - name: Check Production Build
         run: npm run build
 
+      # 6. Upload build artifacts for deployment
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
       - name: Deploy to Digital Ocean Droplet
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "dist/*"
+          target: "~/frontend-web/dist/"
+          strip_components: 1
+
+      - name: Restart Services
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          command_timeout: 10m
           script: |
-            set -e  # Exit immediately if any command fails
-
-            echo "📥 Pulling latest code..."
-            cd ~/frontend-web/web
-            git pull origin main
-
-            echo "🔨 Building Docker container..."
-            cd ~
-            docker-compose build frontend-web-builder
-
-            echo "🚀 Starting container..."
-            docker-compose up -d frontend-web-builder
-
-            echo "🔄 Restarting nginx..."
+            set -e
+            echo "🔄 Restarting nginx to serve new build..."
             docker restart rugyeyo-nginx-webapp
-
             echo "✅ Deployment completed successfully!"
