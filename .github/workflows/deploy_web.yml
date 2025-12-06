@@ -54,17 +54,8 @@ jobs:
           command_timeout: 10m
           script: |
             cd ~/frontend-web/web
-            git fetch origin main
-            # Check if package.json or package-lock.json changed
-            if git diff HEAD origin/main --name-only | grep -qE "package(-lock)?.json"; then
-              echo "Dependencies changed, rebuilding Docker container..."
-              git pull origin main
-              cd ~
-              docker-compose build frontend-web-builder
-              docker-compose up -d frontend-web-builder
-            else
-              echo "Only code changed, skipping Docker rebuild..."
-              git pull origin main
-            fi
+            git pull origin main
             cd ~
+            docker-compose build frontend-web-builder
+            docker-compose up -d frontend-web-builder
             docker restart rugyeyo-nginx-webapp
