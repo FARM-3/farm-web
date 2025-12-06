@@ -38,3 +38,22 @@ jobs:
       # This ensures the code can successfully compile, catching configuration errors.
       - name: Check Production Build
         run: npm run build
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Deploy to Digital Ocean Droplet
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ~
+            git pull origin main
+            docker-compose build frontend-web-builder
+            docker-compose up -d frontend-web-builder
+            docker restart rugyeyo-nginx-webapp
