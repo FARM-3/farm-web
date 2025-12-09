@@ -69,7 +69,7 @@ jobs:
           target: "~/frontend-web/dist/"
           strip_components: 1
 
-      - name: Restart Services
+      - name: Copy to Docker Volume and Restart
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.DROPLET_IP }}
@@ -78,6 +78,9 @@ jobs:
           command_timeout: 2m
           script: |
             set -e
+            echo "📦 Copying files to Docker volume..."
+            docker run --rm -v frontend_web_dist:/target -v ~/frontend-web/dist:/source alpine sh -c "rm -rf /target/* && cp -r /source/* /target/"
+
             echo "🔄 Restarting nginx to serve new build..."
             docker restart rugyeyo-nginx-webapp
             echo "✅ Deployment completed successfully!"
