@@ -24,7 +24,7 @@ const numberToWords = (num) => {
   return convert(Math.floor(num));
 };
 
-const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/sales/`;
+const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://142.93.94.236:8000'}/api/sales/`;
 
 function getReceiptIdFromUrl(location) {
   const params = new URLSearchParams(location.search);
@@ -64,7 +64,9 @@ export default function SalesReceipt() {
         setSale(data);
 
         // Generate QR code for the receipt verification URL
-        const receiptUrl = `${window.location.origin}/verify-receipt?id=${id}`;
+        // Use configured frontend URL or fall back to current origin
+        const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+        const receiptUrl = `${frontendUrl}/verify-receipt?id=${id}`;
         const qrCode = await QRCode.toDataURL(receiptUrl, {
           width: 200,
           margin: 2,
