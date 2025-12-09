@@ -1,45 +1,30 @@
-name: React Web Client CI Tests
+name: Deploy to Digital Ocean
 
-# 1. WHEN to run the workflow
+# Only deploy on push to main branch
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
-# 2. WHAT to do
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
-    
-    # Defaults to the working directory where the repository is checked out
-    # If your code is NOT in the root and is inside a 'web' folder, you might need to add:
-    # defaults:
-    #   run:
-    #     working-directory: ./web 
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 3. Setup Node.js Environment (React/Vite requirement)
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Use the Node.js version you develop with
+          node-version: '20'
 
-      # 4. Install Dependencies
-      - name: Install Node Dependencies
+      - name: Install Dependencies
         run: npm install
 
-      # 5. Run Build Check (Recommended for Frontend CI)
-      # This ensures the code can successfully compile, catching configuration errors.
-      - name: Check Production Build
+      - name: Build Production Bundle
         run: npm run build
 
-      # 6. Upload build artifacts for deployment
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -48,9 +33,8 @@ jobs:
           retention-days: 1
 
   deploy:
-    needs: test
+    needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - name: Download build artifacts
@@ -79,7 +63,7 @@ jobs:
           script: |
             set -e
             echo "📦 Copying files to Docker volume..."
-            docker run --rm -v frontend_web_dist:/target -v ~/frontend-web/dist:/source alpine sh -c "rm -rf /target/* && cp -r /source/* /target/"
+            docker run --rm -v rugyeyo_frontend_web_dist:/target -v ~/frontend-web/dist:/source alpine sh -c "rm -rf /target/* && cp -r /source/* /target/"
 
             echo "🔄 Restarting nginx to serve new build..."
             docker restart rugyeyo-nginx-webapp
