@@ -75,6 +75,7 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          command_timeout: 2m
           script: |
             set -e
             echo "🔄 Restarting nginx to serve new build..."
