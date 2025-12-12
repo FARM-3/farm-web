@@ -25,6 +25,7 @@ import {
     Pie,
     Cell
 } from 'recharts';
+import { API_ENDPOINTS } from '../services/ApiConfig';
 
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
@@ -66,10 +67,11 @@ const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
 
 const ProcessingOverview = () => {
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [searchType, setSearchType] = useState('harvest_id'); // 'harvest_id' or 'farmer_name'
+    const [selectedHarvest, setSelectedHarvest] = useState('');
+    const [harvestOptions, setHarvestOptions] = useState([]);
     const [trackingResult, setTrackingResult] = useState(null);
     const [searching, setSearching] = useState(false);
+    const [loadingHarvests, setLoadingHarvests] = useState(false);
     const [processingData, setProcessingData] = useState({
         totalBatches: 0,
         inProgress: 0,
@@ -97,39 +99,152 @@ const ProcessingOverview = () => {
         }
     }, []);
 
+    const fetchHarvestOptions = useCallback(async () => {
+        setLoadingHarvests(true);
+        try {
+            const token = localStorage.getItem('authToken');
+
+            // Fetch from both regular harvests and farmer-harvest aggregation endpoints
+            const [harvestsResponse, farmerHarvestsResponse] = await Promise.all([
+                fetch(API_ENDPOINTS.HARVESTS, {
+                    headers: {
+                        'Authorization': `Token ${token}`,
+                    },
+                }),
+                fetch(API_ENDPOINTS.FARMER_HARVEST, {
+                    headers: {
+                        'Authorization': `Token ${token}`,
+                    },
+                })
+            ]);
+
+            const [harvestsData, farmerHarvestsData] = await Promise.all([
+                harvestsResponse.json(),
+                farmerHarvestsResponse.json()
+            ]);
+
+            // Handle paginated responses
+            const regularHarvests = harvestsData.results || harvestsData;
+            const farmerHarvests = farmerHarvestsData.results || farmerHarvestsData;
+
+            // Debug: Log the structure of farmer harvests data
+            console.log('Farmer harvests data structure:', farmerHarvests?.[0] || 'No data');
+
+            // Create options for dropdown with both harvest ID and farmer name
+            const regularOptions = (regularHarvests || []).map(harvest => ({
+                value: harvest.harvest_id,
+                label: `${harvest.harvest_id} - ${harvest.worker_name || harvest.farmer_name || 'Unknown Farmer'}`,
+                farmerName: harvest.worker_name || harvest.farmer_name || 'Unknown Farmer',
+                harvestId: harvest.harvest_id,
+                source: 'harvests'
+            }));
+
+            // Create options from farmer-harvest aggregation data
+            // Try multiple possible field names for farmer name
+            const farmerOptions = (farmerHarvests || []).map(harvest => {
+                const farmerName = harvest.farmer_name || harvest.worker_name || harvest.farmerName || harvest.name || harvest.farmer || 'Unknown Farmer';
+                const harvestId = harvest.harvest_id || harvest.id || harvest.harvestId;
+
+                return {
+                    value: harvestId,
+                    label: `${harvestId} - ${farmerName}`,
+                    farmerName: farmerName,
+                    harvestId: harvestId,
+                    source: 'aggregation'
+                };
+            });
+
+            // Combine and deduplicate options (remove duplicates based on harvest_id)
+            const combinedOptions = [...regularOptions, ...farmerOptions];
+            const uniqueOptions = combinedOptions.filter((option, index, self) =>
+                index === self.findIndex(o => o.value === option.value)
+            );
+
+            setHarvestOptions(uniqueOptions);
+        } catch (error) {
+            console.error('Error fetching harvest options:', error);
+            setHarvestOptions([]);
+        } finally {
+            setLoadingHarvests(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchProcessingData();
-    }, [fetchProcessingData]);
+        fetchHarvestOptions();
+    }, [fetchProcessingData, fetchHarvestOptions]);
 
     const handleTrackHarvest = async () => {
-        if (!searchTerm.trim()) return;
+        if (!selectedHarvest) return;
 
         setSearching(true);
         setTrackingResult(null);
 
         try {
-            // Simulated tracking - replace with actual API call
-            // Example: fetch(`${API_BASE_URL}/processing/track/${searchType}/${searchTerm}`)
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            const token = localStorage.getItem('authToken');
 
-            // Mock result - replace with actual data
-            const mockResult = {
-                harvest_id: searchType === 'harvest_id' ? searchTerm : 'H-2024-001',
-                farmer_name: searchType === 'farmer_name' ? searchTerm : 'John Doe',
-                current_stage: 'Drying',
-                stages: [
-                    { name: 'Quality Control', status: 'completed', date: '2024-01-15' },
-                    { name: 'Processing Type Selection', status: 'completed', date: '2024-01-16' },
-                    { name: 'Drying', status: 'in_progress', date: '2024-01-17' },
-                    { name: 'Hulling', status: 'pending', date: null },
-                    { name: 'Bagging', status: 'pending', date: null },
-                ]
-            };
+            // Try to fetch tracking data from the backend
+            const response = await fetch(`${API_ENDPOINTS.HARVEST_TRACKING}${selectedHarvest}/`, {
+                headers: {
+                    'Authorization': `Token ${token}`,
+                },
+            });
 
-            setTrackingResult(mockResult);
+            // Find the selected harvest details
+            const selectedOption = harvestOptions.find(option => option.value === selectedHarvest);
+
+            if (response.ok) {
+                // If backend endpoint exists, use real data
+                const data = await response.json();
+
+                const trackingResult = {
+                    harvest_id: data.harvest_id || selectedHarvest,
+                    farmer_name: data.farmer_name || selectedOption?.farmerName || 'Unknown Farmer',
+                    current_stage: data.current_stage || 'Not Started',
+                    stages: data.stages || [
+                        { name: 'Quality Control', status: data.quality_control_completed ? 'completed' : 'pending', date: data.quality_control_date },
+                        { name: 'Processing Type Selection', status: data.processing_type_selected ? 'completed' : 'pending', date: data.processing_type_date },
+                        { name: 'Drying', status: data.drying_completed ? 'completed' : data.drying_started ? 'in_progress' : 'pending', date: data.drying_date },
+                        { name: 'Hulling', status: data.hulling_completed ? 'completed' : data.hulling_started ? 'in_progress' : 'pending', date: data.hulling_date },
+                        { name: 'Bagging', status: data.bagging_completed ? 'completed' : data.bagging_started ? 'in_progress' : 'pending', date: data.bagging_date },
+                    ]
+                };
+
+                setTrackingResult(trackingResult);
+            } else if (response.status === 404) {
+                // If tracking endpoint doesn't exist, show mock data with a note
+                console.warn('Tracking endpoint not available, showing sample data');
+
+                const mockResult = {
+                    harvest_id: selectedHarvest,
+                    farmer_name: selectedOption?.farmerName || 'Unknown Farmer',
+                    current_stage: 'Drying',
+                    stages: [
+                        { name: 'Quality Control', status: 'completed', date: '2024-01-15' },
+                        { name: 'Processing Type Selection', status: 'completed', date: '2024-01-16' },
+                        { name: 'Drying', status: 'in_progress', date: '2024-01-17' },
+                        { name: 'Hulling', status: 'pending', date: null },
+                        { name: 'Bagging', status: 'pending', date: null },
+                    ],
+                    note: 'Note: Real-time tracking data not available. Showing sample processing stages.'
+                };
+
+                setTrackingResult(mockResult);
+            } else {
+                throw new Error(`Failed to fetch tracking data: ${response.status}`);
+            }
         } catch (error) {
             console.error('Error tracking harvest:', error);
-            setTrackingResult({ error: 'Harvest not found or error occurred' });
+
+            // Fallback: show basic info even if tracking fails
+            const selectedOption = harvestOptions.find(option => option.value === selectedHarvest);
+            setTrackingResult({
+                harvest_id: selectedHarvest,
+                farmer_name: selectedOption?.farmerName || 'Unknown Farmer',
+                current_stage: 'Unknown',
+                stages: [],
+                error: 'Unable to load processing stages. Harvest found but tracking data unavailable.'
+            });
         } finally {
             setSearching(false);
         }
@@ -213,43 +328,41 @@ const ProcessingOverview = () => {
                         Track Harvest Stage
                     </h2>
                     <p className="text-gray-600 mb-6">
-                        Enter a Harvest ID or Farmer Name to track the processing stage
+                        Select a harvest from the database (including farmer harvests from aggregation) to track its processing stage
                     </p>
 
-                    {/* Search Input */}
+                    {/* Harvest Selection */}
                     <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                        <select
-                            value={searchType}
-                            onChange={(e) => setSearchType(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
-                        >
-                            <option value="harvest_id">Harvest ID</option>
-                            <option value="farmer_name">Farmer Name</option>
-                        </select>
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder={`Enter ${searchType === 'harvest_id' ? 'Harvest ID' : 'Farmer Name'}...`}
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleTrackHarvest()}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
-                            />
+                            <select
+                                value={selectedHarvest}
+                                onChange={(e) => setSelectedHarvest(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
+                                disabled={loadingHarvests}
+                            >
+                                <option value="">
+                                    {loadingHarvests ? 'Loading harvests...' : 'Select a harvest...'}
+                                </option>
+                                {harvestOptions.map((option) => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <button
                             onClick={handleTrackHarvest}
-                            disabled={searching || !searchTerm.trim()}
+                            disabled={searching || !selectedHarvest}
                             className="px-6 py-2 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
                         >
                             {searching ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
-                                    Searching...
+                                    Tracking...
                                 </>
                             ) : (
-                                'Track'
+                                'Track Harvest'
                             )}
                         </button>
                     </div>
@@ -263,6 +376,11 @@ const ProcessingOverview = () => {
                                 </div>
                             ) : (
                                 <div className="border border-gray-200 rounded-xl p-6">
+                                    {trackingResult.note && (
+                                        <div className="bg-yellow-100 border border-yellow-300 text-yellow-800 px-4 py-3 rounded-xl mb-6">
+                                            {trackingResult.note}
+                                        </div>
+                                    )}
                                     <div className="mb-6">
                                         <h3 className="text-lg font-bold mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
                                             Harvest Details

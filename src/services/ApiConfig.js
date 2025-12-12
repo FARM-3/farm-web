@@ -11,7 +11,7 @@
  * const url = getApiUrl('expenses');  // Returns: http://192.168.1.95:8000/api/expenses/
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://142.93.94.236:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
  * Get full API URL for an endpoint
@@ -35,9 +35,9 @@ export const getApiBaseUrl = () => {
  */
 export const API_ENDPOINTS = {
   // Auth endpoints
-  LOGIN: `${API_BASE_URL}/api/users/login/`,
-  LOGOUT: `${API_BASE_URL}/api/users/logout/`,
-  USER_ME: `${API_BASE_URL}/api/users/me/`,
+  LOGIN: `${API_BASE_URL}/api/auth/login`,
+  LOGOUT: `${API_BASE_URL}/api/auth/logout`,
+  USER_ME: `${API_BASE_URL}/api/auth/me`,
 
   // Security Questions endpoints
   RANDOM_SECURITY_QUESTIONS: `${API_BASE_URL}/api/users/random-security-questions/`,
@@ -78,6 +78,21 @@ export const API_ENDPOINTS = {
 
   // Profile endpoints
   PROFILE: `${API_BASE_URL}/api/users/profile/`,
+
+  // Processing tracking endpoints
+  HARVEST_TRACKING: `${API_BASE_URL}/api/processing/track/`,
+
+  // Task management endpoints
+  TASKS: `${API_BASE_URL}/api/tasks/`,
+
+  // Exception management endpoints
+  EXCEPTIONS: `${API_BASE_URL}/api/exceptions/`,
+
+  // Farm block management endpoints
+  FARM_BLOCKS: `${API_BASE_URL}/api/farm-blocks/`,
+
+  // SOP template endpoints
+  SOP_TEMPLATES: `${API_BASE_URL}/api/sop-templates/`,
 };
 
 /**

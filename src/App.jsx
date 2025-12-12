@@ -28,6 +28,7 @@ import Hulling from './pages/Hulling.jsx';
 import Fermenting from './pages/Fermenting.jsx';
 import NaturalSundrying from './pages/NaturalSundrying.jsx';
 import Washing from './pages/Washing.jsx';
+import TaskManagement from './pages/TaskManagement.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
@@ -68,6 +69,7 @@ function App() {
           <Route path="/aggregation" element={<ProtectedRoute><Aggregation /></ProtectedRoute>} />
           <Route path="/harvest" element={<ProtectedRoute><HarvestPage /></ProtectedRoute>} />
           <Route path="/voucher" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
+          <Route path="/tasks" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
           {/* Processing Routes */}
