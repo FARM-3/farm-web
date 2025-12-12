@@ -76,7 +76,11 @@ const NaturalSundrying = () => {
             });
         } catch (error) {
             console.error('Error fetching natural sundrying records:', error);
-            setError(error.message);
+            if (error.message.includes('404')) {
+                setError('Natural Sundrying endpoint not implemented on backend server. Please contact your backend administrator.');
+            } else {
+                setError(error.message);
+            }
             setRecords([]);
         } finally {
             setLoading(false);

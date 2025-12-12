@@ -1,14 +1,11 @@
 @echo off
-echo Checking for existing dev server on port 5173...
+echo Cleaning up port 5173...
 
-:: Find and kill any process using port 5173
+REM Find and kill process using port 5173
 for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173 ^| findstr LISTENING') do (
-    echo Stopping existing server PID: %%a
-    taskkill /PID %%a /F
+    echo Killing process %%a
+    taskkill /F /PID %%a >nul 2>&1
 )
 
-:: Wait for port to be released
-timeout /t 2 /nobreak
-
-echo Starting development server...
+echo Starting dev server...
 npm run dev

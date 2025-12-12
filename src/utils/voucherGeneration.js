@@ -164,7 +164,9 @@ export const imageToBase64 = (url) => {
  */
 export const generateQRCode = async (wageId) => {
   try {
-    const verificationUrl = `${window.location.origin}/verify-voucher?id=${wageId}`;
+    // Use configured frontend URL or fall back to current origin
+    const frontendUrl = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+    const verificationUrl = `${frontendUrl}/verify-voucher?id=${wageId}`;
     const qrCodeDataURL = await QRCode.toDataURL(verificationUrl, {
       width: 200,
       margin: 2,
