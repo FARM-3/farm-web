@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { XCircle, Calendar, User, DollarSign, Hash, Package, ShoppingCart, Download } from 'lucide-react';
 import { generateAndDownloadReceipt } from '../utils/voucherGeneration';
 
-const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/sales/`;
+const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://142.93.94.236:8000'}/api/sales/`;
 
 function getReceiptIdFromUrl(location) {
   const params = new URLSearchParams(location.search);

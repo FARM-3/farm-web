@@ -13,13 +13,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
-    # Defaults to the working directory where the repository is checked out
-    # If your code is NOT in the root and is inside a 'web' folder, you might need to add:
-    # defaults:
-    #   run:
-    #     working-directory: ./web 
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
