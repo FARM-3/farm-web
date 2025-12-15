@@ -478,7 +478,8 @@ import {
 
 // API Endpoints - Uses .env configuration
 const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
-const HARVESTS_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
+// Use the core harvest records endpoint (not the farmer-harvest aggregation)
+const HARVESTS_API = `${API_BASE_URL}/harvests/`;
 const BLOCKS_API = `${API_BASE_URL}/harvests/blocks/`;
 
 // Import the auto expense creation utility
@@ -687,19 +688,23 @@ export function HarvestPage() {
         totalAmountPaid: harvests.reduce((sum, h) => sum + parseFloat(h.amount_paid || 0), 0),
     };
 
-    // Helper function to get the authentication token and create headers
+    // Helper function to get the authentication token and create headers
     const getAuthHeaders = () => {
-        // ASSUMPTION: The token is stored in localStorage under the key 'authToken'.
-        // Adjust 'authToken' if you use a different key like 'access_token'
-        const authToken = localStorage.getItem('authToken'); 
-        
+        // Try common storage locations and key names used across the app
+        const authToken =
+            localStorage.getItem('authToken') ||
+            sessionStorage.getItem('authToken') ||
+            localStorage.getItem('access_token') ||
+            sessionStorage.getItem('access_token');
+
         if (!authToken) {
-            console.warn('Authentication token not found. API calls may fail.');
+            console.warn('Authentication token not found in storage (local/session). API calls may fail.');
             return {};
         }
 
         return {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             'Authorization': `Bearer ${authToken}`,
         };
     };
