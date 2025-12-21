@@ -115,7 +115,7 @@ export const createVoucherData = (wageRecord) => {
   return {
     voucherNumber: generateVoucherNumber(wageRecord.id || Date.now()),
     employeeName: wageRecord.employee_name || 'N/A',
-    staffId: wageRecord.employee_id || 'N/A',
+    staffId: wageRecord.staff_id || wageRecord.staff || wageRecord.employee_id || 'N/A',
     dateOfPayment: formatDate(wageRecord.date_of_payment),
     daysWorked: wageRecord.days_worked || 0,
     monthlySalary: wageRecord.monthly_pay || wageRecord.monthly_salary || 0,
@@ -280,26 +280,6 @@ export const generateVoucherHTML = (voucherData, qrCodeDataURL = '', logoDataURL
         <p style="margin: 10px 0 0 0; font-size: 12px; color: #333;">${voucherData.reason}</p>
       </div>
       ` : ''}
-
-      <!-- Signatures -->
-      <div style="margin-top: 60px;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="width: 50%; padding: 20px;">
-              <div style="border-top: 2px solid #702A0B; padding-top: 10px; text-align: center;">
-                <p style="margin: 5px 0; font-size: 12px; font-weight: 600; color: #333;">Employee Signature</p>
-                <p style="margin: 5px 0; color: #666; font-size: 11px;">Date: _____________</p>
-              </div>
-            </td>
-            <td style="width: 50%; padding: 20px;">
-              <div style="border-top: 2px solid #702A0B; padding-top: 10px; text-align: center;">
-                <p style="margin: 5px 0; font-size: 12px; font-weight: 600; color: #333;">Authorized Signature</p>
-                <p style="margin: 5px 0; color: #666; font-size: 11px;">Date: _____________</p>
-              </div>
-            </td>
-          </tr>
-        </table>
-      </div>
 
       <!-- Footer with QR Code -->
       <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #702A0B;">

@@ -43,6 +43,13 @@ export default function WageVoucher() {
         const response = await fetch(`${WAGES_API_ENDPOINT}${id}/`, { headers });
         if (!response.ok) throw new Error(`Wage not found (HTTP ${response.status})`);
         const data = await response.json();
+
+        // Debug: Log the wage data to see what fields are available
+        console.log('📊 Wage Record Data:', data);
+        console.log('🆔 Staff ID field:', data.staff_id);
+        console.log('👤 Staff field:', data.staff);
+        console.log('📝 Employee ID field:', data.employee_id);
+
         setWage(data);
 
         // Generate QR code
@@ -153,7 +160,9 @@ export default function WageVoucher() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Employee ID:</p>
-                <p className="text-base font-semibold" style={{ color: '#333' }}>{wage.employee_id || 'N/A'}</p>
+                <p className="text-base font-semibold" style={{ color: '#333' }}>
+                  {wage.staff_id || wage.staff || wage.employee_id || 'N/A'}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Position:</p>
@@ -161,7 +170,7 @@ export default function WageVoucher() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Pay Period:</p>
-                <p className="text-base font-semibold" style={{ color: '#333' }}>{wage.pay_period || 'Monthly'}</p>
+                <p className="text-base font-semibold" style={{ color: '#333' }}>Monthly</p>
               </div>
             </div>
           </div>
@@ -204,22 +213,6 @@ export default function WageVoucher() {
             <p className="text-sm italic text-white mt-2">
               {amountInWords} Shillings Only
             </p>
-          </div>
-
-          {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 mt-12 pt-8 border-t-2 border-gray-300">
-            <div>
-              <div className="border-t-2 border-gray-400 pt-2 mt-16">
-                <p className="text-sm font-semibold" style={{ color: '#702A0B' }}>Employee Signature</p>
-                <p className="text-xs text-gray-600 mt-1">Date: __________________</p>
-              </div>
-            </div>
-            <div>
-              <div className="border-t-2 border-gray-400 pt-2 mt-16">
-                <p className="text-sm font-semibold" style={{ color: '#702A0B' }}>Authorized By</p>
-                <p className="text-xs text-gray-600 mt-1">Date: __________________</p>
-              </div>
-            </div>
           </div>
 
           {/* QR Code Section */}

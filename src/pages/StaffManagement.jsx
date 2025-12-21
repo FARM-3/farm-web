@@ -28,6 +28,7 @@ import {
 import "@geoapify/geocoder-autocomplete/styles/minimal.css";
 import LocationSelector from "../components/LocationSelector";
 import CustomAutocomplete from "../components/CustomAutocomplete";
+import BulkStaffSpreadsheet from "../components/BulkStaffSpreadsheet";
 
 const CoffeeColors = {
   SCREEN_BG: "#FFF8F6",
@@ -3078,6 +3079,7 @@ function StaffPage() {
   const [staffToDelete, setStaffToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showBulkStaffModal, setShowBulkStaffModal] = useState(false);
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -3889,7 +3891,7 @@ function StaffPage() {
 
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
           <div className="hidden md:block"></div>
-          <div className="flex space-x-3 mt-4 md:mt-0">
+          <div className="flex flex-wrap gap-3 mt-4 md:mt-0">
             <button
               onClick={handleNewStaff}
               className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
@@ -3897,6 +3899,14 @@ function StaffPage() {
             >
               <Plus className="w-4 h-4 mr-2" />
               Record New Staff
+            </button>
+            <button
+              onClick={() => setShowBulkStaffModal(true)}
+              className="py-2 px-4 shadow-xl rounded-xl flex items-center font-semibold text-white hover:shadow-2xl transition-all duration-200"
+              style={{ backgroundColor: "#702A0B" }}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Bulk Staff Entry
             </button>
             <button
               onClick={() =>
@@ -4098,6 +4108,17 @@ function StaffPage() {
           </div>
         </div>
       )}
+
+      {/* Bulk Staff Spreadsheet Modal */}
+      <BulkStaffSpreadsheet
+        isOpen={showBulkStaffModal}
+        onClose={() => setShowBulkStaffModal(false)}
+        onSaveSuccess={() => {
+          fetchStaff();
+          setShowSuccessMessage(true);
+          setTimeout(() => setShowSuccessMessage(false), 3000);
+        }}
+      />
     </SideNav>
   );
 }

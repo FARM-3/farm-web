@@ -13,10 +13,13 @@
   "dependencies": {
     "@geoapify/geocoder-autocomplete": "^2.2.1",
     "@geoapify/react-geocoder-autocomplete": "^2.2.1",
+    "@handsontable/react": "^16.2.0",
     "@tailwindcss/vite": "^4.1.14",
     "axios": "^1.12.2",
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "firebase": "^12.4.0",
+    "handsontable": "^16.2.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "lucide-react": "^0.544.0",
@@ -26,8 +29,7 @@
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.9.4",
     "react-spreadsheet": "^0.10.1",
-    "recharts": "^3.4.1",
-    "xlsx": "^0.18.5"
+    "recharts": "^3.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",

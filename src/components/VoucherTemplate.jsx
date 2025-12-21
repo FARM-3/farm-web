@@ -112,24 +112,6 @@ const VoucherTemplate = ({ voucherData }) => {
         </div>
       )}
 
-      {/* Signatures */}
-      <div className="mt-16 mb-8">
-        <div className="grid grid-cols-2 gap-8">
-          <div className="text-center">
-            <div className="border-t-2 border-[#702A0B] pt-3 mt-12">
-              <p className="font-bold mb-1">Employee Signature</p>
-              <p className="text-gray-500 text-xs">Date: _____________</p>
-            </div>
-          </div>
-          <div className="text-center">
-            <div className="border-t-2 border-[#702A0B] pt-3 mt-12">
-              <p className="font-bold mb-1">Authorized Signature</p>
-              <p className="text-gray-500 text-xs">Date: _____________</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Footer */}
       <div className="text-center mt-12 pt-6 border-t-2 border-[#702A0B] text-gray-500 text-xs">
         <p className="mb-1">

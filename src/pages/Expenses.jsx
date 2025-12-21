@@ -489,7 +489,7 @@ import {
     DollarSign, Send, Loader2, X, RefreshCw, ArrowUp, ArrowDown, Edit, Trash2, Search, ChevronsDown,
     Tag, Calendar, MapPin, AlignLeft, User, ShoppingBag, Receipt, Home, Plus
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // NOTE: Assuming SideNav is imported from '../components/SideNav'
 import { SideNav } from '../components/SideNav';
@@ -1443,45 +1443,51 @@ const [recentlyEdited, setRecentlyEdited] = useState(new Set());
                             Record New Expense
                         </button>
                         <button
-                            onClick={() => {
-                                // Create Excel export functionality
+                            onClick={async () => {
+                                // Create Excel export functionality using ExcelJS
                                 const data = sortedExpenses.map(expense => ({
-                                    'Expense Name': expense.expense_name || '',
-                                    'Category': expense.category || '',
-                                    'Item': expense.item || '',
-                                    'Unit Cost (UGX)': parseFloat(expense.unit_cost || 0),
-                                    'Quantity': parseInt(expense.quantity || 0),
-                                    'Amount (UGX)': parseFloat(expense.amount || 0),
-                                    'Supplier': expense.supplier || '',
-                                    'Location': expense.location || '',
-                                    'Description': expense.description || '',
-                                    'Date': expense.date || ''
+                                    expenseName: expense.expense_name || '',
+                                    category: expense.category || '',
+                                    item: expense.item || '',
+                                    unitCost: parseFloat(expense.unit_cost || 0),
+                                    quantity: parseInt(expense.quantity || 0),
+                                    amount: parseFloat(expense.amount || 0),
+                                    supplier: expense.supplier || '',
+                                    location: expense.location || '',
+                                    description: expense.description || '',
+                                    date: expense.date || ''
                                 }));
 
                                 // Create workbook and worksheet
-                                const wb = XLSX.utils.book_new();
-                                const ws = XLSX.utils.json_to_sheet(data);
+                                const workbook = new ExcelJS.Workbook();
+                                const worksheet = workbook.addWorksheet('Expenses Data');
 
-                                // Auto-size columns
-                                const colWidths = [
-                                    { wch: 20 }, // Expense Name
-                                    { wch: 15 }, // Category
-                                    { wch: 15 }, // Item
-                                    { wch: 15 }, // Unit Cost (UGX)
-                                    { wch: 10 }, // Quantity
-                                    { wch: 15 }, // Amount (UGX)
-                                    { wch: 20 }, // Supplier
-                                    { wch: 15 }, // Location
-                                    { wch: 30 }, // Description
-                                    { wch: 12 }  // Date
+                                // Define columns
+                                worksheet.columns = [
+                                    { header: 'Expense Name', key: 'expenseName', width: 20 },
+                                    { header: 'Category', key: 'category', width: 15 },
+                                    { header: 'Item', key: 'item', width: 15 },
+                                    { header: 'Unit Cost (UGX)', key: 'unitCost', width: 15 },
+                                    { header: 'Quantity', key: 'quantity', width: 10 },
+                                    { header: 'Amount (UGX)', key: 'amount', width: 15 },
+                                    { header: 'Supplier', key: 'supplier', width: 20 },
+                                    { header: 'Location', key: 'location', width: 15 },
+                                    { header: 'Description', key: 'description', width: 30 },
+                                    { header: 'Date', key: 'date', width: 12 }
                                 ];
-                                ws['!cols'] = colWidths;
 
-                                // Add worksheet to workbook
-                                XLSX.utils.book_append_sheet(wb, ws, 'Expenses Data');
+                                // Add rows
+                                data.forEach(row => worksheet.addRow(row));
 
                                 // Generate and download file
-                                XLSX.writeFile(wb, `expenses_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+                                const buffer = await workbook.xlsx.writeBuffer();
+                                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                                const url = window.URL.createObjectURL(blob);
+                                const anchor = document.createElement('a');
+                                anchor.href = url;
+                                anchor.download = `expenses_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+                                anchor.click();
+                                window.URL.revokeObjectURL(url);
                             }}
                             className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
