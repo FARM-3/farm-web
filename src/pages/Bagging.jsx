@@ -42,12 +42,16 @@ const Bagging = () => {
     const [error, setError] = useState(null);
     const [pagination, setPagination] = useState({ count: 0, next: null, previous: null });
 
-    const fetchRecords = useCallback(async (url = getApiUrl('bagging')) => {
+    const fetchRecords = useCallback(async (url) => {
         setLoading(true);
         setError(null);
         try {
+            // Prevent a click event object from being used as the URL when this
+            // function is attached directly as an event handler (onClick={fetchRecords}).
+            const fetchUrl = (typeof url === 'string' && url) ? url : getApiUrl('bagging');
+
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-            const response = await fetch(url, {
+            const response = await fetch(fetchUrl, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -69,7 +73,7 @@ const Bagging = () => {
             });
         } catch (err) {
             console.error('Error fetching bagging records:', err);
-            setError(err.message);
+            setError(err.message || 'Failed to load bagging records');
             setRecords([]);
             setPagination({ count: 0, next: null, previous: null });
         } finally {
@@ -98,7 +102,7 @@ const Bagging = () => {
                     </div>
                     <div className="flex gap-3">
                         <button
-                            onClick={fetchRecords}
+                            onClick={() => fetchRecords()}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg transition"
                             style={{ backgroundColor: CoffeeColors.LIGHT_BG, color: CoffeeColors.DARK_BROWN }}
                         >
