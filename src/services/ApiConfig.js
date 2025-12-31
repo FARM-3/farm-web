@@ -75,6 +75,7 @@ export const API_ENDPOINTS = {
   FERMENTING: `${API_BASE_URL}/api/processing/fermenting/`,
   NATURAL_SUNDRYING: `${API_BASE_URL}/api/processing/natural-sundrying/`,
   WASHING: `${API_BASE_URL}/api/processing/washing/`,
+  BAGGING: `${API_BASE_URL}/api/processing/bagging/`,
 
   // Profile endpoints
   PROFILE: `${API_BASE_URL}/api/users/profile/`,

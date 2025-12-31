@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
 import { ProcessingNav } from '../components/ProcessingNav';
-import { getApiUrl } from '../services/ApiConfig';
+import { API_ENDPOINTS } from '../services/ApiConfig';
 import {
     Plus,
     Edit,
@@ -42,13 +42,29 @@ const Bagging = () => {
     const [error, setError] = useState(null);
     const [pagination, setPagination] = useState({ count: 0, next: null, previous: null });
 
+    // Form state for creating new bagging records
+    const [showForm, setShowForm] = useState(false);
+    const [formData, setFormData] = useState({
+        lot_id: '',
+        weight: '',
+        moisture_content: '',
+        no_of_bags: '',
+        date: new Date().toISOString().slice(0, 10),
+        outturn: '',
+        expected_outturn: '',
+        qr_code: '',
+    });
+    const [submitLoading, setSubmitLoading] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
+    const [submitSuccess, setSubmitSuccess] = useState(null);
+
     const fetchRecords = useCallback(async (url) => {
         setLoading(true);
         setError(null);
         try {
             // Prevent a click event object from being used as the URL when this
             // function is attached directly as an event handler (onClick={fetchRecords}).
-            const fetchUrl = (typeof url === 'string' && url) ? url : getApiUrl('bagging');
+            const fetchUrl = (typeof url === 'string' && url) ? url : API_ENDPOINTS.BAGGING;
 
             const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
             const response = await fetch(fetchUrl, {
@@ -85,6 +101,76 @@ const Bagging = () => {
         fetchRecords();
     }, [fetchRecords]);
 
+    // Form input change handler
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        setSubmitError(null);
+    };
+
+    // Submit new bagging record to the API
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitLoading(true);
+        setSubmitError(null);
+        try {
+            // Basic validation
+            if (!formData.lot_id) throw new Error('Lot ID is required');
+            if (formData.no_of_bags === '' || formData.no_of_bags == null) throw new Error('No. of bags is required');
+
+            const payload = {
+                ...formData,
+                no_of_bags: formData.no_of_bags !== '' ? parseInt(formData.no_of_bags, 10) : null,
+                weight: formData.weight !== '' ? formData.weight : null,
+                outturn: formData.outturn !== '' ? formData.outturn : null,
+                expected_outturn: formData.expected_outturn !== '' ? formData.expected_outturn : null,
+            };
+
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const res = await fetch(API_ENDPOINTS.BAGGING, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Token ${token}` } : {}),
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(`${res.status} ${res.statusText} - ${errText}`);
+            }
+
+            const created = await res.json();
+            setSubmitSuccess('Record created successfully');
+            setShowForm(false);
+            setFormData({
+                lot_id: '',
+                weight: '',
+                moisture_content: '',
+                no_of_bags: '',
+                date: new Date().toISOString().slice(0, 10),
+                outturn: '',
+                expected_outturn: '',
+                qr_code: '',
+            });
+
+            // Refresh list
+            fetchRecords();
+        } catch (err) {
+            console.error('Error creating bagging record:', err);
+            setSubmitError(err.message || 'Failed to create record');
+        } finally {
+            setSubmitLoading(false);
+        }
+    };
+
+    const closeForm = () => {
+        setShowForm(false);
+        setSubmitError(null);
+        setSubmitSuccess(null);
+    };
+
     const totalBags = records.reduce((sum, r) => sum + (parseInt(r.no_of_bags, 10) || 0), 0);
 
     return (
@@ -110,6 +196,7 @@ const Bagging = () => {
                             Refresh
                         </button>
                         <button
+                            onClick={() => { setShowForm(true); setSubmitError(null); setSubmitSuccess(null); }}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-white hover:shadow-xl transition"
                             style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
                         >
@@ -145,6 +232,58 @@ const Bagging = () => {
                         loading={loading}
                     />
                 </div>
+
+                {/* Modal form for creating a new bagging record */}
+                {showForm && (
+                    <div className="fixed inset-0 flex items-center justify-center z-50">
+                        <div className="absolute inset-0 bg-black opacity-40" onClick={closeForm} />
+                        <div className="bg-white rounded-xl shadow-lg p-6 z-10 w-full max-w-2xl">
+                            <h2 className="text-xl font-semibold mb-4">New Bagging Record</h2>
+                            {submitError && <div className="mb-3 text-sm text-red-600">{submitError}</div>}
+                            {submitSuccess && <div className="mb-3 text-sm text-green-600">{submitSuccess}</div>}
+                            <form onSubmit={handleSubmit}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-xs text-gray-600">Lot ID</label>
+                                        <input name="lot_id" value={formData.lot_id} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-600">Weight</label>
+                                        <input name="weight" value={formData.weight} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-600">Moisture Content</label>
+                                        <input name="moisture_content" value={formData.moisture_content} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-600">No. of Bags</label>
+                                        <input name="no_of_bags" type="number" value={formData.no_of_bags} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-600">Outturn</label>
+                                        <input name="outturn" value={formData.outturn} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-600">Expected Outturn</label>
+                                        <input name="expected_outturn" value={formData.expected_outturn} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-600">QR Code</label>
+                                        <input name="qr_code" value={formData.qr_code} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-600">Date</label>
+                                        <input name="date" type="date" value={formData.date} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex justify-end gap-3">
+                                    <button type="button" onClick={closeForm} className="px-4 py-2 rounded border">Cancel</button>
+                                    <button type="submit" className="px-4 py-2 rounded text-white" style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }} disabled={submitLoading}>{submitLoading ? 'Saving...' : 'Save'}</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
 
                 <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
                     <div className="overflow-x-auto">
