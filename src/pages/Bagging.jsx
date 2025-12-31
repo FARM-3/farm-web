@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
 import { ProcessingNav } from '../components/ProcessingNav';
+import { getApiUrl } from '../services/ApiConfig';
 import {
     Plus,
     Edit,
@@ -8,7 +9,8 @@ import {
     Loader2,
     RefreshCw,
     Package,
-    Archive
+    Archive,
+    AlertCircle
 } from 'lucide-react';
 
 const CoffeeColors = {
@@ -37,18 +39,39 @@ const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
 const Bagging = () => {
     const [records, setRecords] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [pagination, setPagination] = useState({ count: 0, next: null, previous: null });
 
-    const fetchRecords = useCallback(async () => {
+    const fetchRecords = useCallback(async (url = getApiUrl('bagging')) => {
         setLoading(true);
+        setError(null);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const mockData = [
-                { id: 1, harvest_id: 'H-2024-001', bags: 50, weight_per_bag: '60kg', total_weight: '3000kg', date: '2024-01-20' },
-                { id: 2, harvest_id: 'H-2024-002', bags: 35, weight_per_bag: '60kg', total_weight: '2100kg', date: '2024-01-19' },
-            ];
-            setRecords(mockData);
-        } catch (error) {
-            console.error('Error:', error);
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Token ${token}` } : {})
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const items = data.results || data;
+            setRecords(items);
+            setPagination({
+                count: data.count || (Array.isArray(items) ? items.length : 0),
+                next: data.next || null,
+                previous: data.previous || null
+            });
+        } catch (err) {
+            console.error('Error fetching bagging records:', err);
+            setError(err.message);
+            setRecords([]);
+            setPagination({ count: 0, next: null, previous: null });
         } finally {
             setLoading(false);
         }
@@ -58,7 +81,7 @@ const Bagging = () => {
         fetchRecords();
     }, [fetchRecords]);
 
-    const totalBags = records.reduce((sum, r) => sum + r.bags, 0);
+    const totalBags = records.reduce((sum, r) => sum + (parseInt(r.no_of_bags, 10) || 0), 0);
 
     return (
         <SideNav>
@@ -92,6 +115,16 @@ const Bagging = () => {
                     </div>
                 </div>
 
+                {error && (
+                    <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <div>
+                            <p className="text-red-800 font-medium">Error loading data</p>
+                            <p className="text-red-600 text-sm">{error}</p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                     <KPICard
                         title="Total Bags"
@@ -102,7 +135,7 @@ const Bagging = () => {
                     />
                     <KPICard
                         title="Total Records"
-                        value={records.length}
+                        value={pagination.count}
                         subtitle="Bagging operations"
                         icon={Archive}
                         loading={loading}
@@ -114,41 +147,50 @@ const Bagging = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead style={{ backgroundColor: CoffeeColors.LIGHT_BG }}>
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-700">Harvest ID</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Number of Bags</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Weight per Bag</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Total Weight</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Date</th>
+                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-700">Lot ID</th>
+                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Weight</th>
+                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Moisture</th>
+                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">No. of Bags</th>
+                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Outturn</th>
+                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Expected Outturn</th>
+                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">QR Code</th>
+                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Created At</th>
                                     <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center">
+                                        <td colSpan="9" className="px-6 py-12 text-center">
                                             <Loader2 className="w-8 h-8 animate-spin inline-block" style={{ color: CoffeeColors.BUTTON_BROWN }} />
                                         </td>
                                     </tr>
                                 ) : records.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">No bagging records found</td>
+                                        <td colSpan="9" className="px-6 py-12 text-center text-gray-500">No bagging records found</td>
                                     </tr>
                                 ) : (
-                                    records.map((record) => (
-                                        <tr key={record.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 font-medium text-gray-800">{record.harvest_id}</td>
-                                            <td className="px-6 py-4 text-center text-gray-700">{record.bags}</td>
-                                            <td className="px-6 py-4 text-center text-gray-700">{record.weight_per_bag}</td>
-                                            <td className="px-6 py-4 text-center font-semibold text-gray-800">{record.total_weight}</td>
-                                            <td className="px-6 py-4 text-center text-gray-700">{record.date}</td>
-                                            <td className="px-6 py-4 text-center">
-                                                <div className="flex justify-center gap-2">
-                                                    <button className="p-1 hover:bg-blue-50 rounded"><Edit className="w-4 h-4 text-blue-600" /></button>
-                                                    <button className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4 text-red-600" /></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    records.map((record, index) => {
+                                        const createdDate = record.created_at ? new Date(record.created_at).toLocaleString() : (record.date || '');
+                                        return (
+                                            <tr key={record.id || record.lot_id || index} className="hover:bg-gray-50">
+                                                <td className="px-6 py-4 font-medium text-gray-800">{record.lot_id || 'N/A'}</td>
+                                                <td className="px-6 py-4 text-center text-gray-700">{record.weight != null ? parseFloat(record.weight).toLocaleString() : '-'}</td>
+                                                <td className="px-6 py-4 text-center text-gray-700">{record.moisture_content || '-'}</td>
+                                                <td className="px-6 py-4 text-center text-gray-700">{record.no_of_bags != null ? record.no_of_bags : 'N/A'}</td>
+                                                <td className="px-6 py-4 text-center font-semibold text-gray-800">{record.outturn != null ? parseFloat(record.outturn).toLocaleString() : '-'}</td>
+                                                <td className="px-6 py-4 text-center text-gray-700">{record.expected_outturn != null ? parseFloat(record.expected_outturn).toLocaleString() : '-'}</td>
+                                                <td className="px-6 py-4 text-center text-gray-700">{record.qr_code || '-'}</td>
+                                                <td className="px-6 py-4 text-center text-gray-700">{createdDate}</td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <div className="flex justify-center gap-2">
+                                                        <button className="p-1 hover:bg-blue-50 rounded"><Edit className="w-4 h-4 text-blue-600" /></button>
+                                                        <button className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4 text-red-600" /></button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>
