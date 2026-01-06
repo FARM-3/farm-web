@@ -585,7 +585,7 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle, blockDetails }) =
                                         <p className="text-sm text-gray-800">{harvest.harvest_id || 'N/A'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase">Farmer Name</p>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase">Name</p>
                                         <p className="text-sm text-gray-800">{harvest.name || harvest.worker_name || 'N/A'}</p>
                                     </div>
                                     <div>
