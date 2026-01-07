@@ -528,9 +528,23 @@ const AggregationPage = () => {
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Delivered
+                                           </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
+                                            Grade  
+                                              </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
+                                            Quality Control 
+                                        </th>
+                                        
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
+                                            Ripeness Score
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Actions
+                                        </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
+                                            
+                
                                         </th>
                                     </>
                                 )}
