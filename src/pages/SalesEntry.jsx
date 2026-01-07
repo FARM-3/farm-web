@@ -292,7 +292,7 @@ function SalesEntry() {
         // Navigate to sales page to show the updated record
         setTimeout(() => {
           navigate('/sales');
-        }, 1500);
+        }, 300); // Reduced from 1500ms for faster UX
       } else {
         const errorData = await response.json();
         console.error('API Error:', errorData);

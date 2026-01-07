@@ -507,7 +507,7 @@ const BulkStaffSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
                 setTimeout(() => {
                     onSaveSuccess();
                     onClose();
-                }, 1500);
+                }, 300); // Reduced from 1500ms for faster UX
             } else if (successCount > 0 && failCount > 0) {
                 const failedStaff = results.filter(r => !r.success).map(r => `${r.name}: ${r.error}`).join('\n');
                 setMessage(`Registered ${successCount} staff member(s), but ${failCount} failed:\n${failedStaff}`);
