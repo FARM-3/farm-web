@@ -621,7 +621,7 @@ const BulkWageRecordModal = ({ isOpen, onClose, onSaveSuccess }) => {
                     });
                     setMessage('');
                     onSaveSuccess();
-                }, 1500);
+                }, 300); // Reduced from 1500ms for faster UX
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 setMessage(`Failed to record wage. ${errorData.detail || 'Please try again.'}`);
@@ -1186,7 +1186,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
                 setTimeout(() => {
                     onSaveSuccess();
-                }, 1500);
+                }, 300); // Reduced from 1500ms for faster UX
             } else {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('API Error Response:', response.status);
