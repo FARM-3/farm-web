@@ -158,7 +158,22 @@ const BulkStaffSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
                 pattern: '0,0',
                 culture: 'en-US'
             },
-            placeholder: 'e.g., 500,000'
+            placeholder: 'e.g., 500,000',
+            renderer: function(instance, td, row, col, prop, value, cellProperties) {
+                // Format the number with commas
+                if (value !== null && value !== undefined && value !== '') {
+                    const numValue = typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) : value;
+                    if (!isNaN(numValue)) {
+                        td.innerHTML = numValue.toLocaleString('en-US');
+                    } else {
+                        td.innerHTML = '';
+                    }
+                } else {
+                    td.innerHTML = '';
+                }
+                td.style.textAlign = 'right';
+                return td;
+            }
         },
         { data: 'hireDate', title: 'Hire Date', type: 'date', dateFormat: 'YYYY-MM-DD' }
     ];
