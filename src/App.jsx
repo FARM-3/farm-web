@@ -73,7 +73,7 @@ function App() {
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
 
           {/* Processing Routes */}
-          <Route path="/processing" element={<ProtectedRoute><Processing /></ProtectedRoute>} />
+          <Route path="/processing" element={<Navigate to="/processing/overview" replace />} />
           <Route path="/processing/overview" element={<ProtectedRoute><ProcessingOverview /></ProtectedRoute>} />
           <Route path="/processing/quality-control" element={<ProtectedRoute><QualityControl /></ProtectedRoute>} />
           <Route path="/processing/processing-type" element={<ProtectedRoute><ProcessingType /></ProtectedRoute>} />
