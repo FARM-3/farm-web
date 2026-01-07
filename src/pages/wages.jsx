@@ -389,6 +389,7 @@ import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, Ar
 import { SideNav } from '../components/SideNav';
 import { generateAndDownloadVoucher, validateWageRecordForVoucher } from '../utils/voucherGeneration';
 import BulkWageSpreadsheet from '../components/BulkWageSpreadsheet';
+import * as XLSX from 'xlsx';
 
 const styleElement = document.createElement('style');
 styleElement.innerHTML = `
@@ -997,8 +998,14 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
         let updatedForm;
 
         if (name === 'employee_name') {
-            // When typing employee name, clear employee_id if not selecting from list
-            updatedForm = { ...form, employee_name: value };
+            // Only clear employee_id if the user actually changes the text
+            // (not just clicking in the field)
+            if (value !== form.employee_name) {
+                updatedForm = { ...form, employee_name: value, employee_id: '', staff_id: '' };
+                setSelectedStaff(null);
+            } else {
+                updatedForm = { ...form, employee_name: value };
+            }
             setShowStaffDropdown(true);
         } else if (name === 'days_missed') {
             // Prevent negative numbers and numbers >= 30
@@ -1066,8 +1073,16 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
 
     const validate = (currentForm = form) => {
         const newErrors = {};
+        console.log('🔍 Validating form:', {
+            employee_name: currentForm.employee_name,
+            employee_id: currentForm.employee_id,
+            staff_id: currentForm.staff_id
+        });
         if (!currentForm.employee_name || currentForm.employee_name.trim() === '') {
             newErrors.employee_name = 'Employee is required.';
+        } else if (!currentForm.employee_id) {
+            console.log('❌ Validation failed: employee_id is missing');
+            newErrors.employee_name = 'Please select an employee from the registered staff list.';
         }
         if (!currentForm.date_of_payment) newErrors.date_of_payment = 'Date of payment is required.';
 
@@ -1220,7 +1235,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             onChange={handleChange}
                             onFocus={() => !initialData?.id && setShowStaffDropdown(true)}
                             disabled={loadingStaff || initialData?.id}
-                            placeholder={loadingStaff ? 'Loading staff...' : (initialData?.id ? 'Employee (locked)' : 'Type employee name or select from list')}
+                            placeholder={loadingStaff ? 'Loading staff...' : (initialData?.id ? 'Employee (locked)' : 'Type to search and select from registered staff')}
                             className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium ${(loadingStaff || initialData?.id) ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'} ${getBorderClass('employee_name')} ${loadingStaff ? 'opacity-50' : ''}`}
                             autoComplete="off"
                         />
@@ -1239,13 +1254,17 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                                                 const fullName = `${member.first_name} ${member.last_name}`;
                                                 // Get monthly salary from staff member (if available)
                                                 const monthlySalary = member.monthly_salary || member.base_pay || 0;
-                                                setForm({
-                                                    ...form,
-                                                    employee_id: member.id, // Use the integer ID, not staff_id
+                                                console.log('✅ Staff selected from dropdown:', {
+                                                    staff_id: member.staff_id,
+                                                    employee_name: fullName
+                                                });
+                                                setForm(prev => ({
+                                                    ...prev,
+                                                    employee_id: member.staff_id, // Use staff_id since API doesn't return database id
                                                     staff_id: member.staff_id, // Keep staff_id for display
                                                     employee_name: fullName,
                                                     monthly_salary: monthlySalary
-                                                });
+                                                }));
                                                 setSelectedStaff(member);
                                                 setShowStaffDropdown(false);
                                                 setErrors(prev => ({ ...prev, employee_name: '' }));
@@ -1267,7 +1286,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                                     ))}
                             </div>
                         )}
-                        {errors.employee_name && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> Please fill in the required field.</p>}
+                        {errors.employee_name && <p className="mt-1 text-xs text-[#EA4335] flex items-center"><MinusCircle className='w-3 h-3 mr-1'/> {errors.employee_name}</p>}
                     </div>
 
                     <div>
@@ -1693,6 +1712,48 @@ function Wages() {
         navigate(`/voucher?id=${wage.id}`);
     };
 
+    const handleExportToExcel = () => {
+        try {
+            // Prepare data for export - exclude actions column
+            const exportData = sortedWages.map((wage) => ({
+                "Employee": wage.employee_name || "N/A",
+                "Date Paid": wage.date_of_payment || "-",
+                "Days Missed": wage.days_missed || 0,
+                "Amount Paid (UGX)": wage.amount_paid && wage.amount_paid > 0
+                    ? wage.amount_paid.toLocaleString('en-US')
+                    : "-",
+            }));
+
+            // Create a new workbook
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Wage Records");
+
+            // Auto-size columns
+            const maxWidth = 30;
+            const colWidths = Object.keys(exportData[0] || {}).map((key) => ({
+                wch: Math.min(
+                    Math.max(
+                        key.length,
+                        ...exportData.map((row) => String(row[key] || "").length)
+                    ),
+                    maxWidth
+                ),
+            }));
+            worksheet["!cols"] = colWidths;
+
+            // Generate filename with current date
+            const date = new Date().toISOString().split("T")[0];
+            const filename = `Wage_Records_${date}.xlsx`;
+
+            // Write the file
+            XLSX.writeFile(workbook, filename);
+        } catch (error) {
+            console.error("Error exporting to Excel:", error);
+            alert("Failed to export to Excel. Please try again.");
+        }
+    };
+
     const confirmDelete = async () => {
         if (wageToDelete) {
             setDeleting(true);
@@ -1911,7 +1972,7 @@ function Wages() {
                             <DollarSign className="w-4 h-4 mr-2" />
                             Bulk Record Wages
                         </button>
-                        <Button type="secondary" onClick={() => alert('Exporting data...')} className="py-2 px-4 shadow-xl">
+                        <Button type="secondary" onClick={handleExportToExcel} className="py-2 px-4 shadow-xl">
                             Export to Excel
                         </Button>
                         <button

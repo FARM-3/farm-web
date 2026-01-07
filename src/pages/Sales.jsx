@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RefreshCw, DollarSign, Calendar, Tag, User, TrendingUpIcon, Loader2, ArrowUp, ArrowDown, Edit, Trash2, Search, Filter, Eye, X, Plus, Send } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 // 💡 IMPORTANT: ADJUST THE PATH BELOW TO YOUR ACTUAL SideNav COMPONENT
 import SideNav from '../components/SideNav'; 
@@ -1297,8 +1297,8 @@ function SalesPage() {
                             Record New Sale
                         </button>
                         <button
-                            onClick={() => {
-                                // Create Excel export functionality
+                            onClick={async () => {
+                                // Create Excel export functionality using ExcelJS
                                 const data = sortedSales.map(sale => {
                                     const customerName = (sale.first_name && sale.last_name)
                                         ? `${sale.first_name} ${sale.last_name}`.trim()
@@ -1307,37 +1307,43 @@ function SalesPage() {
                                             : '';
 
                                     return {
-                                        'Customer Name': customerName,
-                                        'Item': sale.item || '',
-                                        'Quantity': sale.quantity || 0,
-                                        'Rate (UGX)': parseFloat(sale.rate || 0),
-                                        'Amount (UGX)': parseFloat(sale.amount || 0),
-                                        'Date of Payment': sale.date_of_payment || sale.date || '',
-                                        'Payment Method': sale.method_of_payment || sale.payment_method || ''
+                                        customerName,
+                                        item: sale.item || '',
+                                        quantity: sale.quantity || 0,
+                                        rate: parseFloat(sale.rate || 0),
+                                        amount: parseFloat(sale.amount || 0),
+                                        dateOfPayment: sale.date_of_payment || sale.date || '',
+                                        paymentMethod: sale.method_of_payment || sale.payment_method || ''
                                     };
                                 });
 
                                 // Create workbook and worksheet
-                                const wb = XLSX.utils.book_new();
-                                const ws = XLSX.utils.json_to_sheet(data);
+                                const workbook = new ExcelJS.Workbook();
+                                const worksheet = workbook.addWorksheet('Sales Data');
 
-                                // Auto-size columns
-                                const colWidths = [
-                                    { wch: 20 }, // Customer Name
-                                    { wch: 15 }, // Item
-                                    { wch: 10 }, // Quantity
-                                    { wch: 12 }, // Rate (UGX)
-                                    { wch: 15 }, // Amount (UGX)
-                                    { wch: 15 }, // Date of Payment
-                                    { wch: 15 }  // Payment Method
+                                // Define columns
+                                worksheet.columns = [
+                                    { header: 'Customer Name', key: 'customerName', width: 20 },
+                                    { header: 'Item', key: 'item', width: 15 },
+                                    { header: 'Quantity', key: 'quantity', width: 10 },
+                                    { header: 'Rate (UGX)', key: 'rate', width: 12 },
+                                    { header: 'Amount (UGX)', key: 'amount', width: 15 },
+                                    { header: 'Date of Payment', key: 'dateOfPayment', width: 15 },
+                                    { header: 'Payment Method', key: 'paymentMethod', width: 15 }
                                 ];
-                                ws['!cols'] = colWidths;
 
-                                // Add worksheet to workbook
-                                XLSX.utils.book_append_sheet(wb, ws, 'Sales Data');
+                                // Add rows
+                                data.forEach(row => worksheet.addRow(row));
 
                                 // Generate and download file
-                                XLSX.writeFile(wb, `sales_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+                                const buffer = await workbook.xlsx.writeBuffer();
+                                const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                                const url = window.URL.createObjectURL(blob);
+                                const anchor = document.createElement('a');
+                                anchor.href = url;
+                                anchor.download = `sales_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+                                anchor.click();
+                                window.URL.revokeObjectURL(url);
                             }}
                             className="py-2 px-4 shadow-xl rounded-xl font-semibold hover:shadow-2xl transition-all duration-200"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}

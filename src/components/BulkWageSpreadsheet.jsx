@@ -1,9 +1,14 @@
-import { useState, useEffect } from 'react';
-import Spreadsheet from 'react-spreadsheet';
-import { X, Plus, Trash2, Save } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { HotTable } from '@handsontable/react';
+import { registerAllModules } from 'handsontable/registry';
+import 'handsontable/dist/handsontable.full.min.css';
+import { X, Plus, Trash2, Save, Users } from 'lucide-react';
 
-const STAFF_API_ENDPOINT = 'http://142.93.94.236:8000/api/staff/';
-const WAGES_API_ENDPOINT = 'http://142.93.94.236:8000/api/wages/';
+// Register Handsontable modules
+registerAllModules();
+
+const STAFF_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/staff/`;
+const WAGES_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/wages/`;
 
 const CUSTOM_COLORS = {
     headerBg: '#702A0B',
@@ -13,65 +18,28 @@ const CUSTOM_COLORS = {
     inputBorder: '#B8A072',
 };
 
-// Add custom styles for the spreadsheet
-const spreadsheetStyles = `
-    .Spreadsheet {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    .Spreadsheet__table {
-        border: 2px solid ${CUSTOM_COLORS.inputBorder};
-        width: 100%;
-    }
-    .Spreadsheet__header {
-        background-color: ${CUSTOM_COLORS.headerBg};
-        color: white;
-        font-weight: bold;
-        padding: 10px;
-        text-align: left;
-    }
-    .Spreadsheet__cell {
-        border: 1px solid ${CUSTOM_COLORS.inputBorder};
-        padding: 8px;
-        min-width: 120px;
-    }
-    .Spreadsheet__cell input {
-        width: 100%;
-        border: none;
-        outline: none;
-        background: transparent;
-        padding: 4px;
-    }
-    .Spreadsheet__cell--readonly {
-        background-color: #f5f5f5;
-        color: #666;
-    }
-`;
-
-// Inject styles
-if (typeof document !== 'undefined') {
-    const styleSheet = document.createElement('style');
-    styleSheet.textContent = spreadsheetStyles;
-    document.head.appendChild(styleSheet);
-}
-
 const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
+    const hotTableRef = useRef(null);
     const [staff, setStaff] = useState([]);
     const [loadingStaff, setLoadingStaff] = useState(true);
+    const [selectedStaff, setSelectedStaff] = useState([]);
     const [data, setData] = useState([]);
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState('');
     const [totalAmount, setTotalAmount] = useState(0);
-    const [showAllStaff, setShowAllStaff] = useState(false);
-
-    // Column headers
-    const columnLabels = ['Employee', 'Date of Payment', 'Days Missed', 'Monthly Salary', 'Amount Paid'];
+    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+    const [showStaffSelector, setShowStaffSelector] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const fetchStaff = async () => {
             try {
                 setLoadingStaff(true);
-                const response = await fetch(STAFF_API_ENDPOINT);
+                const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+                const headers = {};
+                if (token) headers['Authorization'] = `Token ${token}`;
+
+                const response = await fetch(STAFF_API_ENDPOINT, { headers });
                 if (!response.ok) throw new Error('Failed to fetch staff');
                 const staffData = await response.json();
                 const staffList = Array.isArray(staffData) ? staffData : staffData.results || [];
@@ -85,106 +53,202 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
         };
 
         if (isOpen) {
-            // Reset all state when modal opens
             setMessage('');
             setTotalAmount(0);
             setSubmitting(false);
-            setShowAllStaff(false);
+            setSelectedStaff([]);
+            setData([]);
+            setSearchTerm('');
+            setPaymentDate(new Date().toISOString().split('T')[0]);
             fetchStaff();
-            // Initialize with 5 empty rows
-            initializeRows(5);
         }
     }, [isOpen]);
 
-    const initializeRows = (count) => {
-        const today = new Date().toISOString().split('T')[0];
-        const rows = [];
-        for (let i = 0; i < count; i++) {
-            rows.push([
-                { value: '' }, // Employee
-                { value: today }, // Date of Payment
-                { value: 0 }, // Days Missed
-                { value: 0, readOnly: true }, // Monthly Salary (auto-filled)
-                { value: 0, readOnly: true } // Amount Paid (calculated)
-            ]);
+    // Update spreadsheet data when staff selection changes
+    useEffect(() => {
+        if (selectedStaff.length > 0) {
+            const rows = selectedStaff.map(staffId => {
+                const staffMember = staff.find(s => (s.staff_id || s.id) === staffId);
+                return {
+                    staffId: staffId,
+                    employeeName: staffMember ? `${staffMember.first_name} ${staffMember.last_name}` : '',
+                    daysMissed: 0,
+                    monthlySalary: staffMember ? (staffMember.monthly_salary || 0) : 0,
+                    amountPaid: staffMember ? (staffMember.monthly_salary || 0) : 0
+                };
+            });
+            setData(rows);
+            calculateTotal(rows);
+        } else {
+            setData([]);
+            setTotalAmount(0);
         }
-        setData(rows);
-    };
+    }, [selectedStaff, staff]);
 
     const calculateAmountPaid = (monthlySalary, daysMissed) => {
+        // Match single wage entry logic: (monthly_pay / 30) * days_worked
         const salary = parseFloat(monthlySalary) || 0;
         const missed = parseFloat(daysMissed) || 0;
+
         if (salary <= 0) return 0;
+
+        // If no days missed, return full salary (avoids floating point errors)
+        if (missed === 0) return salary;
+
         const dailyRate = salary / 30;
         const daysWorked = 30 - missed;
         const amountPaid = dailyRate * daysWorked;
-        return Math.max(0, Math.round(amountPaid / 100) * 100);
+
+        // Round to nearest whole number for clean display
+        return Math.round(Math.max(0, amountPaid));
     };
 
-    const handleDataChange = (newData) => {
-        // Update data with auto-calculations
-        const updatedData = newData.map((row) => {
-            const employeeName = row[0]?.value || '';
-            const daysMissed = parseFloat(row[2]?.value) || 0;
-
-            // Find staff member by name
-            const selectedStaff = staff.find(s => {
-                const fullName = `${s.first_name} ${s.last_name}`;
-                return fullName.toLowerCase() === employeeName.toLowerCase() ||
-                       employeeName.toLowerCase().includes(s.first_name.toLowerCase()) ||
-                       employeeName.toLowerCase().includes(s.last_name.toLowerCase());
-            });
-
-            const monthlySalary = selectedStaff ? (selectedStaff.monthly_salary || selectedStaff.base_pay || 0) : 0;
-            const amountPaid = calculateAmountPaid(monthlySalary, daysMissed);
-
-            return [
-                row[0], // Employee
-                row[1], // Date of Payment
-                { ...row[2], value: daysMissed }, // Days Missed
-                { value: monthlySalary, readOnly: true }, // Monthly Salary
-                { value: amountPaid, readOnly: true } // Amount Paid
-            ];
-        });
-
-        setData(updatedData);
-
-        // Calculate total amount
-        const total = updatedData.reduce((sum, row) => {
-            return sum + (parseFloat(row[4]?.value) || 0);
+    const calculateTotal = (rows) => {
+        const total = rows.reduce((sum, row) => {
+            return sum + (parseFloat(row.amountPaid) || 0);
         }, 0);
         setTotalAmount(total);
     };
 
-    const addRow = () => {
-        const today = new Date().toISOString().split('T')[0];
-        const newRow = [
-            { value: '' },
-            { value: today },
-            { value: 0 },
-            { value: 0, readOnly: true },
-            { value: 0, readOnly: true }
-        ];
-        setData([...data, newRow]);
+    const handleStaffToggle = (staffId) => {
+        setSelectedStaff(prev => {
+            if (prev.includes(staffId)) {
+                return prev.filter(id => id !== staffId);
+            } else {
+                return [...prev, staffId];
+            }
+        });
     };
 
-    const removeLastRow = () => {
-        if (data.length > 1) {
-            setData(data.slice(0, -1));
+    const handleSelectAll = () => {
+        const filteredStaffIds = getFilteredStaff().map(s => s.staff_id || s.id);
+        if (selectedStaff.length === filteredStaffIds.length) {
+            setSelectedStaff([]);
+        } else {
+            setSelectedStaff(filteredStaffIds);
         }
     };
 
-    const handleSubmit = async () => {
-        // Validate data
-        const validRows = data.filter(row => {
-            const employeeName = row[0]?.value;
-            const dateOfPayment = row[1]?.value;
-            const daysMissed = row[2]?.value;
-            return employeeName && dateOfPayment && daysMissed !== '';
+    const getFilteredStaff = () => {
+        if (!searchTerm) return staff;
+        const term = searchTerm.toLowerCase();
+        return staff.filter(s => {
+            const fullName = `${s.first_name} ${s.last_name}`.toLowerCase();
+            return fullName.includes(term) ||
+                   s.first_name?.toLowerCase().includes(term) ||
+                   s.last_name?.toLowerCase().includes(term);
         });
+    };
 
-        if (validRows.length === 0) {
-            setMessage('Please fill in at least one complete row');
+    // Define columns for Handsontable
+    const columns = [
+        {
+            data: 'employeeName',
+            title: 'Employee Name',
+            type: 'text',
+            readOnly: true,
+            className: 'htLeft htMiddle'
+        },
+        {
+            data: 'daysMissed',
+            title: 'Days Missed',
+            type: 'numeric',
+            numericFormat: {
+                pattern: '0'
+            },
+            className: 'htCenter htMiddle'
+        },
+        {
+            data: 'monthlySalary',
+            title: 'Monthly Salary (UGX)',
+            type: 'numeric',
+            numericFormat: {
+                pattern: '0,0'
+            },
+            readOnly: true,
+            className: 'htRight htMiddle'
+        },
+        {
+            data: 'amountPaid',
+            title: 'Amount Paid (UGX)',
+            type: 'numeric',
+            numericFormat: {
+                pattern: '0,0'
+            },
+            readOnly: true,
+            className: 'htRight htMiddle'
+        }
+    ];
+
+    const handleAfterChange = (changes, source) => {
+        console.log('=== handleAfterChange TRIGGERED ===');
+        console.log('Source:', source);
+        console.log('Changes:', changes);
+
+        // Skip loadData, internal, and updateData sources
+        if (source === 'loadData' || source === 'internal' || source === 'updateData') {
+            console.log('Skipping because source is:', source);
+            return;
+        }
+
+        const hot = hotTableRef.current?.hotInstance;
+        if (!hot) {
+            console.log('No hot instance available');
+            return;
+        }
+
+        if (!changes) {
+            console.log('No changes detected');
+            return;
+        }
+
+        console.log('Processing changes - total rows:', hot.countRows());
+
+        // Recalculate amount paid for all rows whenever any change happens
+        for (let row = 0; row < hot.countRows(); row++) {
+            const daysMissed = parseFloat(hot.getDataAtRowProp(row, 'daysMissed')) || 0;
+            const monthlySalary = parseFloat(hot.getDataAtRowProp(row, 'monthlySalary')) || 0;
+            const employeeName = hot.getDataAtRowProp(row, 'employeeName');
+
+            // Validate days missed
+            let validatedDaysMissed = daysMissed;
+            if (validatedDaysMissed < 0) {
+                validatedDaysMissed = 0;
+            }
+            if (validatedDaysMissed > 30) {
+                validatedDaysMissed = 30;
+            }
+
+            const amountPaid = calculateAmountPaid(monthlySalary, validatedDaysMissed);
+
+            console.log(`Row ${row + 1}: ${employeeName}`);
+            console.log(`  - Days Missed: ${validatedDaysMissed}`);
+            console.log(`  - Monthly Salary: ${monthlySalary}`);
+            console.log(`  - Days Worked: ${30 - validatedDaysMissed}`);
+            console.log(`  - Amount Paid: ${amountPaid}`);
+
+            // Update the amount paid cell directly in the table with 'internal' source
+            const currentAmount = hot.getDataAtRowProp(row, 'amountPaid');
+            if (currentAmount !== amountPaid) {
+                hot.setDataAtCell(row, 3, amountPaid, 'internal'); // Column 3 is amountPaid, source='internal'
+            }
+        }
+
+        // Calculate total from the table data
+        let total = 0;
+        for (let row = 0; row < hot.countRows(); row++) {
+            const amount = parseFloat(hot.getDataAtRowProp(row, 'amountPaid')) || 0;
+            total += amount;
+        }
+        setTotalAmount(total);
+
+        console.log('=== handleAfterChange COMPLETE ===');
+    };
+
+    const handleSubmit = async () => {
+        const hot = hotTableRef.current?.hotInstance;
+        if (!hot || hot.countRows() === 0) {
+            setMessage('Please select staff members to record wages');
             return;
         }
 
@@ -201,7 +265,7 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
             try {
                 const userPhone = localStorage.getItem('userPhone') || sessionStorage.getItem('userPhone');
                 if (userPhone) {
-                    const userResponse = await fetch('http://142.93.94.236:8000/api/users/', {
+                    const userResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/users/`, {
                         headers: token ? { 'Authorization': `Token ${token}` } : {}
                     });
                     if (userResponse.ok) {
@@ -223,35 +287,27 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
                 recordedBy = localStorage.getItem('userName') || 'Unknown User';
             }
 
-            // Submit all valid rows
+            // Get data from Handsontable and submit all rows
             const results = [];
-            for (const row of validRows) {
-                const employeeName = row[0]?.value;
-                const dateOfPayment = row[1]?.value;
-                const daysMissed = parseFloat(row[2]?.value) || 0;
-                const monthlySalary = parseFloat(row[3]?.value) || 0;
-                const amountPaid = parseFloat(row[4]?.value) || 0;
-
-                // Find staff member by name
-                const selectedStaff = staff.find(s => {
-                    const fullName = `${s.first_name} ${s.last_name}`;
-                    return fullName.toLowerCase() === employeeName.toLowerCase() ||
-                           employeeName.toLowerCase().includes(s.first_name.toLowerCase()) ||
-                           employeeName.toLowerCase().includes(s.last_name.toLowerCase());
-                });
+            for (let rowIndex = 0; rowIndex < hot.countRows(); rowIndex++) {
+                const employeeName = hot.getDataAtRowProp(rowIndex, 'employeeName');
+                const daysMissed = parseFloat(hot.getDataAtRowProp(rowIndex, 'daysMissed')) || 0;
+                const monthlySalary = parseFloat(hot.getDataAtRowProp(rowIndex, 'monthlySalary')) || 0;
+                const amountPaid = parseFloat(hot.getDataAtRowProp(rowIndex, 'amountPaid')) || 0;
+                const staffId = data[rowIndex]?.staffId; // Get staffId from original data
 
                 const daysWorked = 30 - daysMissed;
 
                 const payload = {
                     employee_name: employeeName,
-                    staff: selectedStaff?.staff_id || selectedStaff?.id || null,
-                    date_of_payment: dateOfPayment,
+                    staff: staffId,
+                    date_of_payment: paymentDate,
                     days_worked: daysWorked,
                     days_missed: daysMissed,
                     monthly_pay: monthlySalary || null,
                     amount_paid: amountPaid,
                     deduction: 0,
-                    noted_reason: `Bulk entry - Days missed: ${daysMissed}`,
+                    noted_reason: daysMissed > 0 ? `Bulk entry - Days missed: ${daysMissed}` : 'Bulk entry - Full month',
                     recorded_by: recordedBy,
                 };
 
@@ -308,6 +364,8 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
 
     if (!isOpen) return null;
 
+    const filteredStaff = getFilteredStaff();
+
     return (
         <div
             className="fixed inset-0 z-50 overflow-y-auto flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
@@ -316,7 +374,7 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
             }}
         >
             <div
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl mx-4 my-8 overflow-hidden"
+                className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl mx-4 my-8 overflow-hidden"
                 style={{ maxHeight: '90vh' }}
             >
                 {/* Header */}
@@ -324,7 +382,7 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
                     className="px-6 py-4 flex items-center justify-between border-b-2"
                     style={{ backgroundColor: CUSTOM_COLORS.headerBg, borderColor: CUSTOM_COLORS.inputBorder }}
                 >
-                    <h2 className="text-2xl font-bold text-white">Bulk Wage Entry - Spreadsheet</h2>
+                    <h2 className="text-2xl font-bold text-white">Bulk Wage Entry</h2>
                     <button
                         onClick={onClose}
                         className="text-white hover:text-gray-200 transition-colors p-2 rounded-full hover:bg-white/10"
@@ -341,71 +399,192 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
                         </div>
                     ) : (
                         <>
-                            <div className="mb-4">
+                            {/* Instructions */}
+                            <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: CUSTOM_COLORS.cardBg }}>
                                 <p className="text-sm mb-2" style={{ color: CUSTOM_COLORS.headerBg }}>
-                                    <strong>Instructions:</strong> Enter employee names in the first column. Enter days missed (the system will auto-calculate amount paid based on monthly salary).
+                                    <strong>Instructions:</strong>
                                 </p>
-                                <div className="mb-2">
-                                    <p className="text-sm font-semibold mb-2" style={{ color: CUSTOM_COLORS.headerBg }}>
-                                        Available Staff ({staff.length} total):
-                                    </p>
-                                    <div className="flex flex-wrap gap-2 text-xs" style={{ color: CUSTOM_COLORS.headerBg }}>
-                                        {(showAllStaff ? staff : staff.slice(0, 10)).map((s, idx) => (
-                                            <span key={idx} className="px-2 py-1 rounded" style={{ backgroundColor: CUSTOM_COLORS.cardBg }}>
-                                                {s.first_name} {s.last_name}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    {staff.length > 10 && (
-                                        <button
-                                            onClick={() => setShowAllStaff(!showAllStaff)}
-                                            className="mt-2 text-xs underline hover:no-underline"
-                                            style={{ color: CUSTOM_COLORS.actionBg }}
-                                        >
-                                            {showAllStaff ? 'Show Less' : `View All ${staff.length} Staff Members`}
-                                        </button>
-                                    )}
+                                <ol className="text-sm list-decimal list-inside space-y-1" style={{ color: CUSTOM_COLORS.headerBg }}>
+                                    <li>Select staff members to pay using the "Select Staff" button</li>
+                                    <li>Set the payment date for all wages</li>
+                                    <li>Enter days missed for each employee (optional, defaults to 0)</li>
+                                    <li>Review the auto-calculated amounts and submit</li>
+                                </ol>
+                            </div>
+
+                            {/* Payment Date and Staff Selection */}
+                            <div className="mb-4 flex gap-4 items-end">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-semibold mb-2" style={{ color: CUSTOM_COLORS.headerBg }}>
+                                        Payment Date (applies to all wages)
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={paymentDate}
+                                        onChange={(e) => setPaymentDate(e.target.value)}
+                                        className="w-full px-4 py-2 rounded-lg border-2 focus:outline-none focus:ring-2"
+                                        style={{
+                                            borderColor: CUSTOM_COLORS.inputBorder,
+                                            backgroundColor: CUSTOM_COLORS.inputBg
+                                        }}
+                                    />
                                 </div>
-                            </div>
-
-                            <div className="mb-4 overflow-x-auto">
-                                <Spreadsheet
-                                    data={data}
-                                    onChange={handleDataChange}
-                                    columnLabels={columnLabels}
-                                    className="border rounded"
-                                />
-                            </div>
-
-                            <div className="flex gap-3 mb-4">
                                 <button
-                                    onClick={addRow}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-white font-semibold hover:opacity-90 transition"
+                                    onClick={() => setShowStaffSelector(!showStaffSelector)}
+                                    className="px-4 py-2 rounded-lg font-semibold text-white flex items-center gap-2 hover:opacity-90 transition"
                                     style={{ backgroundColor: CUSTOM_COLORS.actionBg }}
                                 >
-                                    <Plus size={18} />
-                                    Add Row
-                                </button>
-                                <button
-                                    onClick={removeLastRow}
-                                    disabled={data.length <= 1}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-semibold hover:bg-gray-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    style={{
-                                        borderColor: CUSTOM_COLORS.inputBorder,
-                                        color: CUSTOM_COLORS.headerBg
-                                    }}
-                                >
-                                    <Trash2 size={18} />
-                                    Remove Row
+                                    <Users size={18} />
+                                    Select Staff ({selectedStaff.length})
                                 </button>
                             </div>
 
-                            <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: CUSTOM_COLORS.cardBg }}>
-                                <p className="text-lg font-bold" style={{ color: CUSTOM_COLORS.headerBg }}>
-                                    Total Amount to be Paid: UGX {totalAmount.toLocaleString()}
-                                </p>
-                            </div>
+                            {/* Staff Selector Panel */}
+                            {showStaffSelector && (
+                                <div className="mb-4 border-2 rounded-lg p-4" style={{ borderColor: CUSTOM_COLORS.inputBorder }}>
+                                    <div className="flex justify-between items-center mb-3">
+                                        <h3 className="font-semibold" style={{ color: CUSTOM_COLORS.headerBg }}>
+                                            Select Staff Members ({selectedStaff.length} selected)
+                                        </h3>
+                                        <button
+                                            onClick={handleSelectAll}
+                                            className="text-sm px-3 py-1 rounded border hover:bg-gray-50"
+                                            style={{ borderColor: CUSTOM_COLORS.inputBorder, color: CUSTOM_COLORS.headerBg }}
+                                        >
+                                            {selectedStaff.length === filteredStaff.length ? 'Deselect All' : 'Select All'}
+                                        </button>
+                                    </div>
 
+                                    {/* Search */}
+                                    <input
+                                        type="text"
+                                        placeholder="Search staff by name..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full px-3 py-2 mb-3 rounded border"
+                                        style={{ borderColor: CUSTOM_COLORS.inputBorder }}
+                                    />
+
+                                    {/* Staff List */}
+                                    <div className="max-h-60 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        {filteredStaff.map((s) => {
+                                            const staffId = s.staff_id || s.id;
+                                            const isSelected = selectedStaff.includes(staffId);
+                                            return (
+                                                <label
+                                                    key={staffId}
+                                                    className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50"
+                                                    style={{
+                                                        backgroundColor: isSelected ? CUSTOM_COLORS.cardBg : 'transparent'
+                                                    }}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleStaffToggle(staffId)}
+                                                        className="w-4 h-4"
+                                                    />
+                                                    <span className="text-sm" style={{ color: CUSTOM_COLORS.headerBg }}>
+                                                        {s.first_name} {s.last_name}
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Spreadsheet */}
+                            {data.length > 0 ? (
+                                <div className="mb-4">
+                                    <HotTable
+                                        ref={hotTableRef}
+                                        data={data}
+                                        columns={columns}
+                                        colHeaders={true}
+                                        rowHeaders={true}
+                                        width="100%"
+                                        height="300"
+                                        licenseKey="non-commercial-and-evaluation"
+                                        afterChange={handleAfterChange}
+                                        afterInit={() => {
+                                            console.log('✅ HotTable initialized successfully');
+                                            console.log('Rows:', hotTableRef.current?.hotInstance?.countRows());
+                                            console.log('Columns:', hotTableRef.current?.hotInstance?.countCols());
+                                        }}
+                                        beforeChange={(changes, source) => {
+                                            console.log('🔄 beforeChange triggered');
+                                            console.log('Changes about to be made:', changes);
+                                            console.log('Source:', source);
+
+                                            if (!changes) return;
+
+                                            // Validate days missed to max 2 digits
+                                            changes.forEach((change, index) => {
+                                                const [row, prop, oldValue, newValue] = change;
+
+                                                // Check if this change is to the daysMissed column
+                                                if (prop === 'daysMissed' || prop === 1) {
+                                                    if (newValue !== null && newValue !== undefined && newValue !== '') {
+                                                        // Convert to string to check length
+                                                        const valueStr = String(newValue);
+
+                                                        // If more than 2 digits, truncate to first 2 digits
+                                                        if (valueStr.length > 2) {
+                                                            changes[index][3] = parseInt(valueStr.substring(0, 2));
+                                                            console.log(`Days missed truncated from ${valueStr} to ${changes[index][3]}`);
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                        }}
+                                        afterSelection={(row, col, row2, col2) => {
+                                            const hot = hotTableRef.current?.hotInstance;
+                                            if (hot) {
+                                                const prop = hot.colToProp(col);
+                                                console.log(`📍 Cell selected: Row ${row}, Column: ${prop}`);
+                                            }
+                                        }}
+                                        afterBeginEditing={(row, col) => {
+                                            const hot = hotTableRef.current?.hotInstance;
+                                            if (hot) {
+                                                const prop = hot.colToProp(col);
+                                                const value = hot.getDataAtRowProp(row, prop);
+                                                console.log(`✏️ Started editing: Row ${row}, Column: ${prop}, Value: ${value}`);
+                                            }
+                                        }}
+                                        stretchH="all"
+                                        autoWrapRow={true}
+                                        autoWrapCol={true}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="mb-4 p-8 rounded-lg text-center" style={{ backgroundColor: CUSTOM_COLORS.cardBg }}>
+                                    <p style={{ color: CUSTOM_COLORS.headerBg }}>
+                                        No staff selected. Click "Select Staff" to choose employees to pay.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Summary */}
+                            {data.length > 0 && (
+                                <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: CUSTOM_COLORS.cardBg }}>
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <p className="text-sm" style={{ color: CUSTOM_COLORS.headerBg }}>
+                                                Total Staff: {data.length}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-lg font-bold" style={{ color: CUSTOM_COLORS.headerBg }}>
+                                                Total Amount: UGX {totalAmount.toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Message */}
                             {message && (
                                 <div
                                     className="mb-4 p-3 rounded-lg text-sm font-semibold text-center"
@@ -439,12 +618,12 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={submitting || loadingStaff}
+                        disabled={submitting || loadingStaff || data.length === 0}
                         className="px-6 py-3 rounded-xl font-semibold text-white flex items-center gap-2 hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: CUSTOM_COLORS.actionBg }}
                     >
                         <Save size={18} />
-                        {submitting ? 'Submitting...' : 'Submit All Wages'}
+                        {submitting ? 'Submitting...' : `Submit ${data.length} Wage(s)`}
                     </button>
                 </div>
             </div>
