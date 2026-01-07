@@ -530,14 +530,14 @@ const AggregationPage = () => {
                                             Date Delivered
                                            </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            Grade  
+                                            Coffee Type  
                                               </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            Quality Control 
+                                            Weight on Delivery 
                                         </th>
                                         
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            Ripeness Score
+                                            Location of Delivery
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Actions
