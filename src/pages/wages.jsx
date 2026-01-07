@@ -389,6 +389,7 @@ import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, Ar
 import { SideNav } from '../components/SideNav';
 import { generateAndDownloadVoucher, validateWageRecordForVoucher } from '../utils/voucherGeneration';
 import BulkWageSpreadsheet from '../components/BulkWageSpreadsheet';
+import * as XLSX from 'xlsx';
 
 const styleElement = document.createElement('style');
 styleElement.innerHTML = `
@@ -1711,6 +1712,48 @@ function Wages() {
         navigate(`/voucher?id=${wage.id}`);
     };
 
+    const handleExportToExcel = () => {
+        try {
+            // Prepare data for export - exclude actions column
+            const exportData = sortedWages.map((wage) => ({
+                "Employee": wage.employee_name || "N/A",
+                "Date Paid": wage.date_of_payment || "-",
+                "Days Missed": wage.days_missed || 0,
+                "Amount Paid (UGX)": wage.amount_paid && wage.amount_paid > 0
+                    ? wage.amount_paid.toLocaleString('en-US')
+                    : "-",
+            }));
+
+            // Create a new workbook
+            const worksheet = XLSX.utils.json_to_sheet(exportData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Wage Records");
+
+            // Auto-size columns
+            const maxWidth = 30;
+            const colWidths = Object.keys(exportData[0] || {}).map((key) => ({
+                wch: Math.min(
+                    Math.max(
+                        key.length,
+                        ...exportData.map((row) => String(row[key] || "").length)
+                    ),
+                    maxWidth
+                ),
+            }));
+            worksheet["!cols"] = colWidths;
+
+            // Generate filename with current date
+            const date = new Date().toISOString().split("T")[0];
+            const filename = `Wage_Records_${date}.xlsx`;
+
+            // Write the file
+            XLSX.writeFile(workbook, filename);
+        } catch (error) {
+            console.error("Error exporting to Excel:", error);
+            alert("Failed to export to Excel. Please try again.");
+        }
+    };
+
     const confirmDelete = async () => {
         if (wageToDelete) {
             setDeleting(true);
@@ -1929,7 +1972,7 @@ function Wages() {
                             <DollarSign className="w-4 h-4 mr-2" />
                             Bulk Record Wages
                         </button>
-                        <Button type="secondary" onClick={() => alert('Exporting data...')} className="py-2 px-4 shadow-xl">
+                        <Button type="secondary" onClick={handleExportToExcel} className="py-2 px-4 shadow-xl">
                             Export to Excel
                         </Button>
                         <button

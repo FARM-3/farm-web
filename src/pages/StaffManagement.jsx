@@ -29,6 +29,7 @@ import "@geoapify/geocoder-autocomplete/styles/minimal.css";
 import LocationSelector from "../components/LocationSelector";
 import CustomAutocomplete from "../components/CustomAutocomplete";
 import BulkStaffSpreadsheet from "../components/BulkStaffSpreadsheet";
+import * as XLSX from "xlsx";
 
 const CoffeeColors = {
   SCREEN_BG: "#FFF8F6",
@@ -3200,6 +3201,59 @@ function StaffPage() {
     setIsStaffModalOpen(true);
   };
 
+  const handleExportToExcel = () => {
+    try {
+      // Prepare data for export - exclude actions column
+      const exportData = sortedStaff.map((staffMember) => ({
+        "Staff ID": staffMember.staff_id || "N/A",
+        "First Name": staffMember.first_name || "N/A",
+        "Last Name": staffMember.last_name || "N/A",
+        "Gender": staffMember.gender || "-",
+        "NIN": staffMember.nin || "-",
+        "District": staffMember.district || "-",
+        "Sub County": staffMember.sub_county || "-",
+        "Parish": staffMember.parish || "-",
+        "Village": staffMember.village || "-",
+        "Employment Status": staffMember.employment_type || "-",
+        "Hire Date": staffMember.hire_date || staffMember.date_hired || "-",
+        "Monthly Salary (UGX)":
+          staffMember.monthly_salary && staffMember.monthly_salary > 0
+            ? staffMember.monthly_salary.toLocaleString('en-US')
+            : staffMember.salary && staffMember.salary > 0
+            ? staffMember.salary.toLocaleString('en-US')
+            : "-",
+      }));
+
+      // Create a new workbook
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Staff Records");
+
+      // Auto-size columns
+      const maxWidth = 30;
+      const colWidths = Object.keys(exportData[0] || {}).map((key) => ({
+        wch: Math.min(
+          Math.max(
+            key.length,
+            ...exportData.map((row) => String(row[key] || "").length)
+          ),
+          maxWidth
+        ),
+      }));
+      worksheet["!cols"] = colWidths;
+
+      // Generate filename with current date
+      const date = new Date().toISOString().split("T")[0];
+      const filename = `Staff_Records_${date}.xlsx`;
+
+      // Write the file
+      XLSX.writeFile(workbook, filename);
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      alert("Failed to export to Excel. Please try again.");
+    }
+  };
+
   const handleEditStaff = (staffMember) => {
     // convert to modal shape when opening
     setStaffToEdit({
@@ -3909,9 +3963,7 @@ function StaffPage() {
               Bulk Staff Entry
             </button>
             <button
-              onClick={() =>
-                alert("Exporting to Excel is not yet implemented.")
-              }
+              onClick={handleExportToExcel}
               className="py-2 px-4 shadow-xl rounded-xl font-semibold hover:shadow-2xl transition-all duration-200"
               style={{
                 backgroundColor: "#efebe9",
