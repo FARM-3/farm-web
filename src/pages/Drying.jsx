@@ -17,7 +17,7 @@ const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
     <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
         <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-medium tracking-wide uppercase text-gray-600">{title}</h3>
-            <Icon size={20} style={{ color: '#FFA500' }} />
+            
         </div>
         {loading ? (
             <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#FFA500' }} />
@@ -188,7 +188,7 @@ const Drying = () => {
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h1 className="text-3xl font-bold flex items-center gap-3" style={{ color: '#4A3423' }}>
-                            <CloudRain size={32} style={{ color: '#FFA500' }} />
+                        
                             Drying Management
                         </h1>
                         <p className="text-gray-600 mt-1">Track drying operations and measurements</p>
