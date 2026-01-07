@@ -189,7 +189,7 @@ const Drying = () => {
                     <div>
                         <h1 className="text-3xl font-bold flex items-center gap-3" style={{ color: '#4A3423' }}>
                             <CloudRain size={32} style={{ color: '#FFA500' }} />
-                            Drying
+                            Drying Management
                         </h1>
                         <p className="text-gray-600 mt-1">Track drying operations and measurements</p>
                     </div>
@@ -208,7 +208,7 @@ const Drying = () => {
                             style={{ backgroundColor:  '#8B4513'}}
                         >
                             <Plus className="w-4 h-4" />
-                            New Record
+                            New Drying Batch
                         </button>
                     </div>
                 </div>
@@ -224,9 +224,9 @@ const Drying = () => {
                 )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-                    <KPICard title="Total Records" value={totalRecords} subtitle="Drying records" icon={CloudRain} loading={loading} />
-                    <KPICard title="Average Moisture" value={`${avgMoisture}%`} subtitle="Mean moisture" icon={TrendingUp} loading={loading} />
-                    <KPICard title="Total Weight" value={`${totalWeight.toLocaleString()} kg`} subtitle="Combined weight" icon={TrendingUp} loading={loading} />
+                    <KPICard title="ACTIVE BACTCHES" value={totalRecords} subtitle="Currently Drying" icon={CloudRain} loading={loading} />
+                    <KPICard title="COMPLETED BATCHES" value={`${avgMoisture}%`} subtitle="Finished Drying" icon={TrendingUp} loading={loading} />
+                    
                 </div>
 
                 <div className="bg-white shadow-xl rounded-2xl overflow-hidden">
