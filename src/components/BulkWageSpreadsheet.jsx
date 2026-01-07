@@ -347,7 +347,7 @@ const BulkWageSpreadsheet = ({ isOpen, onClose, onSaveSuccess }) => {
                 setTimeout(() => {
                     onSaveSuccess();
                     onClose();
-                }, 1500);
+                }, 300); // Reduced from 1500ms for faster UX
             } else if (successCount > 0 && failCount > 0) {
                 setMessage(`Recorded ${successCount} wage(s), but ${failCount} failed.`);
             } else {
