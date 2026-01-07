@@ -589,19 +589,23 @@ const ModalSectionHeader = ({ icon: Icon, title }) => (
 const getFieldErrorMessage = (name, value) => {
     if (name === 'amount') {
         if (!value || value.trim() === '') return 'Amount is required';
-        const numValue = parseFloat(value);
+        // Remove commas before validation
+        const valueWithoutCommas = value.replace(/,/g, '');
+        const numValue = parseFloat(valueWithoutCommas);
         if (isNaN(numValue)) return 'Must be a valid number';
         if (numValue <= 0) return 'Must be a positive number';
-        if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Must be a valid currency format';
+        if (!/^\d+(\.\d{1,2})?$/.test(valueWithoutCommas)) return 'Must be a valid currency format';
         return null; // No error
     }
 
     if (name === 'unit_cost') {
         if (!value || value.trim() === '') return 'Unit cost is required';
-        const numValue = parseFloat(value);
+        // Remove commas before validation
+        const valueWithoutCommas = value.replace(/,/g, '');
+        const numValue = parseFloat(valueWithoutCommas);
         if (isNaN(numValue)) return 'Must be a valid number';
         if (numValue <= 0) return 'Must be a positive number';
-        if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Must be a valid currency format';
+        if (!/^\d+(\.\d{1,2})?$/.test(valueWithoutCommas)) return 'Must be a valid currency format';
         return null; // No error
     }
 
@@ -666,7 +670,7 @@ const InputField = ({ label, name, value, onChange, placeholder, required, type 
                     placeholder={placeholder}
                     required={required}
                     rows="3"
-                    className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                    className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 placeholder:text-gray-400 placeholder:italic"
                     style={{
                         backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
                         borderColor: borderColor,
@@ -684,7 +688,7 @@ const InputField = ({ label, name, value, onChange, placeholder, required, type 
                     required={required}
                     type={type}
                     step={type === 'number' || name === 'amount' ? '0.01' : undefined}
-                    className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                    className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 placeholder:text-gray-400 placeholder:italic"
                     style={{
                         backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
                         borderColor: borderColor,
@@ -769,15 +773,24 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                 setIsEditing(true);
                 setEditId(String(editExpense.id));
                 console.log('Setting editId to:', String(editExpense.id));
+
+                // Format unit_cost and amount with commas
+                const formattedUnitCost = editExpense.unit_cost
+                    ? parseFloat(editExpense.unit_cost).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+                    : '';
+                const formattedAmount = editExpense.amount
+                    ? parseFloat(editExpense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : '';
+
                 setFormData({
                     expense_name: editExpense.expense_name || '',
                     category: editExpense.category || '',
                     item: editExpense.item || '',
                     supplier: editExpense.supplier || '',
                     description: editExpense.description || '',
-                    unit_cost: editExpense.unit_cost?.toString() || '',
+                    unit_cost: formattedUnitCost,
                     quantity: editExpense.quantity?.toString() || '',
-                    amount: editExpense.amount?.toString() || '',
+                    amount: formattedAmount,
                     date: editExpense.date || new Date().toISOString().substring(0, 10),
                     location: editExpense.location || '',
                 });
@@ -833,22 +846,45 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
     const handleUnitCostQuantityChange = (e) => {
         const { name, value } = e.target;
 
+        // Remove commas from input for validation and calculation
+        const valueWithoutCommas = value.replace(/,/g, '');
+
         // Allow only valid inputs
-        let validValue = value;
+        let validValue = valueWithoutCommas;
         if (name === 'unit_cost') {
-            if (!/^\d*\.?\d*$/.test(value) && value !== '') validValue = '';
+            if (!/^\d*\.?\d*$/.test(valueWithoutCommas) && valueWithoutCommas !== '') validValue = '';
         } else if (name === 'quantity') {
-            if (!/^\d*$/.test(value)) validValue = '';
+            if (!/^\d*$/.test(valueWithoutCommas)) validValue = '';
         }
 
         setFormData(prev => {
-            const newData = { ...prev, [name]: validValue };
+            const newData = { ...prev };
 
-            // Auto-calculate amount
-            const unitCost = parseFloat(newData.unit_cost);
+            // Store the value with commas for display
+            if (name === 'unit_cost' && validValue !== '') {
+                const numValue = parseFloat(validValue);
+                if (!isNaN(numValue)) {
+                    newData.unit_cost = numValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+                } else {
+                    newData.unit_cost = validValue;
+                }
+            } else if (name === 'unit_cost') {
+                newData.unit_cost = '';
+            } else {
+                newData.unit_cost = prev.unit_cost;
+            }
+
+            if (name === 'quantity') {
+                newData.quantity = validValue;
+            }
+
+            // Auto-calculate amount using values without commas
+            const unitCostValue = typeof newData.unit_cost === 'string' ? newData.unit_cost.replace(/,/g, '') : newData.unit_cost;
+            const unitCost = parseFloat(unitCostValue);
             const quantity = parseInt(newData.quantity);
             if (!isNaN(unitCost) && !isNaN(quantity) && unitCost > 0 && quantity > 0) {
-                newData.amount = (unitCost * quantity).toFixed(2);
+                const totalAmount = unitCost * quantity;
+                newData.amount = totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             } else {
                 newData.amount = '';
             }
@@ -891,11 +927,12 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
             return;
         }
 
+        // Remove commas before parsing numeric values
         const dataToSend = {
             ...formData,
-            unit_cost: parseFloat(formData.unit_cost).toFixed(2),
+            unit_cost: parseFloat(formData.unit_cost.replace(/,/g, '')).toFixed(2),
             quantity: parseInt(formData.quantity),
-            amount: parseFloat(formData.amount).toFixed(2)
+            amount: parseFloat(formData.amount.replace(/,/g, '')).toFixed(2)
         };
 
         try {
@@ -916,11 +953,45 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                         return newSet;
                     });
                 }
+                // Refresh data and close modal quickly
                 if (onExpenseSubmitted) onExpenseSubmitted();
-                setTimeout(onClose, 1500);
+                setTimeout(onClose, 300); // Reduced from 1500ms for faster UX
             } else {
                 const errorData = await response.json();
-                setMessage({ type: 'error', text: `Failed to ${isEditing ? 'update' : 'save'} expense. Details: ${JSON.stringify(errorData)}` });
+
+                // Parse error data to create user-friendly message
+                let errorMessage = `Failed to ${isEditing ? 'update' : 'save'} expense. `;
+
+                if (typeof errorData === 'object' && errorData !== null) {
+                    const errors = [];
+
+                    // Extract field-specific errors
+                    for (const [field, messages] of Object.entries(errorData)) {
+                        if (Array.isArray(messages)) {
+                            // Convert field name to readable format (e.g., "unit_cost" -> "Unit Cost")
+                            const fieldName = field.split('_').map(word =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            ).join(' ');
+
+                            errors.push(`${fieldName}: ${messages.join(', ')}`);
+                        } else if (typeof messages === 'string') {
+                            const fieldName = field.split('_').map(word =>
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            ).join(' ');
+                            errors.push(`${fieldName}: ${messages}`);
+                        }
+                    }
+
+                    if (errors.length > 0) {
+                        errorMessage += errors.join('. ');
+                    } else {
+                        errorMessage += 'Please check your input and try again.';
+                    }
+                } else {
+                    errorMessage += 'Please check your input and try again.';
+                }
+
+                setMessage({ type: 'error', text: errorMessage });
             }
         } catch (error) {
             setMessage({ type: 'error', text: `Network error. Could not connect to the server.` });
@@ -1070,17 +1141,17 @@ export function ExpensesPage() {
     // profile UI removed from this page; use shared NavBar for profile access
 const [showExpenseModal, setShowExpenseModal] = useState(false);
 const [expenseToEdit, setExpenseToEdit] = useState(null);
-const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'descending' });
+const [sortConfig, setSortConfig] = useState({ key: null, direction: null }); // Default: show by creation order (ID desc)
 const [showDeleteModal, setShowDeleteModal] = useState(false);
 const [expenseToDelete, setExpenseToDelete] = useState(null);
 const [deleting, setDeleting] = useState(false);
 const [recentlyEdited, setRecentlyEdited] = useState(new Set());
 
-    const fetchExpenses = useCallback(async (retries = 3) => {
+    const fetchExpenses = useCallback(async (retries = 2) => {
         setLoading(true);
         setError(null);
 
-        console.log('--- Fetching Both Expense and Harvest Data ---');
+        console.log('--- Fetching Expense Data ---');
 
         for (let i = 0; i < retries; i++) {
             try {
@@ -1102,8 +1173,14 @@ const [recentlyEdited, setRecentlyEdited] = useState(new Set());
                 // Use only server-side expenses
                 const combinedExpenses = [...regularExpenses];
 
-                // Sort by date descending
+                // Sort by ID descending (most recently created first)
+                // This ensures the latest added expense appears at the top
                 combinedExpenses.sort((a, b) => {
+                    // Sort by ID if available (most recently created)
+                    if (a.id && b.id) {
+                        return b.id - a.id;
+                    }
+                    // Fallback to date sorting
                     const dateA = new Date(a.date);
                     const dateB = new Date(b.date);
                     return dateB - dateA;
@@ -1115,7 +1192,6 @@ const [recentlyEdited, setRecentlyEdited] = useState(new Set());
 
                 console.log('Data fetched successfully:', {
                     regularExpenses: regularExpenses.length,
-                    harvestExpenses: 0,
                     total: combinedExpenses.length
                 });
                 return;
@@ -1128,8 +1204,8 @@ const [recentlyEdited, setRecentlyEdited] = useState(new Set());
                     setLoading(false);
                     return;
                 }
-                // Exponential backoff
-                await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+                // Reduced retry delay for faster response
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
     }, []);
@@ -1214,7 +1290,8 @@ const [recentlyEdited, setRecentlyEdited] = useState(new Set());
 
     const handleModalCloseAndRefresh = () => {
         setShowExpenseModal(false);
-        fetchExpenses();
+        // Don't fetch here - onExpenseSubmitted already handles the refresh
+        // This prevents duplicate API calls
     };
 
     const handleDeleteExpense = async () => {
@@ -1406,7 +1483,7 @@ const [recentlyEdited, setRecentlyEdited] = useState(new Set());
                                 placeholder="Search by expense/supplier/item..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 pl-10 text-sm w-full border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg"
+                                className="p-2 pl-10 text-sm w-full border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg placeholder:text-gray-400 placeholder:italic"
                             />
                         </div>
                         <div className="relative inline-block text-left">
