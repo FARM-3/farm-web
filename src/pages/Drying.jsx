@@ -205,7 +205,7 @@ const Drying = () => {
                         <button
                             onClick={openForm}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-white hover:shadow-xl transition"
-                            style={{ backgroundColor: '#331f10ff'}}
+                            style={{ backgroundColor:  '#8B4513'}}
                         >
                             <Plus className="w-4 h-4" />
                             New Record
