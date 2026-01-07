@@ -411,7 +411,7 @@
 //                                         Harvest ID
 //                                     </th>
 //                                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
-//                                         Farmer Name
+//                                         Name
 //                                     </th>
 //                                     <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-700">
 //                                         Coffee Type
@@ -925,9 +925,9 @@ export function HarvestPage() {
                                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
                                         Harvest ID
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
-                                        Farmer Name
-                                    </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
+                                        Name
+                                    </th>
                                     <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-700">
                                         Coffee Type
                                     </th>
