@@ -114,34 +114,34 @@ const Bagging = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead style={{ backgroundColor: CoffeeColors.LIGHT_BG }}>
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-700">Harvest ID</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Number of Bags</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Weight per Bag</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Total Weight</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Date</th>
-                                    <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Actions</th>
+                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-700">Harvest ID</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Number of Bags</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Weight per Bag</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Total Weight</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Date</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center">
+                                        <td colSpan="6" className="px-3 py-6 text-center">
                                             <Loader2 className="w-8 h-8 animate-spin inline-block" style={{ color: CoffeeColors.BUTTON_BROWN }} />
                                         </td>
                                     </tr>
                                 ) : records.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-12 text-center text-gray-500">No bagging records found</td>
+                                        <td colSpan="6" className="px-3 py-6 text-center text-gray-500">No bagging records found</td>
                                     </tr>
                                 ) : (
                                     records.map((record) => (
                                         <tr key={record.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 font-medium text-gray-800">{record.harvest_id}</td>
-                                            <td className="px-6 py-4 text-center text-gray-700">{record.bags}</td>
-                                            <td className="px-6 py-4 text-center text-gray-700">{record.weight_per_bag}</td>
-                                            <td className="px-6 py-4 text-center font-semibold text-gray-800">{record.total_weight}</td>
-                                            <td className="px-6 py-4 text-center text-gray-700">{record.date}</td>
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-3 py-2 font-medium text-gray-800 text-sm whitespace-nowrap">{record.harvest_id}</td>
+                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.bags}</td>
+                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.weight_per_bag}</td>
+                                            <td className="px-3 py-2 text-center font-semibold text-gray-800 text-sm whitespace-nowrap">{record.total_weight}</td>
+                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.date}</td>
+                                            <td className="px-3 py-2 text-center">
                                                 <div className="flex justify-center gap-2">
                                                     <button className="p-1 hover:bg-blue-50 rounded"><Edit className="w-4 h-4 text-blue-600" /></button>
                                                     <button className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4 text-red-600" /></button>

@@ -658,60 +658,7 @@ const TaskManagement = () => {
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
-                        {/* Farm Blocks Overview */}
-                        <div className="bg-white p-6 rounded-2xl shadow-lg">
-                            <h2 className="text-2xl font-bold mb-4" style={{ color: CoffeeColors.DARK_BROWN }}>
-                                Farm Block Overview
-                            </h2>
-
-                            {/* Map Placeholder */}
-                            <div className="bg-gray-100 rounded-xl h-64 mb-6 flex items-center justify-center">
-                                <div className="text-center">
-                                    <MapPin size={48} className="mx-auto mb-2 text-gray-400" />
-                                    <p className="text-gray-600">Interactive Map View</p>
-                                    <p className="text-sm text-gray-500">Map integration would show block boundaries with color-coded condition scores</p>
-                                </div>
-                            </div>
-
-                            {/* Block Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {farmBlocks.map(block => (
-                                    <div key={block.id} className="border border-gray-200 rounded-xl p-4">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <h3 className="font-bold text-lg" style={{ color: CoffeeColors.DARK_BROWN }}>
-                                                {block.name}
-                                            </h3>
-                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                                block.condition_score >= 80 ? 'bg-green-100 text-green-800' :
-                                                block.condition_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-red-100 text-red-800'
-                                            }`}>
-                                                {block.condition_score}%
-                                            </span>
-                                        </div>
-
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Area:</span>
-                                                <span className="font-semibold">{block.area} ha</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Crop:</span>
-                                                <span className="font-semibold">{block.crop}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Open Tasks:</span>
-                                                <span className="font-semibold text-orange-600">{block.open_tasks}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Last Inspection:</span>
-                                                <span className="font-semibold">{block.last_inspection}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                        
 
                         {/* Key Metrics */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1009,21 +956,20 @@ const TaskManagement = () => {
                                         <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-700">Reported By</th>
                                         <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Severity</th>
                                         <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Weather</th>
-                                        <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">SLA Timer</th>
                                         <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="7" className="px-6 py-12 text-center">
+                                            <td colSpan="5" className="px-6 py-12 text-center">
                                                 <Clock className="w-8 h-8 animate-spin inline-block" style={{ color: CoffeeColors.BUTTON_BROWN }} />
                                                 <p className="mt-2 text-gray-600">Loading exceptions...</p>
                                             </td>
                                         </tr>
                                     ) : filteredExceptions.length === 0 ? (
                                         <tr>
-                                            <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                                            <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
                                                 No exceptions found
                                             </td>
                                         </tr>
@@ -1058,22 +1004,7 @@ const TaskManagement = () => {
                                                             })}
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        {slaTimer && exception.status === 'open' ? (
-                                                            <div className="text-center">
-                                                                <div className={`text-sm font-semibold ${slaTimer.isExpired ? 'text-red-600' : 'text-orange-600'}`}>
-                                                                    {Math.floor(slaTimer.remaining / (1000 * 60 * 60))}:{Math.floor((slaTimer.remaining % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0')}:{Math.floor((slaTimer.remaining % (1000 * 60)) / 1000).toString().padStart(2, '0')}
-                                                                </div>
-                                                                <div className="text-xs text-gray-500">
-                                                                    SLA: {slaTimer.slaHours}h
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(exception.status)}`}>
-                                                                {exception.status}
-                                                            </span>
-                                                        )}
-                                                    </td>
+                                                    
                                                     <td className="px-6 py-4 text-center">
                                                         <div className="flex justify-center gap-2">
                                                             <button onClick={() => handleEditException(exception)} className="p-1 hover:bg-blue-50 rounded">

@@ -411,7 +411,7 @@
 //                                         Harvest ID
 //                                     </th>
 //                                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
-//                                         Farmer Name
+//                                         Name
 //                                     </th>
 //                                     <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-700">
 //                                         Coffee Type
@@ -585,7 +585,7 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle, blockDetails }) =
                                         <p className="text-sm text-gray-800">{harvest.harvest_id || 'N/A'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs font-semibold text-gray-500 uppercase">Farmer Name</p>
+                                        <p className="text-xs font-semibold text-gray-500 uppercase">Name</p>
                                         <p className="text-sm text-gray-800">{harvest.name || harvest.worker_name || 'N/A'}</p>
                                     </div>
                                     <div>
@@ -925,9 +925,9 @@ export function HarvestPage() {
                                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
                                         Harvest ID
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
-                                        Farmer Name
-                                    </th>
+            <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-700">
+                                        Name
+                                    </th>
                                     <th className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-700">
                                         Coffee Type
                                     </th>

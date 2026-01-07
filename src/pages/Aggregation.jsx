@@ -389,7 +389,16 @@ const AggregationPage = () => {
     const calculateKPIs = () => {
         const totalFarmers = farmers.length;
 
-        // Calculate weekly harvests (last 7 days)
+        // Total farmer harvest records (we consider `harvests` already filtered/enriched to farmer-harvests)
+        const totalFarmerHarvests = harvests.length;
+
+        // Total weight delivered across all farmer harvest records
+        const totalWeightDelivered = harvests.reduce((sum, h) => {
+            const w = parseFloat(h.weight_on_delivery || h.weight || h.weight_kg || 0);
+            return sum + (isNaN(w) ? 0 : w);
+        }, 0);
+
+        // Keep some of the previous KPIs for compatibility (weekly count & red cherry)
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
         const weeklyHarvests = harvests.filter(h => {
@@ -397,12 +406,11 @@ const AggregationPage = () => {
             return deliveryDate >= oneWeekAgo;
         }).length;
 
-        // Count red cherry harvests
         const redCherryHarvests = harvests.filter(h =>
             h.cherry_color && h.cherry_color.toLowerCase().includes('red')
         ).length;
 
-        return { totalFarmers, weeklyHarvests, redCherryHarvests };
+        return { totalFarmers, totalFarmerHarvests, totalWeightDelivered, weeklyHarvests, redCherryHarvests };
     };
 
     const kpis = calculateKPIs();
@@ -444,16 +452,16 @@ const AggregationPage = () => {
                         loading={loading}
                     />
                     <KPICard
-                        title="Farmer Harvests (Weekly)"
-                        value={kpis.weeklyHarvests}
-                        subtitle="Last 7 days"
+                        title="Total Farmers' Harvest Received"
+                        value={kpis.totalFarmerHarvests}
+                        subtitle="Total farmer harvest records"
                         icon={TrendingUp}
                         loading={loading}
                     />
                     <KPICard
-                        title="Red Cherry Harvests"
-                        value={kpis.redCherryHarvests}
-                        subtitle="Total red cherry deliveries"
+                        title="Total Weight Delivered"
+                        value={`${Number(kpis.totalWeightDelivered || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kg`}
+                        subtitle="Sum of weights from farmer harvest records"
                         icon={Coffee}
                         loading={loading}
                     />
