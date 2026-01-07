@@ -447,8 +447,8 @@ const QualityControl = () => {
                                         </h3>
                                         <div className="space-y-1 text-sm">
                                             <p className="text-gray-600">Count: <span className="font-semibold text-gray-800">{grade.count}</span></p>
-                                            <p className="text-gray-600">Total Weight: <span className="font-semibold text-gray-800">{grade.total_weight} kg</span></p>
-                                            <p className="text-gray-600">Avg Weight: <span className="font-semibold text-gray-800">{grade.avg_weight} kg</span></p>
+                                            <p className="text-gray-600">Total Weight: <span className="font-semibold text-gray-800">{Number(grade.total_weight || 0).toFixed(2)} kg</span></p>
+                                            <p className="text-gray-600">Avg Weight: <span className="font-semibold text-gray-800">{Number(grade.avg_weight || 0).toFixed(2)} kg</span></p>
                                         </div>
                                     </div>
                                 ))}
@@ -508,7 +508,7 @@ const QualityControl = () => {
                                                             Grade {record.grade}
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-center font-semibold text-gray-800">{record.weight}</td>
+                                                    <td className="px-6 py-4 text-center font-semibold text-gray-800">{Number(record.weight || 0).toFixed(2)}</td>
                                                     <td className="px-6 py-4 text-center text-gray-700">{record.date}</td>
                                                     <td className="px-6 py-4 text-center text-gray-700">{record.ripeness_score}%</td>
                                                     <td className="px-6 py-4 text-center">
