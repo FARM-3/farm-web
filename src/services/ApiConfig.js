@@ -93,6 +93,9 @@ export const API_ENDPOINTS = {
 
   // SOP template endpoints
   SOP_TEMPLATES: `${API_BASE_URL}/api/sop-templates/`,
+
+  // Activities endpoints
+  ACTIVITIES: `${API_BASE_URL}/activities/activities/`,
 };
 
 /**

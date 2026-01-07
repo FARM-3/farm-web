@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
-import { TrendingUp, TrendingDown, ClipboardCheck, DollarSign, Package, Users, RefreshCw, Loader2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, ClipboardCheck, DollarSign, Package, Users, RefreshCw, Loader2, Activity } from 'lucide-react';
+import { API_ENDPOINTS } from '../services/ApiConfig';
 
 // API Endpoints - Uses .env configuration
 const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
@@ -8,6 +9,7 @@ const SALES_API = `${API_BASE_URL}/sales/`;
 const EXPENSES_API = `${API_BASE_URL}/expenses/`;
 const WAGES_API = `${API_BASE_URL}/wages/`;
 const STAFF_API = `${API_BASE_URL}/staff/`;
+const ACTIVITIES_API = API_ENDPOINTS.ACTIVITIES;
 
 // Updated colors to match the Farmer Registry design
 const CoffeeColors = {
@@ -106,6 +108,69 @@ const TransactionItem = ({ type, description, amount, date }) => {
     );
 };
 
+// --- COMPONENT: Recent Activity Item ---
+const ActivityItem = ({ user, action, object, timestamp }) => {
+    const getActionColor = (action) => {
+        switch (action) {
+            case 'created':
+                return { bg: '#E8F5E9', text: '#2E7D32' };
+            case 'updated':
+                return { bg: '#E3F2FD', text: '#1565C0' };
+            case 'deleted':
+                return { bg: '#FFEBEE', text: '#C62828' };
+            default:
+                return { bg: '#F5F5F5', text: '#666' };
+        }
+    };
+
+    const colors = getActionColor(action);
+    const formatTimestamp = (timestamp) => {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
+
+        if (diffInHours < 1) {
+            const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+            return diffInMinutes <= 1 ? 'Just now' : `${diffInMinutes}m ago`;
+        } else if (diffInHours < 24) {
+            return `${diffInHours}h ago`;
+        } else {
+            const diffInDays = Math.floor(diffInHours / 24);
+            return diffInDays === 1 ? '1d ago' : `${diffInDays}d ago`;
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-3 py-3 border-b" style={{ borderColor: CoffeeColors.BORDER_GRAY }}>
+            <div className="flex-shrink-0">
+                <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: colors.bg }}
+                >
+                    <Activity size={14} style={{ color: colors.text }} />
+                </div>
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-sm" style={{ color: CoffeeColors.DARK_TEXT }}>
+                    <span className="font-medium">{user}</span>
+                    {' '}
+                    <span
+                        className="px-2 py-0.5 rounded text-xs font-medium"
+                        style={{ backgroundColor: colors.bg, color: colors.text }}
+                    >
+                        {action}
+                    </span>
+                    {' '}
+                    <span className="truncate">{object}</span>
+                </p>
+            </div>
+            <div className="flex-shrink-0 text-xs" style={{ color: '#999' }}>
+                {formatTimestamp(timestamp)}
+            </div>
+        </div>
+    );
+};
+
 // --- COMPONENT: DashboardScreen (The Content) ---
 export const DashboardScreen = () => {
     const [dashboardData, setDashboardData] = useState({
@@ -114,6 +179,7 @@ export const DashboardScreen = () => {
         totalWages: 0,
         activeStaff: 0,
         recentTransactions: [],
+        recentActivities: [],
         monthlySales: [],
         monthlyExpenses: [],
     });
@@ -127,25 +193,38 @@ export const DashboardScreen = () => {
         setError(null);
 
         try {
+            // Helper function to fetch all pages of paginated data
+            const fetchAllPages = async (url) => {
+                let allResults = [];
+                let nextUrl = url;
+
+                while (nextUrl) {
+                    const response = await fetch(nextUrl).catch(() => ({ ok: false }));
+                    if (!response.ok) break;
+
+                    const data = await response.json();
+
+                    // Handle both paginated and non-paginated responses
+                    if (Array.isArray(data)) {
+                        allResults = allResults.concat(data);
+                        break; // No pagination
+                    } else {
+                        allResults = allResults.concat(data.results || []);
+                        nextUrl = data.next; // Move to next page
+                    }
+                }
+
+                return allResults;
+            };
+
             // Fetch all data in parallel
-            const [salesRes, expensesRes, wagesRes, staffRes] = await Promise.all([
-                fetch(SALES_API).catch(() => ({ ok: false })),
-                fetch(EXPENSES_API).catch(() => ({ ok: false })),
-                fetch(WAGES_API).catch(() => ({ ok: false })),
-                fetch(STAFF_API).catch(() => ({ ok: false }))
+            const [sales, expenses, wages, staff, activities] = await Promise.all([
+                fetchAllPages(SALES_API),
+                fetchAllPages(EXPENSES_API),
+                fetchAllPages(WAGES_API),
+                fetchAllPages(STAFF_API),
+                fetchAllPages(ACTIVITIES_API)
             ]);
-
-            // Parse responses
-            const salesData = salesRes.ok ? await salesRes.json() : { results: [] };
-            const expensesData = expensesRes.ok ? await expensesRes.json() : { results: [] };
-            const wagesData = wagesRes.ok ? await wagesRes.json() : { results: [] };
-            const staffData = staffRes.ok ? await staffRes.json() : { results: [] };
-
-            // Normalize data (handle both direct arrays and paginated responses)
-            const sales = Array.isArray(salesData) ? salesData : (salesData.results || []);
-            const expenses = Array.isArray(expensesData) ? expensesData : (expensesData.results || []);
-            const wages = Array.isArray(wagesData) ? wagesData : (wagesData.results || []);
-            const staff = Array.isArray(staffData) ? staffData : (staffData.results || []);
 
             // Calculate totals
             const totalSales = sales.reduce((sum, sale) => sum + parseFloat(sale.total_amount || sale.amount || 0), 0);
@@ -203,12 +282,22 @@ export const DashboardScreen = () => {
                 });
             }
 
+            // Prepare recent activities (limit to 10 most recent)
+            const recentActivities = activities.slice(0, 10).map(activity => ({
+                id: activity.id,
+                user: activity.user_name || 'System',
+                action: activity.action,
+                object: activity.object_repr || 'Unknown',
+                timestamp: activity.timestamp
+            }));
+
             setDashboardData({
                 totalSales,
                 totalExpenses,
                 totalWages,
                 activeStaff,
                 recentTransactions,
+                recentActivities,
                 monthlySales: last6Months,
                 monthlyExpenses: last6Months
             });
@@ -235,7 +324,7 @@ export const DashboardScreen = () => {
         return () => clearInterval(interval);
     }, [fetchDashboardData]);
 
-    const { totalSales, totalExpenses, totalWages, activeStaff, recentTransactions, monthlySales } = dashboardData;
+    const { totalSales, totalExpenses, totalWages, activeStaff, recentTransactions, recentActivities, monthlySales } = dashboardData;
     const maxValue = Math.max(...monthlySales.map(m => Math.max(m.sales, m.expense)), 1);
 
     return (
@@ -488,6 +577,38 @@ export const DashboardScreen = () => {
                         >
                             View All Transactions
                         </button>
+                    </div>
+                </div>
+
+                {/* Recent Activities Section */}
+                <div className="mt-6">
+                    <div className="p-6 rounded-2xl shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
+                        <div className="flex items-center gap-2 mb-1">
+                            <Activity size={20} style={{ color: CoffeeColors.CARD_BROWN }} />
+                            <h2 className="text-xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>
+                                Recent Activities
+                            </h2>
+                        </div>
+                        <p className="text-sm mb-6" style={{ color: '#666' }}>
+                            Latest system activities and changes
+                        </p>
+
+                        {/* Activities List */}
+                        <div className="space-y-1">
+                            {loading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin" style={{ color: CoffeeColors.CARD_BROWN }} />
+                                </div>
+                            ) : recentActivities && recentActivities.length > 0 ? (
+                                recentActivities.map((activity) => (
+                                    <ActivityItem key={activity.id} {...activity} />
+                                ))
+                            ) : (
+                                <div className="text-center py-8" style={{ color: '#666' }}>
+                                    No recent activities found.
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

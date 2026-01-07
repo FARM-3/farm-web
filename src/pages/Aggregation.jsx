@@ -235,17 +235,35 @@ const AggregationPage = () => {
         setError(null);
 
         try {
-            const [farmersRes, harvestsRes] = await Promise.all([
-                fetch(FARMERS_API).catch(() => ({ ok: false })),
-                fetch(FARMER_HARVEST_API).catch(() => ({ ok: false }))
+            // Helper function to fetch all pages of paginated data
+            const fetchAllPages = async (url) => {
+                let allResults = [];
+                let nextUrl = url;
+
+                while (nextUrl) {
+                    const response = await fetch(nextUrl).catch(() => ({ ok: false }));
+                    if (!response.ok) break;
+
+                    const data = await response.json();
+
+                    // Handle both paginated and non-paginated responses
+                    if (Array.isArray(data)) {
+                        allResults = allResults.concat(data);
+                        break; // No pagination
+                    } else {
+                        allResults = allResults.concat(data.results || []);
+                        nextUrl = data.next; // Move to next page
+                    }
+                }
+
+                return allResults;
+            };
+
+            // Fetch all pages for both endpoints
+            const [normalizedFarmers, rawHarvests] = await Promise.all([
+                fetchAllPages(FARMERS_API),
+                fetchAllPages(FARMER_HARVEST_API)
             ]);
-
-            const farmersData = farmersRes.ok ? await farmersRes.json() : { results: [] };
-            const harvestsData = harvestsRes.ok ? await harvestsRes.json() : { results: [] };
-
-            // Normalize data
-            const normalizedFarmers = Array.isArray(farmersData) ? farmersData : (farmersData.results || []);
-            const rawHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
 
             // Debug: log raw sizes and a sample raw harvest so we can refine matching
             console.log('Aggregation: raw harvests fetched=', rawHarvests.length, 'farmers fetched=', normalizedFarmers.length);
