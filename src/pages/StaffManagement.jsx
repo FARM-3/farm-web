@@ -2361,6 +2361,9 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
     }
   };
 
+  // Common placeholder class for all inputs
+  const placeholderClass = "placeholder:text-gray-400 placeholder:italic";
+
   const labelStyles = {
     display: "block",
     fontSize: "14px",
@@ -2487,6 +2490,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                  value={formData.first_name}
                  onChange={handleChange}
                  placeholder="Enter first name"
+                 className={placeholderClass}
                  style={getInputStyle("first_name")}
                  onFocus={(e) => {
                    e.target.style.border = inputStyles.focus.border;
@@ -2514,6 +2518,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                  value={formData.last_name}
                  onChange={handleChange}
                  placeholder="Enter last name"
+                 className={placeholderClass}
                  style={getInputStyle("last_name")}
                  onFocus={(e) => {
                    e.target.style.border = inputStyles.focus.border;
@@ -2613,6 +2618,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                      ? "ENTER NIN (E.G. CFXXXXXXXXXXXX)"
                      : "Select gender first"
                  }
+                 className={placeholderClass}
                  style={{
                    ...getInputStyle("nin"),
                    textTransform: "uppercase"
@@ -2670,6 +2676,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                  value={formData.monthly_salary}
                  onChange={handleChange}
                  placeholder="e.g., 500,000"
+                 className={placeholderClass}
                  style={getInputStyle("monthly_salary")}
                  onFocus={(e) => {
                    e.target.style.border = inputStyles.focus.border;
@@ -2763,6 +2770,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                         }));
                       }}
                       placeholder="Search for district..."
+                      className={placeholderClass}
                       style={getInputStyle("district")}
                       onFocus={(e) => {
                         e.target.style.border = inputStyles.focus.border;
@@ -2810,6 +2818,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                           : "Select district first"
                       }
                       disabled={!formData.district}
+                      className={placeholderClass}
                       style={getInputStyle("subcounty")}
                       onFocus={(e) => {
                         e.target.style.border = inputStyles.focus.border;
@@ -2856,6 +2865,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                           : "Select subcounty first"
                       }
                       disabled={!formData.subcounty}
+                      className={placeholderClass}
                       style={getInputStyle("parish")}
                       onFocus={(e) => {
                         e.target.style.border = inputStyles.focus.border;
@@ -2888,6 +2898,7 @@ const StaffEntryModal = ({ isOpen, onClose, staffData, onSave }) => {
                       onChange={handleChange}
                       placeholder="e.g., Kisaasi"
                       required
+                      className={placeholderClass}
                       style={{
                         ...getInputStyle("village"),
                         position: "relative",
@@ -3984,7 +3995,7 @@ function StaffPage() {
               placeholder="Search by staff name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg outline-none placeholder:text-gray-400 placeholder:italic"
             />
           </div>
 

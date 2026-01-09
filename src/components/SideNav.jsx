@@ -149,6 +149,7 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
 export const SideNav = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [userProfileData, setUserProfileData] = useState({ name: 'User', phone: '', email: '', rawPassword: null });
     const currentPage = useMemo(() => getCurrentPageKey(), []);
     const sidebarWidthClass = 'w-56';
 
