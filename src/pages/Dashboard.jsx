@@ -198,8 +198,24 @@ export const DashboardScreen = () => {
                 let allResults = [];
                 let nextUrl = url;
 
+                // Get auth token from localStorage OR sessionStorage (try multiple keys for compatibility)
+                const token = localStorage.getItem('authToken') ||
+                             localStorage.getItem('token') ||
+                             sessionStorage.getItem('authToken') ||
+                             sessionStorage.getItem('token');
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                if (token) {
+                    // Activities endpoint uses Bearer, other endpoints use Token
+                    const authType = url.includes('activities') ? 'Bearer' : 'Token';
+                    headers['Authorization'] = `${authType} ${token}`;
+                }
+
                 while (nextUrl) {
-                    const response = await fetch(nextUrl).catch(() => ({ ok: false }));
+                    const response = await fetch(nextUrl, { headers }).catch(() => ({ ok: false }));
+
                     if (!response.ok) break;
 
                     const data = await response.json();
@@ -223,7 +239,11 @@ export const DashboardScreen = () => {
                 fetchAllPages(EXPENSES_API),
                 fetchAllPages(WAGES_API),
                 fetchAllPages(STAFF_API),
-                fetchAllPages(ACTIVITIES_API)
+                fetchAllPages(ACTIVITIES_API).catch(err => {
+                    console.error('Failed to fetch activities:', err);
+                    console.error('Activities API URL:', ACTIVITIES_API);
+                    return []; // Return empty array if activities fail
+                })
             ]);
 
             // Calculate totals
@@ -334,15 +354,6 @@ export const DashboardScreen = () => {
                     <h1 className="text-3xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>
                         Financial Dashboard
                     </h1>
-                    <button
-                        onClick={fetchDashboardData}
-                        disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition disabled:opacity-50"
-                        style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </button>
                 </div>
 
                 {lastUpdated && (
@@ -580,14 +591,24 @@ export const DashboardScreen = () => {
                     </div>
                 </div>
 
-                {/* Recent Activities Section */}
-                <div className="mt-6">
+                {/* Recent Activities Section - Bottom of Page */}
+                <div className="mt-8">
                     <div className="p-6 rounded-2xl shadow-md" style={{ backgroundColor: '#FFFFFF' }}>
-                        <div className="flex items-center gap-2 mb-1">
-                            <Activity size={20} style={{ color: CoffeeColors.CARD_BROWN }} />
-                            <h2 className="text-xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>
-                                Recent Activities
-                            </h2>
+                        <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                                <Activity size={20} style={{ color: CoffeeColors.CARD_BROWN }} />
+                                <h2 className="text-xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>
+                                    Recent Activities
+                                </h2>
+                            </div>
+                            <button
+                                onClick={fetchDashboardData}
+                                disabled={loading}
+                                className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} style={{ color: CoffeeColors.CARD_BROWN }} />
+                                <span className="text-sm" style={{ color: CoffeeColors.CARD_BROWN }}>Refresh</span>
+                            </button>
                         </div>
                         <p className="text-sm mb-6" style={{ color: '#666' }}>
                             Latest system activities and changes

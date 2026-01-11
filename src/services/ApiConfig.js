@@ -95,7 +95,7 @@ export const API_ENDPOINTS = {
   SOP_TEMPLATES: `${API_BASE_URL}/api/sop-templates/`,
 
   // Activities endpoints
-  ACTIVITIES: `${API_BASE_URL}/activities/activities/`,
+  ACTIVITIES: `${API_BASE_URL}/api/activities/activities/?platform=web`,
 };
 
 /**
