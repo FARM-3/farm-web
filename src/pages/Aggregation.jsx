@@ -167,6 +167,15 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                 <td className="px-6 py-3 text-left font-medium text-gray-800">{harvestId}</td>
                 <td className="px-6 py-3 text-left text-gray-600">{farmerName}</td>
                 <td className="px-6 py-3 text-center text-gray-600">{formatDate(harvest.date_of_delivery)}</td>
+                <td className="px-6 py-3 text-right text-gray-800 font-semibold">
+                    {harvest.weight_on_delivery ? Number(harvest.weight_on_delivery).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
+                </td>
+                <td className="px-6 py-3 text-right text-gray-800">
+                    {harvest.price_per_kg ? `UGX ${Number(harvest.price_per_kg).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'N/A'}
+                </td>
+                <td className="px-6 py-3 text-right text-gray-800 font-semibold">
+                    {harvest.amount_paid ? `UGX ${Number(harvest.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'N/A'}
+                </td>
                 <td className="px-6 py-3 text-center">
                     <button
                         onClick={onToggle}
@@ -182,15 +191,11 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
             </tr>
             {isExpanded && (
                 <tr className="bg-gray-50">
-                    <td colSpan="4" className="px-6 py-4">
+                    <td colSpan="7" className="px-6 py-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Coffee Type</p>
                                 <p className="text-sm text-gray-800">{harvest.coffee_type || 'N/A'}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Weight on Delivery</p>
-                                <p className="text-sm text-gray-800">{harvest.weight_on_delivery ? `${harvest.weight_on_delivery} kg` : 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Location of Delivery</p>
@@ -201,16 +206,12 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                                 <p className="text-sm text-gray-800">{harvest.gps_coordinates_delivery || 'N/A'}</p>
                             </div>
                             <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Price per KG</p>
-                                <p className="text-sm text-gray-800">{harvest.price_per_kg ? `UGX ${Number(harvest.price_per_kg).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0, useGrouping: true })}` : 'N/A'}</p>
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold text-gray-500 uppercase">Amount Paid</p>
-                                <p className="text-sm text-gray-800">{harvest.amount_paid || 'N/A'}</p>
-                            </div>
-                            <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Paid By</p>
                                 <p className="text-sm text-gray-800">{harvest.paid_by || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Number of Bags</p>
+                                <p className="text-sm text-gray-800">{harvest.no_of_bags || 'N/A'}</p>
                             </div>
                         </div>
                     </td>
@@ -235,26 +236,57 @@ const AggregationPage = () => {
         setError(null);
 
         try {
-            const [farmersRes, harvestsRes] = await Promise.all([
-                fetch(FARMERS_API).catch(() => ({ ok: false })),
-                fetch(FARMER_HARVEST_API).catch(() => ({ ok: false }))
+            // Helper function to fetch all pages of paginated data
+            const fetchAllPages = async (url) => {
+                let allResults = [];
+                let nextUrl = url;
+
+                // Get auth token from localStorage OR sessionStorage (try multiple keys for compatibility)
+                const token = localStorage.getItem('authToken') ||
+                             localStorage.getItem('token') ||
+                             sessionStorage.getItem('authToken') ||
+                             sessionStorage.getItem('token');
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                };
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+
+                while (nextUrl) {
+                    const response = await fetch(nextUrl, { headers }).catch(() => ({ ok: false }));
+                    if (!response.ok) break;
+
+                    const data = await response.json();
+
+                    // Handle both paginated and non-paginated responses
+                    if (Array.isArray(data)) {
+                        allResults = allResults.concat(data);
+                        break; // No pagination
+                    } else {
+                        allResults = allResults.concat(data.results || []);
+                        nextUrl = data.next; // Move to next page
+                    }
+                }
+
+                return allResults;
+            };
+
+            // Fetch all pages for both endpoints
+            const [normalizedFarmers, rawHarvests] = await Promise.all([
+                fetchAllPages(FARMERS_API),
+                fetchAllPages(FARMER_HARVEST_API)
             ]);
 
-            const farmersData = farmersRes.ok ? await farmersRes.json() : { results: [] };
-            const harvestsData = harvestsRes.ok ? await harvestsRes.json() : { results: [] };
-
-            // Normalize data
-            const normalizedFarmers = Array.isArray(farmersData) ? farmersData : (farmersData.results || []);
-            const rawHarvests = Array.isArray(harvestsData) ? harvestsData : (harvestsData.results || []);
-
             // Debug: log raw sizes and a sample raw harvest so we can refine matching
-            console.log('Aggregation: raw harvests fetched=', rawHarvests.length, 'farmers fetched=', normalizedFarmers.length);
+            console.log('Aggregation: farmer-harvest records fetched=', rawHarvests.length, 'farmers fetched=', normalizedFarmers.length);
             if (rawHarvests.length > 0) {
-                console.log('Sample raw harvest record:', rawHarvests[0]);
-                console.log('Raw harvest fields:', Object.keys(rawHarvests[0] || {}));
+                console.log('Sample farmer-harvest record:', rawHarvests[0]);
+                console.log('Farmer-harvest fields:', Object.keys(rawHarvests[0] || {}));
             }
 
-            // Build farmer lookup maps so we can strictly match harvest records to registered farmers
+            // Build farmer lookup map for enriching harvest records
             const farmerMapByName = {};
             const farmerMapById = {};
             normalizedFarmers.forEach(farmer => {
@@ -264,60 +296,11 @@ const AggregationPage = () => {
                 if (farmer.id) farmerMapById[String(farmer.id)] = farmer;
             });
 
-            // Strictly filter raw harvests to only include farmer-harvest records.
-            // Strategy (in order):
-            // 1. If the record explicitly marks itself as a farmer harvest (common keys)
-            // 2. If the record has a name/farmer_name that matches a registered farmer
-            // 3. If the record has a farmer_id that matches a registered farmer
-            // This excludes production/worker harvests that have block_id/worker_name and don't map to a farmer.
-            const farmerHarvests = rawHarvests.filter(h => {
-                // explicit flags that some APIs use
-                const explicitFarmer = (h.source && String(h.source).toLowerCase().includes('farmer')) ||
-                    (h.harvest_type && String(h.harvest_type).toLowerCase().includes('farmer')) ||
-                    (h.type && String(h.type).toLowerCase().includes('farmer'));
-                if (explicitFarmer) return true;
+            // Since we're fetching from /api/aggregation/farmer-harvest/, ALL records are farmer harvests
+            // No filtering needed - just use all the records as-is
+            const farmerHarvests = rawHarvests;
 
-                // try match by name
-                const name = (h.name || h.farmer_name || `${h.first_name || ''} ${h.last_name || ''}`.trim()).trim().toLowerCase();
-                if (name) {
-                    if (farmerMapByName[name]) return true;
-
-                    // Relaxed matching: check if any registered farmer's first or last name appears in the harvest name
-                    const nameTokens = name.split(/\s+/).filter(Boolean);
-                    for (const f of normalizedFarmers) {
-                        const fFull = `${f.first_name || ''} ${f.last_name || ''}`.trim().toLowerCase();
-                        if (!fFull) continue;
-                        // exact contains or token match
-                        if (fFull === name || name === fFull) return true;
-                        if (nameTokens.some(tok => tok && (fFull.includes(tok) || tok.includes((fFull.split(' ')[0] || '').toLowerCase())))) return true;
-                    }
-                }
-
-                // try match by id
-                const fid = h.farmer_id || h.farmerId || h.farmer || h.owner_id;
-                if (fid && farmerMapById[String(fid)]) return true;
-
-                // otherwise exclude (likely production/worker harvest)
-                return false;
-            });
-
-            // Debug: show filtering results
-            console.log('Aggregation: rawHarvests=', rawHarvests.length, 'farmerHarvests(filtered)=', farmerHarvests.length);
-
-            // If nothing matched, print helpful diagnostics to assist refining the filter
-            if (farmerHarvests.length === 0 && rawHarvests.length > 0) {
-                const r = rawHarvests[0];
-                console.log('No farmer-harvests matched. First raw harvest name fields:', {
-                    name: r.name, farmer_name: r.farmer_name, first_name: r.first_name, last_name: r.last_name
-                });
-                console.log('Registered farmer names:', normalizedFarmers.map(f => `${f.first_name || ''} ${f.last_name || ''}`));
-            }
-
-            // Debug: Log a sample of filtered harvest record to see their structure
-            if (farmerHarvests.length > 0) {
-                console.log('Sample filtered harvest record:', farmerHarvests[0]);
-                console.log('Harvest fields:', Object.keys(farmerHarvests[0]));
-            }
+            console.log('Aggregation: Total farmer-harvest records to display=', farmerHarvests.length);
 
             if (normalizedFarmers.length > 0) {
                 console.log('Sample farmer record:', normalizedFarmers[0]);
@@ -385,7 +368,7 @@ const AggregationPage = () => {
         fetchData();
     }, [fetchData]);
 
-    // Calculate KPIs
+    // Calculate KPIs and monthly harvest data
     const calculateKPIs = () => {
         const totalFarmers = farmers.length;
 
@@ -398,22 +381,36 @@ const AggregationPage = () => {
             return sum + (isNaN(w) ? 0 : w);
         }, 0);
 
-        // Keep some of the previous KPIs for compatibility (weekly count & red cherry)
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-        const weeklyHarvests = harvests.filter(h => {
+        // Calculate monthly harvest weights (last 6 months)
+        const monthlyData = {};
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+        harvests.forEach(h => {
             const deliveryDate = new Date(h.date_of_delivery);
-            return deliveryDate >= oneWeekAgo;
-        }).length;
+            if (!isNaN(deliveryDate)) {
+                const monthKey = `${months[deliveryDate.getMonth()]}`;
+                const weight = parseFloat(h.weight_on_delivery || h.weight || h.weight_kg || 0);
+                monthlyData[monthKey] = (monthlyData[monthKey] || 0) + (isNaN(weight) ? 0 : weight);
+            }
+        });
 
-        const redCherryHarvests = harvests.filter(h =>
-            h.cherry_color && h.cherry_color.toLowerCase().includes('red')
-        ).length;
+        // Get last 6 months
+        const currentMonth = new Date().getMonth();
+        const last6Months = [];
+        for (let i = 5; i >= 0; i--) {
+            const monthIndex = (currentMonth - i + 12) % 12;
+            const monthName = months[monthIndex];
+            last6Months.push({
+                label: monthName,
+                weight: monthlyData[monthName] || 0
+            });
+        }
 
-        return { totalFarmers, totalFarmerHarvests, totalWeightDelivered, weeklyHarvests, redCherryHarvests };
+        return { totalFarmers, totalFarmerHarvests, totalWeightDelivered, monthlyHarvests: last6Months };
     };
 
     const kpis = calculateKPIs();
+    const maxMonthlyWeight = Math.max(...kpis.monthlyHarvests.map(m => m.weight), 1);
 
     // Toggle row expansion
     const toggleRow = (id) => {
@@ -465,6 +462,51 @@ const AggregationPage = () => {
                         icon={Coffee}
                         loading={loading}
                     />
+                </div>
+
+                {/* Monthly Harvest Chart */}
+                <div className="mb-8 p-6 bg-white rounded-2xl shadow-lg">
+                    <h2 className="text-xl font-bold mb-1" style={{ color: CoffeeColors.DARK_BROWN }}>
+                        Monthly Harvest Weight (Last 6 Months)
+                    </h2>
+                    <p className="text-sm mb-6" style={{ color: '#666' }}>
+                        Total weight delivered per month in kilograms
+                    </p>
+
+                    {/* Chart */}
+                    <div className="relative h-64 flex items-end justify-around px-6 py-6" style={{ borderBottom: '2px solid #E0E0E0', borderLeft: '2px solid #E0E0E0' }}>
+                        {/* Y-axis labels */}
+                        <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-xs" style={{ color: '#666' }}>
+                            <span>{maxMonthlyWeight.toFixed(0)} kg</span>
+                            <span>{(maxMonthlyWeight * 0.75).toFixed(0)} kg</span>
+                            <span>{(maxMonthlyWeight * 0.5).toFixed(0)} kg</span>
+                            <span>{(maxMonthlyWeight * 0.25).toFixed(0)} kg</span>
+                            <span>0 kg</span>
+                        </div>
+
+                        {/* Bars */}
+                        {kpis.monthlyHarvests.map((data, index) => (
+                            <div key={index} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
+                                <div className="w-full flex items-end justify-center" style={{ height: '200px' }}>
+                                    <div
+                                        className="rounded-t transition-all hover:opacity-80 cursor-pointer relative group"
+                                        style={{
+                                            height: `${(data.weight / maxMonthlyWeight) * 100}%`,
+                                            width: '60%',
+                                            backgroundColor: '#8B4513',
+                                            minHeight: data.weight > 0 ? '4px' : '0px'
+                                        }}
+                                    >
+                                        {/* Tooltip on hover */}
+                                        <span className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                                            {data.weight.toFixed(2)} kg
+                                        </span>
+                                    </div>
+                                </div>
+                                <span className="text-xs font-medium" style={{ color: '#666' }}>{data.label}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Toggle Buttons */}
@@ -523,7 +565,7 @@ const AggregationPage = () => {
                                             Date Recorded
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            Actions
+                                            Details
                                         </th>
                                     </>
                                 ) : (
@@ -537,8 +579,17 @@ const AggregationPage = () => {
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Delivered
                                         </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-right">
+                                            Weight (kg)
+                                        </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-right">
+                                            Price per kg
+                                        </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-right">
+                                            Amount Paid
+                                        </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            Actions
+                                            Details
                                         </th>
                                     </>
                                 )}
@@ -547,7 +598,7 @@ const AggregationPage = () => {
                         <tbody className="divide-y divide-gray-100 text-xs">
                             {loading ? (
                                 <tr className="h-24">
-                                    <td colSpan="4" className="text-center py-6 text-gray-600">
+                                    <td colSpan={activeTab === 'farmers' ? "4" : "7"} className="text-center py-6 text-gray-600">
                                         <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: CoffeeColors.MEDIUM_BROWN }} />
                                         Loading records...
                                     </td>
@@ -581,7 +632,7 @@ const AggregationPage = () => {
                                     ))
                                 ) : (
                                     <tr className="h-24">
-                                        <td colSpan="4" className="text-center py-6 text-gray-500 italic">
+                                        <td colSpan="7" className="text-center py-6 text-gray-500 italic">
                                             No harvest records found.
                                         </td>
                                     </tr>
