@@ -42,11 +42,17 @@ const CoffeeColors = {
 };
 
 const TaskManagement = () => {
-    const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'weekly-plan', 'tasks', 'exceptions'
+    // Helper function to get auth token from localStorage or sessionStorage
+    const getAuthToken = () => {
+        return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    };
+
+    const [activeTab, setActiveTab] = useState('tasks'); // 'tasks', 'surveillance', 'weekly-plan'
     const [tasks, setTasks] = useState([]);
     const [exceptions, setExceptions] = useState([]);
     const [farmBlocks, setFarmBlocks] = useState([]);
     const [sopTemplates, setSopTemplates] = useState([]);
+    const [staffMembers, setStaffMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showTaskModal, setShowTaskModal] = useState(false);
     const [showExceptionModal, setShowExceptionModal] = useState(false);
@@ -66,12 +72,16 @@ const TaskManagement = () => {
         title: '',
         activity: '',
         custom_activity: '',
-        assigned_to: '',
+        assigned_to: [], // Array of staff IDs
         description: '',
         time: '',
         priority: 'medium',
         date: selectedDate,
     });
+
+    // Dropdown state for staff selection
+    const [showStaffDropdown, setShowStaffDropdown] = useState(false);
+    const [staffSearchTerm, setStaffSearchTerm] = useState('');
 
     // Exception form state
     const [exceptionForm, setExceptionForm] = useState({
@@ -96,7 +106,7 @@ const TaskManagement = () => {
     // Fetch all data
     const fetchTasks = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAuthToken();
             const response = await fetch(API_ENDPOINTS.TASKS, {
                 headers: {
                     'Authorization': `Token ${token}`,
@@ -118,8 +128,8 @@ const TaskManagement = () => {
 
     const fetchFarmBlocks = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(API_ENDPOINTS.FARM_BLOCKS, {
+            const token = getAuthToken();
+            const response = await fetch(API_ENDPOINTS.BLOCKS, {
                 headers: {
                     'Authorization': `Token ${token}`,
                 },
@@ -138,10 +148,12 @@ const TaskManagement = () => {
         }
     }, []);
 
-    const fetchSopTemplates = useCallback(async () => {
+    // Removed fetchSopTemplates and fetchExceptions - endpoints don't exist yet
+
+    const fetchStaffMembers = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(API_ENDPOINTS.SOP_TEMPLATES, {
+            const token = getAuthToken();
+            const response = await fetch(API_ENDPOINTS.STAFF, {
                 headers: {
                     'Authorization': `Token ${token}`,
                 },
@@ -149,47 +161,25 @@ const TaskManagement = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setSopTemplates(data.results || data);
+                setStaffMembers(data.results || data);
             } else {
-                console.error('Failed to fetch SOP templates, server responded with', response.status);
-                setSopTemplates([]);
+                console.error('Failed to fetch staff members, server responded with', response.status);
+                setStaffMembers([]);
             }
         } catch (error) {
-            console.error('Error fetching SOP templates:', error);
-            setSopTemplates([]);
-        }
-    }, []);
-
-    const fetchExceptions = useCallback(async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await fetch(API_ENDPOINTS.EXCEPTIONS, {
-                headers: {
-                    'Authorization': `Token ${token}`,
-                },
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setExceptions(data.results || data);
-            } else {
-                console.error('Failed to fetch exceptions, server responded with', response.status);
-                setExceptions([]);
-            }
-        } catch (error) {
-            console.error('Error fetching exceptions:', error);
-            setExceptions([]);
+            console.error('Error fetching staff members:', error);
+            setStaffMembers([]);
         }
     }, []);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            await Promise.all([fetchTasks(), fetchExceptions(), fetchFarmBlocks(), fetchSopTemplates()]);
+            await Promise.all([fetchTasks(), fetchFarmBlocks(), fetchStaffMembers()]);
             setLoading(false);
         };
         fetchData();
-    }, [fetchTasks, fetchExceptions, fetchFarmBlocks, fetchSopTemplates]);
+    }, [fetchTasks, fetchFarmBlocks, fetchStaffMembers]);
 
     // SLA Timer effect for exceptions
     useEffect(() => {
@@ -231,7 +221,7 @@ const TaskManagement = () => {
             title: '',
             activity: '',
             custom_activity: '',
-            assigned_to: '',
+            assigned_to: [],
             description: '',
             time: '',
             priority: 'medium',
@@ -246,7 +236,7 @@ const TaskManagement = () => {
             title: task.title || '',
             activity: task.activity || '',
             custom_activity: task.custom_activity || '',
-            assigned_to: task.assigned_to || '',
+            assigned_to: Array.isArray(task.assigned_to) ? task.assigned_to : [],
             description: task.description || '',
             time: task.time || '',
             priority: task.priority || 'medium',
@@ -257,7 +247,7 @@ const TaskManagement = () => {
 
     const handleSaveTask = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAuthToken();
             const method = editingTask ? 'PUT' : 'POST';
             const url = editingTask
                 ? `${API_ENDPOINTS.TASKS || `${API_ENDPOINTS.getApiBaseUrl()}/api/tasks/`}${editingTask.id}/`
@@ -295,7 +285,7 @@ const TaskManagement = () => {
         if (!window.confirm('Are you sure you want to delete this task?')) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAuthToken();
             const response = await fetch(`${API_ENDPOINTS.TASKS}${taskId}/`, {
                 method: 'DELETE',
                 headers: {
@@ -320,7 +310,7 @@ const TaskManagement = () => {
         if (!window.confirm('Are you sure you want to delete this exception?')) return;
 
         try {
-            const token = localStorage.getItem('token');
+            const token = getAuthToken();
             const response = await fetch(`${API_ENDPOINTS.EXCEPTIONS}${exceptionId}/`, {
                 method: 'DELETE',
                 headers: {
@@ -373,7 +363,7 @@ const TaskManagement = () => {
 
     const handleSaveException = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = getAuthToken();
             const method = editingException ? 'PUT' : 'POST';
             const url = editingException
                 ? `${API_ENDPOINTS.EXCEPTIONS || `${API_ENDPOINTS.getApiBaseUrl()}/api/exceptions/`}${editingException.id}/`
@@ -446,7 +436,7 @@ const TaskManagement = () => {
 
             try {
                 // Try to save to backend first
-                const token = localStorage.getItem('token');
+                const token = getAuthToken();
                 const response = await fetch(API_ENDPOINTS.TASKS, {
                     method: 'POST',
                     headers: {
@@ -500,9 +490,17 @@ const TaskManagement = () => {
 
     // Filter functions
     const filteredTasks = tasks.filter(task => {
+        // Handle assigned_to as array of staff IDs
+        const assignedStaffNames = Array.isArray(task.assigned_to)
+            ? task.assigned_to.map(staffId => {
+                const staff = staffMembers.find(s => s.staff_id === staffId);
+                return staff ? `${staff.first_name} ${staff.last_name}`.toLowerCase() : staffId.toLowerCase();
+            }).join(' ')
+            : '';
+
         const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            task.assigned_to.toLowerCase().includes(searchTerm.toLowerCase());
+                            assignedStaffNames.includes(searchTerm.toLowerCase());
         const matchesFilter = filterStatus === 'all' || task.status === filterStatus;
         return matchesSearch && matchesFilter;
     });
@@ -555,45 +553,24 @@ const TaskManagement = () => {
                         </h1>
                         <p className="text-gray-600 mt-1">Manage tasks and record exceptions</p>
                     </div>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={activeTab === 'tasks' ? handleCreateTask : handleCreateException}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-white transition hover:shadow-xl"
-                            style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
-                        >
-                            <Plus className="w-4 h-4" />
-                            {activeTab === 'tasks' ? 'Create Task' : 'Record Exception'}
-                        </button>
-                    </div>
+                    {/* Show Create Task button only on Tasks tab */}
+                    {activeTab === 'tasks' && (
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleCreateTask}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-white transition hover:shadow-xl"
+                                style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
+                            >
+                                <Plus className="w-4 h-4" />
+                                Create Task
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Tab Navigation */}
                 <div className="mb-6 bg-white rounded-2xl shadow-lg p-2">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <button
-                            onClick={() => setActiveTab('overview')}
-                            className={`px-4 py-2.5 rounded-xl transition-all font-medium text-center ${
-                                activeTab === 'overview' ? 'shadow-md' : 'hover:bg-gray-50'
-                            }`}
-                            style={{
-                                backgroundColor: activeTab === 'overview' ? '#8B4513' : 'transparent',
-                                color: activeTab === 'overview' ? '#FFFFFF' : '#4A3423',
-                            }}
-                        >
-                            Overview
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('weekly-plan')}
-                            className={`px-4 py-2.5 rounded-xl transition-all font-medium text-center ${
-                                activeTab === 'weekly-plan' ? 'shadow-md' : 'hover:bg-gray-50'
-                            }`}
-                            style={{
-                                backgroundColor: activeTab === 'weekly-plan' ? '#8B4513' : 'transparent',
-                                color: activeTab === 'weekly-plan' ? '#FFFFFF' : '#4A3423',
-                            }}
-                        >
-                            Weekly Plan
-                        </button>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <button
                             onClick={() => setActiveTab('tasks')}
                             className={`px-4 py-2.5 rounded-xl transition-all font-medium text-center ${
@@ -607,16 +584,28 @@ const TaskManagement = () => {
                             Tasks
                         </button>
                         <button
-                            onClick={() => setActiveTab('exceptions')}
+                            onClick={() => setActiveTab('surveillance')}
                             className={`px-4 py-2.5 rounded-xl transition-all font-medium text-center ${
-                                activeTab === 'exceptions' ? 'shadow-md' : 'hover:bg-gray-50'
+                                activeTab === 'surveillance' ? 'shadow-md' : 'hover:bg-gray-50'
                             }`}
                             style={{
-                                backgroundColor: activeTab === 'exceptions' ? '#8B4513' : 'transparent',
-                                color: activeTab === 'exceptions' ? '#FFFFFF' : '#4A3423',
+                                backgroundColor: activeTab === 'surveillance' ? '#8B4513' : 'transparent',
+                                color: activeTab === 'surveillance' ? '#FFFFFF' : '#4A3423',
                             }}
                         >
-                            Exceptions
+                            Surveillance
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('weekly-plan')}
+                            className={`px-4 py-2.5 rounded-xl transition-all font-medium text-center ${
+                                activeTab === 'weekly-plan' ? 'shadow-md' : 'hover:bg-gray-50'
+                            }`}
+                            style={{
+                                backgroundColor: activeTab === 'weekly-plan' ? '#8B4513' : 'transparent',
+                                color: activeTab === 'weekly-plan' ? '#FFFFFF' : '#4A3423',
+                            }}
+                        >
+                            Weekly Plan
                         </button>
                     </div>
                 </div>
@@ -655,53 +644,50 @@ const TaskManagement = () => {
                     </select>
                 </div>
 
-                {/* Overview Tab */}
-                {activeTab === 'overview' && (
+                {/* Surveillance Tab */}
+                {activeTab === 'surveillance' && (
                     <div className="space-y-6">
-                        
-
-                        {/* Key Metrics */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="bg-white p-6 rounded-2xl shadow-lg">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-sm font-medium text-gray-600">Total Blocks</h3>
-                                    <MapPin size={20} style={{ color: '#8B5A3C' }} />
-                                </div>
-                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>{farmBlocks.length}</p>
-                                <p className="text-xs text-gray-600 mt-2">Active farm blocks</p>
+                        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                            <div className="p-6 border-b border-gray-200">
+                                <h2 className="text-2xl font-bold" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                    Farm Surveillance Reports
+                                </h2>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    Entries submitted by mobile app users during farm surveillance
+                                </p>
                             </div>
 
-                            <div className="bg-white p-6 rounded-2xl shadow-lg">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-sm font-medium text-gray-600">Avg Condition</h3>
-                                    <TrendingUp size={20} style={{ color: '#8B5A3C' }} />
-                                </div>
-                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>
-                                    {farmBlocks.length ? Math.round(farmBlocks.reduce((sum, block) => sum + (block.condition_score || 0), 0) / farmBlocks.length) : 0}%
-                                </p>
-                                <p className="text-xs text-gray-600 mt-2">Overall farm health</p>
-                            </div>
-
-                            <div className="bg-white p-6 rounded-2xl shadow-lg">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-sm font-medium text-gray-600">Open Tasks</h3>
-                                    <CheckCircle size={20} style={{ color: '#8B5A3C' }} />
-                                </div>
-                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>
-                                    {farmBlocks.reduce((sum, block) => sum + block.open_tasks, 0)}
-                                </p>
-                                <p className="text-xs text-gray-600 mt-2">Pending actions</p>
-                            </div>
-
-                            <div className="bg-white p-6 rounded-2xl shadow-lg">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-sm font-medium text-gray-600">Active Alerts</h3>
-                                    <AlertTriangle size={20} style={{ color: '#8B5A3C' }} />
-                                </div>
-                                <p className="text-3xl font-bold" style={{ color: '#3D2817' }}>
-                                    {exceptions.filter(e => e.status === 'open').length}
-                                </p>
-                                <p className="text-xs text-gray-600 mt-2">Require attention</p>
+                            <div className="p-6">
+                                {exceptions.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <Eye size={48} className="mx-auto text-gray-400 mb-4" />
+                                        <p className="text-gray-500">No surveillance reports yet</p>
+                                        <p className="text-sm text-gray-400 mt-2">Reports from mobile app will appear here</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {exceptions.map((report) => (
+                                            <div key={report.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="font-semibold text-gray-800">{report.title}</h3>
+                                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                                        report.severity === 'high' ? 'bg-red-100 text-red-800' :
+                                                        report.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-green-100 text-green-800'
+                                                    }`}>
+                                                        {report.severity}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-2">{report.description}</p>
+                                                <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                    <span>📍 {report.location}</span>
+                                                    <span>👤 {report.reported_by}</span>
+                                                    <span>📅 {new Date(report.created_at).toLocaleDateString()}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -811,7 +797,15 @@ const TaskManagement = () => {
                                                             }}
                                                         >
                                                             <div className="font-semibold text-blue-800 truncate">{task.title}</div>
-                                                            <div className="text-blue-600 truncate">{task.assigned_to}</div>
+                                                            <div className="text-blue-600 truncate">
+                                                                {Array.isArray(task.assigned_to) && task.assigned_to.length > 0
+                                                                    ? task.assigned_to.map(staffId => {
+                                                                        const staff = staffMembers.find(s => s.staff_id === staffId);
+                                                                        return staff ? `${staff.first_name} ${staff.last_name}` : staffId;
+                                                                    }).join(', ')
+                                                                    : 'Unassigned'
+                                                                }
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
@@ -918,7 +912,32 @@ const TaskManagement = () => {
                                                 <td className="px-6 py-4 text-gray-700">
                                                     {task.activity === 'other' ? task.custom_activity : task.activity}
                                                 </td>
-                                                <td className="px-6 py-4 text-gray-700">{task.assigned_to}</td>
+                                                <td className="px-6 py-4">
+                                                    {Array.isArray(task.assigned_to) && task.assigned_to.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {task.assigned_to.map(staffId => {
+                                                                const staff = staffMembers.find(s => s.staff_id === staffId);
+                                                                return staff ? (
+                                                                    <span
+                                                                        key={staffId}
+                                                                        className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs"
+                                                                    >
+                                                                        {staff.first_name} {staff.last_name}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span
+                                                                        key={staffId}
+                                                                        className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs"
+                                                                    >
+                                                                        {staffId}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 text-sm">Unassigned</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-6 py-4 text-center text-gray-700">{task.time || ''}</td>
                                                 <td className="px-6 py-4 text-center text-gray-700">{task.date || task.due_date || ''}</td>
                                                 <td className="px-6 py-4 text-center">
@@ -1083,15 +1102,119 @@ const TaskManagement = () => {
                                         </div>
                                     )}
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
-                                        <input
-                                            type="text"
-                                            value={taskForm.assigned_to}
-                                            onChange={(e) => setTaskForm({...taskForm, assigned_to: e.target.value})}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            placeholder="Enter assignee name"
-                                        />
+                                    <div className="relative">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Assigned To
+                                        </label>
+
+                                        {/* Selected Staff Tags */}
+                                        <div className="flex flex-wrap gap-2 mb-2">
+                                            {taskForm.assigned_to.map(staffId => {
+                                                const staff = staffMembers.find(s => s.staff_id === staffId);
+                                                return staff ? (
+                                                    <span
+                                                        key={staffId}
+                                                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-800 rounded-lg text-sm"
+                                                    >
+                                                        {staff.first_name} {staff.last_name}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setTaskForm({
+                                                                    ...taskForm,
+                                                                    assigned_to: taskForm.assigned_to.filter(id => id !== staffId)
+                                                                });
+                                                            }}
+                                                            className="ml-1 hover:text-blue-900 font-bold text-lg leading-none"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </span>
+                                                ) : null;
+                                            })}
+                                        </div>
+
+                                        {/* Add Staff Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowStaffDropdown(!showStaffDropdown);
+                                                setStaffSearchTerm('');
+                                            }}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-left flex items-center justify-between hover:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                                        >
+                                            <span className="text-gray-500">
+                                                {taskForm.assigned_to.length === 0
+                                                    ? 'Click to select staff member'
+                                                    : 'Click to add more staff'}
+                                            </span>
+                                            <svg className={`w-4 h-4 transition-transform ${showStaffDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+
+                                        {/* Dropdown */}
+                                        {showStaffDropdown && (
+                                            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden">
+                                                {/* Search Input */}
+                                                <div className="p-2 border-b border-gray-200 sticky top-0 bg-white">
+                                                    <input
+                                                        type="text"
+                                                        value={staffSearchTerm}
+                                                        onChange={(e) => setStaffSearchTerm(e.target.value)}
+                                                        placeholder="Search staff..."
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                                        autoFocus
+                                                    />
+                                                </div>
+
+                                                {/* Staff List */}
+                                                <div className="overflow-y-auto max-h-48">
+                                                    {staffMembers.length === 0 ? (
+                                                        <div className="p-3 text-sm text-gray-500 text-center">
+                                                            No staff members available
+                                                        </div>
+                                                    ) : (
+                                                        staffMembers
+                                                            .filter(staff => {
+                                                                const searchLower = staffSearchTerm.toLowerCase();
+                                                                return (
+                                                                    staff.first_name.toLowerCase().includes(searchLower) ||
+                                                                    staff.last_name.toLowerCase().includes(searchLower) ||
+                                                                    staff.staff_id.toLowerCase().includes(searchLower)
+                                                                );
+                                                            })
+                                                            .map((staff) => {
+                                                                const isSelected = taskForm.assigned_to.includes(staff.staff_id);
+                                                                if (isSelected) return null; // Don't show already selected staff
+
+                                                                return (
+                                                                    <button
+                                                                        key={staff.staff_id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setTaskForm({
+                                                                                ...taskForm,
+                                                                                assigned_to: [...taskForm.assigned_to, staff.staff_id]
+                                                                            });
+                                                                            setShowStaffDropdown(false);
+                                                                            setStaffSearchTerm('');
+                                                                        }}
+                                                                        className="w-full text-left px-3 py-2 hover:bg-blue-50 transition-colors flex items-center justify-between border-b border-gray-100 last:border-b-0"
+                                                                    >
+                                                                        <span className="text-sm text-gray-700">
+                                                                            {staff.first_name} {staff.last_name}
+                                                                        </span>
+                                                                        <span className="text-xs text-gray-500">
+                                                                            {staff.staff_id}
+                                                                        </span>
+                                                                    </button>
+                                                                );
+                                                            })
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div>
