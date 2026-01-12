@@ -459,8 +459,8 @@ const Input = ({ type = 'text', name, id, value, onChange, placeholder, classNam
         placeholder={placeholder}
         readOnly={readOnly}
         {...rest}
-        className={`w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#795548] focus:border-[#795548] text-[#4A3423] ${className}`}
-        style={style}
+        className={`w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#795548] focus:border-[#795548] text-[#4A3423] placeholder:text-gray-400 placeholder:italic ${className}`}
+        style={{ fontFamily: 'inherit', ...style }}
     />
 );
 
@@ -1236,7 +1236,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                             onFocus={() => !initialData?.id && setShowStaffDropdown(true)}
                             disabled={loadingStaff || initialData?.id}
                             placeholder={loadingStaff ? 'Loading staff...' : (initialData?.id ? 'Employee (locked)' : 'Type to search and select from registered staff')}
-                            className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium ${(loadingStaff || initialData?.id) ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'} ${getBorderClass('employee_name')} ${loadingStaff ? 'opacity-50' : ''}`}
+                            className={`w-full py-2.5 px-3 rounded-lg border text-sm font-medium ${(loadingStaff || initialData?.id) ? 'bg-gray-50 cursor-not-allowed' : 'bg-white'} ${getBorderClass('employee_name')} ${loadingStaff ? 'opacity-50' : ''} placeholder:text-gray-400 placeholder:italic`}
                             autoComplete="off"
                         />
                         {showStaffDropdown && !loadingStaff && !initialData?.id && staff.length > 0 && (
@@ -1995,7 +1995,7 @@ function Wages() {
                                 placeholder="Search by employee name"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-[#795548] focus:border-[#795548] transition-colors shadow-lg"
+                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-[#795548] focus:border-[#795548] transition-colors shadow-lg placeholder:text-gray-400 placeholder:italic"
                             />
                         </div>
 

@@ -7,6 +7,7 @@ const CustomAutocomplete = ({
   placeholder,
   disabled = false,
   style = {},
+  className = '',
   onFocus,
   onBlur,
 }) => {
@@ -90,6 +91,7 @@ const CustomAutocomplete = ({
         onBlur={handleInputBlur}
         placeholder={disabled ? placeholder : placeholder}
         disabled={disabled}
+        className={className}
         style={{
           ...style,
           width: '100%',
