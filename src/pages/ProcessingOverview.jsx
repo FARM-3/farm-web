@@ -10,7 +10,10 @@ import {
     Loader2,
     RefreshCw,
     Wind,
-    Wheat
+    Wheat,
+    Droplet,
+    Sun,
+    Sparkles
 } from 'lucide-react';
 import {
     BarChart,
@@ -26,6 +29,7 @@ import {
     Cell
 } from 'recharts';
 import { API_ENDPOINTS } from '../services/ApiConfig';
+import { ProcessingTypeChart } from './ProcessingType';
 
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
@@ -450,6 +454,15 @@ const ProcessingOverview = () => {
                             )}
                         </div>
                     )}
+                </div>
+
+                {/* Processing Type Distribution Chart */}
+                <div className="mb-8">
+                    <ProcessingTypeChart data={[
+                        { name: 'Fermenting', weight: 1250.50, color: '#8B4513', icon: Sparkles },
+                        { name: 'Natural Sundrying', weight: 875.25, color: '#FFA500', icon: Sun },
+                        { name: 'Washing', weight: 1450.75, color: '#4682B4', icon: Droplet }
+                    ]} />
                 </div>
 
                 {/* Charts Section */}
