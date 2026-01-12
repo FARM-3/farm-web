@@ -109,7 +109,7 @@ const TaskManagement = () => {
             const token = getAuthToken();
             const response = await fetch(API_ENDPOINTS.TASKS, {
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -131,7 +131,7 @@ const TaskManagement = () => {
             const token = getAuthToken();
             const response = await fetch(API_ENDPOINTS.BLOCKS, {
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -155,7 +155,7 @@ const TaskManagement = () => {
             const token = getAuthToken();
             const response = await fetch(API_ENDPOINTS.STAFF, {
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -234,13 +234,16 @@ const TaskManagement = () => {
         setEditingTask(task);
         setTaskForm({
             title: task.title || '',
-            activity: task.activity || '',
+            // Convert activity array back to single string for the form
+            activity: Array.isArray(task.activity) ? (task.activity[0] || '') : (task.activity || ''),
             custom_activity: task.custom_activity || '',
             assigned_to: Array.isArray(task.assigned_to) ? task.assigned_to : [],
             description: task.description || '',
             time: task.time || '',
             priority: task.priority || 'medium',
             date: task.date ? new Date(task.date) : (task.due_date ? new Date(task.due_date) : selectedDate),
+            block: task.block || null,
+            season: task.season || null,
         });
         setShowTaskModal(true);
     };
@@ -248,22 +251,38 @@ const TaskManagement = () => {
     const handleSaveTask = async () => {
         try {
             const token = getAuthToken();
+
+            // Check if token exists
+            if (!token) {
+                alert('You are not logged in. Please login again.');
+                navigate('/login');
+                return;
+            }
+
             const method = editingTask ? 'PUT' : 'POST';
             const url = editingTask
                 ? `${API_ENDPOINTS.TASKS || `${API_ENDPOINTS.getApiBaseUrl()}/api/tasks/`}${editingTask.id}/`
                 : (API_ENDPOINTS.TASKS || `${API_ENDPOINTS.getApiBaseUrl()}/api/tasks/`);
 
-            // Ensure date is sent as YYYY-MM-DD
+            // Ensure date is sent as YYYY-MM-DD and activity is an array
             const payload = {
                 ...taskForm,
                 date: taskForm.date instanceof Date ? taskForm.date.toISOString().split('T')[0] : taskForm.date,
+                // Convert activity from string to array for backend
+                activity: taskForm.activity ? [taskForm.activity] : [],
+                // Ensure block and season are included (can be null)
+                block: taskForm.block || null,
+                season: taskForm.season || null,
             };
+
+            console.log('Sending task payload:', payload);
+            console.log('Auth token:', token ? 'Present' : 'Missing');
 
             const response = await fetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
@@ -273,11 +292,21 @@ const TaskManagement = () => {
                 setShowTaskModal(false);
                 alert(editingTask ? 'Task updated successfully!' : 'Task created successfully!');
             } else {
-                alert('Failed to save task');
+                // Try to parse as JSON, but if it fails, get the text (HTML error page)
+                const contentType = response.headers.get("content-type");
+                let errorData;
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    errorData = await response.json();
+                } else {
+                    errorData = await response.text();
+                }
+                console.error('Backend error response:', errorData);
+                console.error('Response status:', response.status);
+                alert(`Failed to save task. Status: ${response.status}. Check console for details.`);
             }
         } catch (error) {
             console.error('Error saving task:', error);
-            alert('Error saving task');
+            alert('Error saving task: ' + error.message);
         }
     };
 
@@ -289,7 +318,7 @@ const TaskManagement = () => {
             const response = await fetch(`${API_ENDPOINTS.TASKS}${taskId}/`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -314,7 +343,7 @@ const TaskManagement = () => {
             const response = await fetch(`${API_ENDPOINTS.EXCEPTIONS}${exceptionId}/`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -385,7 +414,7 @@ const TaskManagement = () => {
             const response = await fetch(url, {
                 method,
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: formData,
             });
@@ -441,7 +470,7 @@ const TaskManagement = () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Token ${token}`,
+                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify(newTask),
                 });
