@@ -94,18 +94,45 @@ const QualityControl = () => {
         setLoading(true);
         try {
             // Fetch ripeness records
-            // Fetch ripeness records
+            // Fetch ripeness records (log URL and status for debugging)
+            console.log('Fetching ripeness from:', API_ENDPOINTS.RIPENESS);
+            console.log('Fetching ripeness summary from:', API_ENDPOINTS.RIPENESS_SUMMARY);
+
             const [ripenessRes, summaryRes] = await Promise.all([
                 fetch(API_ENDPOINTS.RIPENESS),
                 fetch(API_ENDPOINTS.RIPENESS_SUMMARY)
             ]);
-            
-            const ripenessData = await ripenessRes.json();
-            const summaryData = await summaryRes.json();
-            
+
+            console.log('Ripeness response status:', ripenessRes.status, 'OK:', ripenessRes.ok);
+            console.log('Ripeness summary response status:', summaryRes.status, 'OK:', summaryRes.ok);
+
+            let ripenessData;
+            if (ripenessRes.ok) {
+                ripenessData = await ripenessRes.json();
+            } else {
+                const text = await ripenessRes.text().catch(() => 'no body');
+                console.error('Ripeness fetch failed:', ripenessRes.status, text);
+                ripenessData = { results: [] };
+            }
+
+            let summaryData;
+            if (summaryRes.ok) {
+                summaryData = await summaryRes.json();
+            } else {
+                const text = await summaryRes.text().catch(() => 'no body');
+                console.error('Ripeness summary fetch failed:', summaryRes.status, text);
+                summaryData = null;
+            }
+
             // Handle paginated response if needed
             const records = ripenessData.results || ripenessData;
+            console.log('Fetched ripeness records count:', Array.isArray(records) ? records.length : 0);
+            if (Array.isArray(records) && records.length > 0) {
+                console.log('Sample ripeness record:', records[0]);
+                console.log('Ripeness record fields:', Object.keys(records[0]));
+            }
             setRipenessRecords(Array.isArray(records) ? records : []);
+            console.log('Ripeness summary data:', summaryData);
             setRipenessSummary(summaryData);
         } catch (error) {
             console.error('Error fetching ripeness data:', error);
@@ -179,21 +206,57 @@ const QualityControl = () => {
 
     // Helper to get farmer name from harvest_id
     const getFarmerName = useCallback((harvestId) => {
-        const harvest = harvestData.find(h => h.harvest_id === harvestId);
+        if (!harvestId && typeof harvestId !== 'number') return '';
+        const hid = String(harvestId).trim();
+
+        // Try exact matches on common id fields
+        let harvest = harvestData.find(h => String(h.harvest_id || h.harvestId || h.id || '').trim() === hid);
+
+        // Fallback: case-insensitive match or contains
+        if (!harvest) {
+            const hidLower = hid.toLowerCase();
+            harvest = harvestData.find(h => {
+                const candidates = [h.harvest_id, h.harvestId, h.id, h.worker_name, h.farmer_name, h.farmer];
+                return candidates.some(c => c && String(c).toLowerCase().includes(hidLower));
+            });
+        }
+
         // Try multiple possible field names for farmer/worker name
-        return harvest?.worker_name || harvest?.farmer_name || harvest?.farmerName || harvest?.farmer || harvestId;
+        const name = harvest?.worker_name || harvest?.farmer_name || harvest?.farmerName || harvest?.farmer;
+        return name || hid;
     }, [harvestData]);
 
-    const filteredRipenessRecords = ripenessRecords.filter(record =>
-        record.harvest_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getFarmerName(record.harvest_id)?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Diagnostic: log mapping between ripeness records and harvestData to find missing names
+    useEffect(() => {
+        if (!ripenessRecords || ripenessRecords.length === 0) return;
+        ripenessRecords.forEach(rec => {
+            const hid = String(rec.harvest_id || rec.harvest || rec.id || '').trim();
+            const mapped = getFarmerName(hid);
+            if (!mapped || mapped === hid) {
+                console.warn('QC: No farmer name for harvest id', hid, 'mapped->', mapped);
+                console.log('QC: Nearby harvestData ids sample:', harvestData.slice(0, 8).map(h => ({ id: h.harvest_id || h.harvestId || h.id, worker: h.worker_name || h.farmer_name })));
+            } else {
+                console.log('QC: Mapped harvest', hid, '->', mapped);
+            }
+        });
+    }, [ripenessRecords, harvestData, getFarmerName]);
 
-    const filteredFloatingRecords = floatingRecords.filter(record =>
-        record.harvest_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.grade?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getFarmerName(record.harvest_id)?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredRipenessRecords = ripenessRecords.filter(record => {
+        const hid = (record.harvest_id || '').toString().toLowerCase();
+        const fname = (getFarmerName(record.harvest_id) || '').toString().toLowerCase();
+        const term = searchTerm.toLowerCase();
+        return hid.includes(term) || fname.includes(term);
+    });
+
+    console.log('Render: ripenessRecords length=', ripenessRecords.length, 'filteredRipenessRecords length=', filteredRipenessRecords.length);
+
+    const filteredFloatingRecords = floatingRecords.filter(record => {
+        const hid = (record.harvest_id || '').toString().toLowerCase();
+        const grade = (record.grade || '').toString().toLowerCase();
+        const fname = (getFarmerName(record.harvest_id) || '').toString().toLowerCase();
+        const term = searchTerm.toLowerCase();
+        return hid.includes(term) || grade.includes(term) || fname.includes(term);
+    });
 
     // Calculate farmer leaderboard from ripeness records
     const farmerLeaderboard = useMemo(() => {
@@ -323,7 +386,9 @@ const QualityControl = () => {
                             />
                             <KPICard
                                 title="Avg. Ripeness"
-                                value={ripenessSummary?.average_ripeness_score?.toFixed(2) || '0.00'}
+                                value={(typeof ripenessSummary?.average_ripeness_score !== 'undefined' && ripenessSummary?.average_ripeness_score !== null)
+                                    ? Number(ripenessSummary.average_ripeness_score).toFixed(2)
+                                    : '0.00'}
                                 subtitle="Average score"
                                 icon={TrendingUp}
                                 loading={loading}
@@ -386,9 +451,9 @@ const QualityControl = () => {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            filteredRipenessRecords.map((record) => (
-                                                <tr key={record.harvest_id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 font-medium text-gray-800">{record.harvest_id}</td>
+                                            filteredRipenessRecords.map((record, idx) => (
+                                                <tr key={record.harvest_id || `ripeness-${idx}`} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 font-medium text-gray-800">{record.harvest_id || record.harvest || record.id}</td>
                                                     <td className="px-6 py-4 text-gray-700">{getFarmerName(record.harvest_id)}</td>
                                                     <td className="px-6 py-4 text-center text-gray-700">{record.date}</td>
                                                     <td className="px-6 py-4 text-center text-gray-700">{record.sample_size}</td>
@@ -440,8 +505,8 @@ const QualityControl = () => {
                         {/* Grade Summary Cards */}
                         {floatingSummary?.by_grade && floatingSummary.by_grade.length > 0 && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                                {floatingSummary.by_grade.map((grade) => (
-                                    <div key={grade.grade} className="bg-white p-4 rounded-xl shadow-lg">
+                                {floatingSummary.by_grade.map((grade, idx) => (
+                                    <div key={grade.grade || `grade-${idx}`} className="bg-white p-4 rounded-xl shadow-lg">
                                         <h3 className="text-lg font-bold mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
                                             Grade {grade.grade}
                                         </h3>
@@ -498,10 +563,10 @@ const QualityControl = () => {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            filteredFloatingRecords.map((record) => (
-                                                <tr key={record.grade_id} className="hover:bg-gray-50">
+                                            filteredFloatingRecords.map((record, idx) => (
+                                                <tr key={record.grade_id || `floating-${idx}`} className="hover:bg-gray-50">
                                                     <td className="px-6 py-4 font-medium text-gray-800">{record.grade_id}</td>
-                                                    <td className="px-6 py-4 text-gray-700">{record.harvest_id}</td>
+                                                    <td className="px-6 py-4 text-gray-700">{record.harvest_id || record.harvest || record.id}</td>
                                                     <td className="px-6 py-4 text-gray-700">{getFarmerName(record.harvest_id)}</td>
                                                     <td className="px-6 py-4 text-center">
                                                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 whitespace-nowrap">
