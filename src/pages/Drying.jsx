@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
 import { ProcessingNav } from '../components/ProcessingNav';
+import API_ENDPOINTS from '../services/ApiConfig';
 import {
     Plus,
     Edit,
@@ -41,14 +42,35 @@ const Drying = () => {
     const fetchRecords = useCallback(async () => {
         setLoading(true);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const mockData = [
-                { id: 1, harvest_id: 'H-2024-001', start_date: '2024-01-17', duration: '7 days', moisture_level: '12%', status: 'In Progress' },
-                { id: 2, harvest_id: 'H-2024-002', start_date: '2024-01-15', duration: '10 days', moisture_level: '11%', status: 'Completed' },
-            ];
-            setRecords(mockData);
+            const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+            const response = await fetch(API_ENDPOINTS.DRYING, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Transform backend data to match frontend structure
+                const transformedData = (data.results || data).map(item => ({
+                    id: item.id,
+                    processing_id: item.processing_id,
+                    lot_id: item.lot_id,
+                    start_date: item.date || 'N/A',
+                    weather: item.weather_condition,
+                    moisture_level: item.moisture_content ? `${item.moisture_content}%` : 'N/A',
+                    weight: item.weight,
+                    status: item.moisture_content < 12 ? 'Completed' : 'In Progress',
+                }));
+                setRecords(transformedData);
+            } else {
+                console.error('Failed to fetch drying records');
+                setRecords([]);
+            }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error fetching drying records:', error);
+            setRecords([]);
         } finally {
             setLoading(false);
         }
@@ -112,10 +134,12 @@ const Drying = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead style={{ backgroundColor: CoffeeColors.LIGHT_BG }}>
                                 <tr>
-                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-700">Harvest ID</th>
-                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Start Date</th>
-                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Duration</th>
-                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Moisture Level</th>
+                                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-gray-700">Processing ID</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Lot ID</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Date</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Weather</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Moisture %</th>
+                                    <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Weight (kg)</th>
                                     <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Status</th>
                                     <th className="px-3 py-2 text-center text-xs font-semibold uppercase text-gray-700">Actions</th>
                                 </tr>
@@ -123,21 +147,23 @@ const Drying = () => {
                             <tbody className="bg-white divide-y divide-gray-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-3 py-6 text-center">
+                                        <td colSpan="8" className="px-3 py-6 text-center">
                                             <Loader2 className="w-8 h-8 animate-spin inline-block" style={{ color: CoffeeColors.BUTTON_BROWN }} />
                                         </td>
                                     </tr>
                                 ) : records.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-3 py-6 text-center text-gray-500">No drying records found</td>
+                                        <td colSpan="8" className="px-3 py-6 text-center text-gray-500">No drying records found</td>
                                     </tr>
                                 ) : (
                                     records.map((record) => (
                                         <tr key={record.id} className="hover:bg-gray-50">
-                                            <td className="px-3 py-2 font-medium text-gray-800 text-sm whitespace-nowrap">{record.harvest_id}</td>
+                                            <td className="px-3 py-2 font-medium text-gray-800 text-sm whitespace-nowrap">{record.processing_id || '-'}</td>
+                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.lot_id || '-'}</td>
                                             <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.start_date}</td>
-                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.duration}</td>
+                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.weather || '-'}</td>
                                             <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.moisture_level}</td>
+                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap font-medium">{record.weight ? `${record.weight} kg` : '-'}</td>
                                             <td className="px-3 py-2 text-center">
                                                 <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
                                                     record.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
