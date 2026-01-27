@@ -335,21 +335,6 @@ const Bagging = () => {
                                             </tr>
                                         );
                                     })
-                                    records.map((record) => (
-                                        <tr key={record.id} className="hover:bg-gray-50">
-                                            <td className="px-3 py-2 font-medium text-gray-800 text-sm whitespace-nowrap">{record.harvest_id}</td>
-                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.bags}</td>
-                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.weight_per_bag}</td>
-                                            <td className="px-3 py-2 text-center font-semibold text-gray-800 text-sm whitespace-nowrap">{record.total_weight}</td>
-                                            <td className="px-3 py-2 text-center text-gray-700 text-sm whitespace-nowrap">{record.date}</td>
-                                            <td className="px-3 py-2 text-center">
-                                                <div className="flex justify-center gap-2">
-                                                    <button className="p-1 hover:bg-blue-50 rounded"><Edit className="w-4 h-4 text-blue-600" /></button>
-                                                    <button className="p-1 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4 text-red-600" /></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
                                 )}
                             </tbody>
                         </table>

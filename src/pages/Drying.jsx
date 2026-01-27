@@ -13,6 +13,12 @@ import {
     Trash2
 } from 'lucide-react';
 
+const CoffeeColors = {
+    DARK_BROWN: '#4A3423',
+    BUTTON_BROWN: '#8B4513',
+    LIGHT_BG: '#efebe9',
+};
+
 const KPICard = ({ title, value, subtitle, icon: Icon, loading }) => (
     <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
         <div className="flex items-center justify-between mb-4">
