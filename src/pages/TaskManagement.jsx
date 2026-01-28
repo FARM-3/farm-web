@@ -49,6 +49,7 @@ const TaskManagement = () => {
 
     const [activeTab, setActiveTab] = useState('tasks'); // 'tasks', 'surveillance', 'weekly-plan'
     const [tasks, setTasks] = useState([]);
+    const [taskSubmissions, setTaskSubmissions] = useState([]); // Submissions from mobile app
     const [exceptions, setExceptions] = useState([]);
     const [farmBlocks, setFarmBlocks] = useState([]);
     const [sopTemplates, setSopTemplates] = useState([]);
@@ -62,6 +63,10 @@ const TaskManagement = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [draggedSop, setDraggedSop] = useState(null);
+    const [calendarView, setCalendarView] = useState('week'); // 'week', 'month', 'year'
+    const [selectedTask, setSelectedTask] = useState(null); // For task detail modal
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
     const [slaTimers, setSlaTimers] = useState({});
     const [calendarEvents, setCalendarEvents] = useState([]);
 
@@ -109,7 +114,7 @@ const TaskManagement = () => {
             const token = getAuthToken();
             const response = await fetch(API_ENDPOINTS.TASKS, {
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -131,7 +136,7 @@ const TaskManagement = () => {
             const token = getAuthToken();
             const response = await fetch(API_ENDPOINTS.BLOCKS, {
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -155,7 +160,7 @@ const TaskManagement = () => {
             const token = getAuthToken();
             const response = await fetch(API_ENDPOINTS.STAFF, {
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -172,14 +177,55 @@ const TaskManagement = () => {
         }
     }, []);
 
+    // Fetch task submissions from mobile app
+    const fetchTaskSubmissions = useCallback(async () => {
+        try {
+            const token = getAuthToken();
+            const response = await fetch(API_ENDPOINTS.TASK_SUBMISSIONS, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setTaskSubmissions(data.results || data);
+                console.log('Task submissions fetched:', data.results || data);
+            } else {
+                console.error('Failed to fetch task submissions, server responded with', response.status);
+                setTaskSubmissions([]);
+            }
+        } catch (error) {
+            console.error('Error fetching task submissions:', error);
+            setTaskSubmissions([]);
+        }
+    }, []);
+
+    // Helper function to get submission status for a task
+    const getTaskSubmissionStatus = (taskId) => {
+        const submission = taskSubmissions.find(s => s.assigned_task_id === taskId);
+        return submission ? submission.status : null;
+    };
+
+    // Get status badge color
+    const getSubmissionStatusColor = (status) => {
+        switch (status) {
+            case 'accepted': return 'bg-blue-100 text-blue-800';
+            case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+            case 'completed': return 'bg-green-100 text-green-800';
+            case 'rejected': return 'bg-red-100 text-red-800';
+            default: return 'bg-gray-100 text-gray-600';
+        }
+    };
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            await Promise.all([fetchTasks(), fetchFarmBlocks(), fetchStaffMembers()]);
+            await Promise.all([fetchTasks(), fetchFarmBlocks(), fetchStaffMembers(), fetchTaskSubmissions()]);
             setLoading(false);
         };
         fetchData();
-    }, [fetchTasks, fetchFarmBlocks, fetchStaffMembers]);
+    }, [fetchTasks, fetchFarmBlocks, fetchStaffMembers, fetchTaskSubmissions]);
 
     // SLA Timer effect for exceptions
     useEffect(() => {
@@ -234,13 +280,16 @@ const TaskManagement = () => {
         setEditingTask(task);
         setTaskForm({
             title: task.title || '',
-            activity: task.activity || '',
+            // Convert activity array back to single string for the form
+            activity: Array.isArray(task.activity) ? (task.activity[0] || '') : (task.activity || ''),
             custom_activity: task.custom_activity || '',
             assigned_to: Array.isArray(task.assigned_to) ? task.assigned_to : [],
             description: task.description || '',
             time: task.time || '',
             priority: task.priority || 'medium',
             date: task.date ? new Date(task.date) : (task.due_date ? new Date(task.due_date) : selectedDate),
+            block: task.block || null,
+            season: task.season || null,
         });
         setShowTaskModal(true);
     };
@@ -248,22 +297,44 @@ const TaskManagement = () => {
     const handleSaveTask = async () => {
         try {
             const token = getAuthToken();
+
+            // Check if token exists
+            if (!token) {
+                alert('You are not logged in. Please login again.');
+                navigate('/login');
+                return;
+            }
+
             const method = editingTask ? 'PUT' : 'POST';
             const url = editingTask
                 ? `${API_ENDPOINTS.TASKS || `${API_ENDPOINTS.getApiBaseUrl()}/api/tasks/`}${editingTask.id}/`
                 : (API_ENDPOINTS.TASKS || `${API_ENDPOINTS.getApiBaseUrl()}/api/tasks/`);
 
-            // Ensure date is sent as YYYY-MM-DD
+            // Ensure date is sent as YYYY-MM-DD and activity is an array
             const payload = {
-                ...taskForm,
+                title: taskForm.title,
+                description: taskForm.description,
+                activity: taskForm.activity ? [taskForm.activity] : [],
+                custom_activity: taskForm.custom_activity || '',
+                priority: taskForm.priority,
+                assigned_to: taskForm.assigned_to,
                 date: taskForm.date instanceof Date ? taskForm.date.toISOString().split('T')[0] : taskForm.date,
+                time: taskForm.time || '',
+                completed: false,
             };
+
+            // Only include block and season if they have values
+            if (taskForm.block) payload.block = taskForm.block;
+            if (taskForm.season) payload.season = taskForm.season;
+
+            console.log('Sending task payload:', payload);
+            console.log('Auth token:', token ? 'Present' : 'Missing');
 
             const response = await fetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify(payload),
             });
@@ -271,13 +342,24 @@ const TaskManagement = () => {
             if (response.ok) {
                 await fetchTasks();
                 setShowTaskModal(false);
-                alert(editingTask ? 'Task updated successfully!' : 'Task created successfully!');
+                setSuccessMessage(editingTask ? 'Task updated successfully!' : 'Task created successfully!');
+                setShowSuccessModal(true);
             } else {
-                alert('Failed to save task');
+                // Try to parse as JSON, but if it fails, get the text (HTML error page)
+                const contentType = response.headers.get("content-type");
+                let errorData;
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    errorData = await response.json();
+                } else {
+                    errorData = await response.text();
+                }
+                console.error('Backend error response:', errorData);
+                console.error('Response status:', response.status);
+                alert(`Failed to save task. Status: ${response.status}. Check console for details.`);
             }
         } catch (error) {
             console.error('Error saving task:', error);
-            alert('Error saving task');
+            alert('Error saving task: ' + error.message);
         }
     };
 
@@ -289,7 +371,7 @@ const TaskManagement = () => {
             const response = await fetch(`${API_ENDPOINTS.TASKS}${taskId}/`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -314,7 +396,7 @@ const TaskManagement = () => {
             const response = await fetch(`${API_ENDPOINTS.EXCEPTIONS}${exceptionId}/`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
             });
 
@@ -385,7 +467,7 @@ const TaskManagement = () => {
             const response = await fetch(url, {
                 method,
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Bearer ${token}`,
                 },
                 body: formData,
             });
@@ -441,7 +523,7 @@ const TaskManagement = () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Token ${token}`,
+                        'Authorization': `Bearer ${token}`,
                     },
                     body: JSON.stringify(newTask),
                 });
@@ -486,6 +568,33 @@ const TaskManagement = () => {
             ...prev,
             evidence_files: prev.evidence_files.filter((_, i) => i !== index)
         }));
+    };
+
+    // Calendar navigation helpers
+    const navigateCalendar = (direction) => {
+        const newDate = new Date(selectedDate);
+        if (calendarView === 'week') {
+            newDate.setDate(newDate.getDate() + (direction * 7));
+        } else if (calendarView === 'month') {
+            newDate.setMonth(newDate.getMonth() + direction);
+        } else if (calendarView === 'year') {
+            newDate.setFullYear(newDate.getFullYear() + direction);
+        }
+        setSelectedDate(newDate);
+    };
+
+    const getCalendarTitle = () => {
+        if (calendarView === 'week') {
+            const start = new Date(selectedDate);
+            start.setDate(selectedDate.getDate() - selectedDate.getDay());
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        } else if (calendarView === 'month') {
+            return selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        } else {
+            return selectedDate.getFullYear().toString();
+        }
     };
 
     // Filter functions
@@ -622,26 +731,33 @@ const TaskManagement = () => {
                             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
                         />
                     </div>
-                    <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
-                    >
-                        <option value="all">All Status</option>
-                        {activeTab === 'tasks' ? (
-                            <>
-                                <option value="pending">Pending</option>
-                                <option value="in_progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                            </>
-                        ) : (
-                            <>
-                                <option value="open">Open</option>
-                                <option value="investigating">Investigating</option>
-                                <option value="resolved">Resolved</option>
-                            </>
-                        )}
-                    </select>
+
+                    {/* Show status filter only for surveillance tab */}
+                    {activeTab === 'surveillance' && (
+                        <select
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
+                        >
+                            <option value="all">All Status</option>
+                            <option value="open">Open</option>
+                            <option value="investigating">Investigating</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    )}
+
+                    {/* Show calendar view selector only for weekly-plan tab */}
+                    {activeTab === 'weekly-plan' && (
+                        <select
+                            value={calendarView}
+                            onChange={(e) => setCalendarView(e.target.value)}
+                            className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
+                        >
+                            <option value="week">Week View</option>
+                            <option value="month">Month View</option>
+                            <option value="year">Year View</option>
+                        </select>
+                    )}
                 </div>
 
                 {/* Surveillance Tab */}
@@ -698,33 +814,37 @@ const TaskManagement = () => {
                     <div className="space-y-6">
                         {/* Calendar View */}
                         <div className="bg-white p-6 rounded-2xl shadow-lg">
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-bold" style={{ color: CoffeeColors.DARK_BROWN }}>
-                                    Weekly Planning Calendar
-                                </h2>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                        {calendarView === 'week' ? 'Weekly' : calendarView === 'month' ? 'Monthly' : 'Yearly'} Planning Calendar
+                                    </h2>
+                                    <p className="text-sm text-gray-600 mt-1">{getCalendarTitle()}</p>
+                                </div>
                                 <div className="flex gap-2">
                                     <button
-                                        onClick={() => setSelectedDate(new Date(selectedDate.getTime() - 7 * 24 * 60 * 60 * 1000))}
-                                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+                                        onClick={() => navigateCalendar(-1)}
+                                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
                                     >
-                                        ← Previous Week
+                                        ← Previous
                                     </button>
                                     <button
                                         onClick={() => setSelectedDate(new Date())}
-                                        className="px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded text-sm text-blue-700"
+                                        className="px-3 py-2 bg-blue-100 hover:bg-blue-200 rounded-lg text-sm text-blue-700 font-medium transition-colors"
                                     >
                                         Today
                                     </button>
                                     <button
-                                        onClick={() => setSelectedDate(new Date(selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000))}
-                                        className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
+                                        onClick={() => navigateCalendar(1)}
+                                        className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
                                     >
-                                        Next Week →
+                                        Next →
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Weekly Calendar Grid */}
+                            {/* Week View Calendar Grid */}
+                            {calendarView === 'week' && (
                             <div className="border border-gray-200 rounded-xl overflow-hidden">
                                 {/* Calendar Header */}
                                 <div className="grid grid-cols-8 bg-gray-50 border-b border-gray-200">
@@ -789,7 +909,8 @@ const TaskManagement = () => {
                                                     return (
                                                         <div
                                                             key={task.id}
-                                                            className="absolute left-1 right-1 bg-blue-100 border border-blue-300 rounded p-1 text-xs"
+                                                            onClick={() => setSelectedTask(task)}
+                                                            className="absolute left-1 right-1 bg-blue-100 border border-blue-300 rounded p-1 text-xs cursor-pointer hover:bg-blue-200 hover:shadow-md transition-all"
                                                             style={{
                                                                 top: `${topPx}px`,
                                                                 height: '40px',
@@ -813,6 +934,157 @@ const TaskManagement = () => {
                                     ))}
                                 </div>
                             </div>
+                            )}
+
+                            {/* Month View Calendar Grid */}
+                            {calendarView === 'month' && (
+                            <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                {/* Month Header - Days of Week */}
+                                <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
+                                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                                        <div key={day} className="p-3 text-center font-semibold text-gray-700 border-r border-gray-200 last:border-r-0">
+                                            {day}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Month Grid */}
+                                <div className="grid grid-cols-7">
+                                    {(() => {
+                                        const year = selectedDate.getFullYear();
+                                        const month = selectedDate.getMonth();
+                                        const firstDay = new Date(year, month, 1);
+                                        const lastDay = new Date(year, month + 1, 0);
+                                        const startPadding = firstDay.getDay();
+                                        const daysInMonth = lastDay.getDate();
+                                        const totalCells = Math.ceil((startPadding + daysInMonth) / 7) * 7;
+
+                                        return Array.from({ length: totalCells }, (_, i) => {
+                                            const dayNumber = i - startPadding + 1;
+                                            const isValidDay = dayNumber > 0 && dayNumber <= daysInMonth;
+                                            const date = isValidDay ? new Date(year, month, dayNumber) : null;
+                                            const isToday = date && date.toDateString() === new Date().toDateString();
+
+                                            const dayTasks = isValidDay ? tasks.filter(task => {
+                                                const taskDate = new Date(task.date || task.due_date);
+                                                return taskDate.toDateString() === date.toDateString();
+                                            }) : [];
+
+                                            return (
+                                                <div
+                                                    key={i}
+                                                    className={`min-h-[120px] border-r border-b border-gray-200 p-2 ${
+                                                        !isValidDay ? 'bg-gray-50' : isToday ? 'bg-blue-50' : 'bg-white hover:bg-gray-50'
+                                                    } transition-colors`}
+                                                >
+                                                    {isValidDay && (
+                                                        <>
+                                                            <div className={`text-sm font-semibold mb-2 ${isToday ? 'text-blue-600' : 'text-gray-700'}`}>
+                                                                {dayNumber}
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                {dayTasks.slice(0, 3).map(task => (
+                                                                    <div
+                                                                        key={task.id}
+                                                                        onClick={() => setSelectedTask(task)}
+                                                                        className="text-xs p-1 bg-blue-100 border border-blue-300 rounded cursor-pointer hover:bg-blue-200 transition-colors"
+                                                                    >
+                                                                        <div className="font-semibold text-blue-800 truncate">{task.title}</div>
+                                                                        {task.time && (
+                                                                            <div className="text-blue-600 truncate">{task.time}</div>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                                {dayTasks.length > 3 && (
+                                                                    <div className="text-xs text-gray-500 px-1">
+                                                                        +{dayTasks.length - 3} more
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+                            </div>
+                            )}
+
+                            {/* Year View Calendar Grid */}
+                            {calendarView === 'year' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                {Array.from({ length: 12 }, (_, monthIndex) => {
+                                    const year = selectedDate.getFullYear();
+                                    const month = monthIndex;
+                                    const firstDay = new Date(year, month, 1);
+                                    const lastDay = new Date(year, month + 1, 0);
+                                    const startPadding = firstDay.getDay();
+                                    const daysInMonth = lastDay.getDate();
+                                    const monthName = new Date(year, month).toLocaleDateString('en-US', { month: 'long' });
+
+                                    const monthTasks = tasks.filter(task => {
+                                        const taskDate = new Date(task.date || task.due_date);
+                                        return taskDate.getFullYear() === year && taskDate.getMonth() === month;
+                                    });
+
+                                    return (
+                                        <div key={monthIndex} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                                            <div className="bg-gray-50 p-3 border-b border-gray-200">
+                                                <h3 className="font-semibold text-gray-800 text-center">{monthName}</h3>
+                                            </div>
+                                            <div className="p-2">
+                                                {/* Mini calendar grid */}
+                                                <div className="grid grid-cols-7 gap-1 text-xs">
+                                                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                                                        <div key={i} className="text-center font-semibold text-gray-500 p-1">
+                                                            {day}
+                                                        </div>
+                                                    ))}
+                                                    {Array.from({ length: startPadding }, (_, i) => (
+                                                        <div key={`pad-${i}`} className="p-1"></div>
+                                                    ))}
+                                                    {Array.from({ length: daysInMonth }, (_, i) => {
+                                                        const dayNumber = i + 1;
+                                                        const date = new Date(year, month, dayNumber);
+                                                        const isToday = date.toDateString() === new Date().toDateString();
+                                                        const dayTaskCount = monthTasks.filter(task => {
+                                                            const taskDate = new Date(task.date || task.due_date);
+                                                            return taskDate.getDate() === dayNumber;
+                                                        }).length;
+
+                                                        return (
+                                                            <div
+                                                                key={dayNumber}
+                                                                className={`p-1 text-center rounded cursor-pointer transition-colors ${
+                                                                    isToday ? 'bg-blue-500 text-white font-bold' :
+                                                                    dayTaskCount > 0 ? 'bg-blue-100 text-blue-800 hover:bg-blue-200' :
+                                                                    'text-gray-700 hover:bg-gray-100'
+                                                                }`}
+                                                                onClick={() => {
+                                                                    setSelectedDate(date);
+                                                                    setCalendarView('month');
+                                                                }}
+                                                            >
+                                                                {dayNumber}
+                                                                {dayTaskCount > 0 && !isToday && (
+                                                                    <div className="text-[8px] leading-none text-blue-600">●</div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <div className="mt-2 pt-2 border-t border-gray-200 text-center">
+                                                    <span className="text-xs font-semibold text-gray-600">
+                                                        {monthTasks.length} task{monthTasks.length !== 1 ? 's' : ''}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            )}
 
                             {/* Calendar Legend */}
                             <div className="mt-4 flex flex-wrap gap-4 text-sm">
@@ -883,20 +1155,21 @@ const TaskManagement = () => {
                                         <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Time</th>
                                         <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Date</th>
                                         <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Priority</th>
+                                        <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Status</th>
                                         <th className="px-6 py-3 text-center text-xs font-semibold uppercase text-gray-700">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-100">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="7" className="px-6 py-12 text-center">
+                                            <td colSpan="8" className="px-6 py-12 text-center">
                                                 <Clock className="w-8 h-8 animate-spin inline-block" style={{ color: CoffeeColors.BUTTON_BROWN }} />
                                                 <p className="mt-2 text-gray-600">Loading tasks...</p>
                                             </td>
                                         </tr>
                                     ) : filteredTasks.length === 0 ? (
                                         <tr>
-                                            <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                                            <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
                                                 No tasks found
                                             </td>
                                         </tr>
@@ -944,6 +1217,20 @@ const TaskManagement = () => {
                                                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(task.priority)}`}>
                                                         {task.priority}
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    {(() => {
+                                                        const status = getTaskSubmissionStatus(task.id);
+                                                        return status ? (
+                                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getSubmissionStatusColor(status)}`}>
+                                                                {status === 'in_progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-500">
+                                                                Pending
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex justify-center gap-2">
@@ -1447,6 +1734,166 @@ const TaskManagement = () => {
                                     className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                                 >
                                     {editingException ? 'Update Exception' : 'Record Exception'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Task Detail Modal */}
+                {selectedTask && (
+                    <div className="fixed inset-0 backdrop-blur-sm bg-white/10 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                                <h2 className="text-2xl font-bold text-gray-800">Task Details</h2>
+                                <button
+                                    onClick={() => setSelectedTask(null)}
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                >
+                                    <X size={24} className="text-gray-500" />
+                                </button>
+                            </div>
+
+                            <div className="p-6 space-y-6">
+                                {/* Task Title */}
+                                <div>
+                                    <h3 className="text-2xl font-semibold text-gray-900">{selectedTask.title}</h3>
+                                    <div className="flex items-center gap-3 mt-2">
+                                        <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                                            selectedTask.priority === 'high' ? 'bg-red-100 text-red-800' :
+                                            selectedTask.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-green-100 text-green-800'
+                                        }`}>
+                                            {selectedTask.priority} Priority
+                                        </span>
+                                        {selectedTask.completed && (
+                                            <span className="px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                                                ✓ Completed
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                {selectedTask.description && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                                        <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">{selectedTask.description}</p>
+                                    </div>
+                                )}
+
+                                {/* Activity */}
+                                {Array.isArray(selectedTask.activity) && selectedTask.activity.length > 0 && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Activity Type</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedTask.activity.map((act, idx) => (
+                                                <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                    {act}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Custom Activity */}
+                                {selectedTask.custom_activity && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Custom Activity</label>
+                                        <p className="text-gray-700">{selectedTask.custom_activity}</p>
+                                    </div>
+                                )}
+
+                                {/* Date and Time */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                                        <p className="text-gray-900 font-medium">
+                                            {new Date(selectedTask.date || selectedTask.due_date).toLocaleDateString('en-US', {
+                                                weekday: 'long',
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}
+                                        </p>
+                                    </div>
+                                    {selectedTask.time && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                                            <p className="text-gray-900 font-medium">{selectedTask.time}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Assigned Staff */}
+                                {Array.isArray(selectedTask.assigned_to) && selectedTask.assigned_to.length > 0 && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Assigned To</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedTask.assigned_to.map(staffId => {
+                                                const staff = staffMembers.find(s => s.staff_id === staffId);
+                                                return staff ? (
+                                                    <div key={staffId} className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
+                                                        <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+                                                            {staff.first_name[0]}{staff.last_name[0]}
+                                                        </span>
+                                                        <span className="text-gray-900">{staff.first_name} {staff.last_name}</span>
+                                                    </div>
+                                                ) : null;
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Block Information */}
+                                {selectedTask.block_name && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Farm Block</label>
+                                        <p className="text-gray-900">{selectedTask.block_name}</p>
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                    <button
+                                        onClick={() => {
+                                            handleEditTask(selectedTask);
+                                            setSelectedTask(null);
+                                        }}
+                                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+                                    >
+                                        <Edit size={16} />
+                                        Edit Task
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedTask(null)}
+                                        className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Success Modal */}
+                {showSuccessModal && (
+                    <div className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 animate-fadeIn">
+                            <div className="p-6 text-center">
+                                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">Success!</h3>
+                                <p className="text-gray-600 mb-6">{successMessage}</p>
+                                <button
+                                    onClick={() => setShowSuccessModal(false)}
+                                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                >
+                                    OK
                                 </button>
                             </div>
                         </div>

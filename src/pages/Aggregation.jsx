@@ -578,6 +578,16 @@ const AggregationPage = () => {
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Delivered
+                                           </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
+                                            Coffee Type  
+                                              </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
+                                            Weight on Delivery 
+                                        </th>
+                                        
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
+                                            Location of Delivery
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-right">
                                             Weight (kg)
@@ -590,6 +600,10 @@ const AggregationPage = () => {
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Details
+                                        </th>
+                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
+                                            
+                
                                         </th>
                                     </>
                                 )}
