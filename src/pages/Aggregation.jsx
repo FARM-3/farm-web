@@ -168,13 +168,7 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
                 <td className="px-6 py-3 text-left text-gray-600">{farmerName}</td>
                 <td className="px-6 py-3 text-center text-gray-600">{formatDate(harvest.date_of_delivery)}</td>
                 <td className="px-6 py-3 text-right text-gray-800 font-semibold">
-                    {harvest.weight_on_delivery ? Number(harvest.weight_on_delivery).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'}
-                </td>
-                <td className="px-6 py-3 text-right text-gray-800">
-                    {harvest.price_per_kg ? `UGX ${Number(harvest.price_per_kg).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'N/A'}
-                </td>
-                <td className="px-6 py-3 text-right text-gray-800 font-semibold">
-                    {harvest.amount_paid ? `UGX ${Number(harvest.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'N/A'}
+                    {harvest.weight_on_delivery ? Number(harvest.weight_on_delivery).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : 'N/A'} kg
                 </td>
                 <td className="px-6 py-3 text-center">
                     <button
@@ -191,8 +185,20 @@ const ExpandableHarvestRow = ({ harvest, isExpanded, onToggle }) => {
             </tr>
             {isExpanded && (
                 <tr className="bg-gray-50">
-                    <td colSpan="7" className="px-6 py-4">
+                    <td colSpan="5" className="px-6 py-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Price per kg</p>
+                                <p className="text-sm text-gray-800 font-semibold">
+                                    {harvest.price_per_kg ? `UGX ${Number(harvest.price_per_kg).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'N/A'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs font-semibold text-gray-500 uppercase">Amount Paid</p>
+                                <p className="text-sm text-gray-800 font-semibold">
+                                    {harvest.amount_paid ? `UGX ${Number(harvest.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : 'N/A'}
+                                </p>
+                            </div>
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase">Coffee Type</p>
                                 <p className="text-sm text-gray-800">{harvest.coffee_type || 'N/A'}</p>
@@ -578,32 +584,12 @@ const AggregationPage = () => {
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Date Delivered
-                                           </th>
-                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            Coffee Type  
-                                              </th>
-                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            Weight on Delivery 
-                                        </th>
-                                        
-                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            Location of Delivery
                                         </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-right">
                                             Weight (kg)
                                         </th>
-                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-right">
-                                            Price per kg
-                                        </th>
-                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-right">
-                                            Amount Paid
-                                        </th>
                                         <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
                                             Details
-                                        </th>
-                                        <th className="px-6 py-3 text-sm font-semibold uppercase tracking-wider text-center">
-                                            
-                
                                         </th>
                                     </>
                                 )}
@@ -612,7 +598,7 @@ const AggregationPage = () => {
                         <tbody className="divide-y divide-gray-100 text-xs">
                             {loading ? (
                                 <tr className="h-24">
-                                    <td colSpan={activeTab === 'farmers' ? "4" : "7"} className="text-center py-6 text-gray-600">
+                                    <td colSpan={activeTab === 'farmers' ? "4" : "5"} className="text-center py-6 text-gray-600">
                                         <Loader2 className="w-6 h-6 animate-spin inline-block mr-2" style={{ color: CoffeeColors.MEDIUM_BROWN }} />
                                         Loading records...
                                     </td>
@@ -646,7 +632,7 @@ const AggregationPage = () => {
                                     ))
                                 ) : (
                                     <tr className="h-24">
-                                        <td colSpan="7" className="text-center py-6 text-gray-500 italic">
+                                        <td colSpan="5" className="text-center py-6 text-gray-500 italic">
                                             No harvest records found.
                                         </td>
                                     </tr>
