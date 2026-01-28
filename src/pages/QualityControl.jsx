@@ -204,25 +204,26 @@ const QualityControl = () => {
         }
     };
 
-    // Helper to get farmer name from harvest_id
+    // Helper to get farmer name from harvest id (accepts harvest_id, harvest or id)
     const getFarmerName = useCallback((harvestId) => {
-        if (!harvestId && typeof harvestId !== 'number') return '';
+        if (harvestId === null || harvestId === undefined) return '';
         const hid = String(harvestId).trim();
+        if (hid === '') return '';
 
-        // Try exact matches on common id fields
+        // Try exact matches on common id fields (handle different API shapes)
         let harvest = harvestData.find(h => String(h.harvest_id || h.harvestId || h.id || '').trim() === hid);
 
-        // Fallback: case-insensitive match or contains
+        // Fallback: case-insensitive match or contains across more fields
         if (!harvest) {
             const hidLower = hid.toLowerCase();
             harvest = harvestData.find(h => {
-                const candidates = [h.harvest_id, h.harvestId, h.id, h.worker_name, h.farmer_name, h.farmer];
+                const candidates = [h.harvest_id, h.harvestId, h.id, h.worker_name, h.farmer_name, h.farmer, h.name, `${h.first_name || ''} ${h.last_name || ''}`.trim()];
                 return candidates.some(c => c && String(c).toLowerCase().includes(hidLower));
             });
         }
 
-        // Try multiple possible field names for farmer/worker name
-        const name = harvest?.worker_name || harvest?.farmer_name || harvest?.farmerName || harvest?.farmer;
+        // Try multiple possible field names for farmer/worker name, prefer readable full name
+        const name = harvest?.name || harvest?.worker_name || harvest?.farmer_name || (harvest ? `${harvest.first_name || ''} ${harvest.last_name || ''}`.trim() : '') || harvest?.farmerName || harvest?.farmer;
         return name || hid;
     }, [harvestData]);
 
@@ -242,8 +243,9 @@ const QualityControl = () => {
     }, [ripenessRecords, harvestData, getFarmerName]);
 
     const filteredRipenessRecords = ripenessRecords.filter(record => {
-        const hid = (record.harvest_id || '').toString().toLowerCase();
-        const fname = (getFarmerName(record.harvest_id) || '').toString().toLowerCase();
+        const idForLookup = record.harvest_id || record.harvest || record.id || '';
+        const hid = (idForLookup || '').toString().toLowerCase();
+        const fname = (getFarmerName(idForLookup) || '').toString().toLowerCase();
         const term = searchTerm.toLowerCase();
         return hid.includes(term) || fname.includes(term);
     });
@@ -251,9 +253,10 @@ const QualityControl = () => {
     console.log('Render: ripenessRecords length=', ripenessRecords.length, 'filteredRipenessRecords length=', filteredRipenessRecords.length);
 
     const filteredFloatingRecords = floatingRecords.filter(record => {
-        const hid = (record.harvest_id || '').toString().toLowerCase();
+        const idForLookup = record.harvest_id || record.harvest || record.id || '';
+        const hid = (idForLookup || '').toString().toLowerCase();
         const grade = (record.grade || '').toString().toLowerCase();
-        const fname = (getFarmerName(record.harvest_id) || '').toString().toLowerCase();
+        const fname = (getFarmerName(idForLookup) || '').toString().toLowerCase();
         const term = searchTerm.toLowerCase();
         return hid.includes(term) || grade.includes(term) || fname.includes(term);
     });
@@ -262,12 +265,12 @@ const QualityControl = () => {
     const farmerLeaderboard = useMemo(() => {
         if (!ripenessRecords || ripenessRecords.length === 0) return [];
 
-        // Create a map of harvest_id to farmer/worker name
+        // Create a map of harvest_id to farmer/worker name (normalize keys)
         const harvestToFarmer = {};
         harvestData.forEach(harvest => {
-            // Try multiple possible field names for farmer/worker name
-            const farmerName = harvest.worker_name || harvest.farmer_name || harvest.farmerName || harvest.farmer || harvest.harvest_id;
-            harvestToFarmer[harvest.harvest_id] = farmerName;
+            const key = harvest.harvest_id || harvest.id || harvest.harvestId;
+            const farmerName = harvest.name || harvest.worker_name || harvest.farmer_name || `${harvest.first_name || ''} ${harvest.last_name || ''}`.trim() || harvest.farmerName || harvest.farmer || key;
+            if (key !== undefined) harvestToFarmer[key] = farmerName;
         });
 
         // Group by farmer name
@@ -447,7 +450,7 @@ const QualityControl = () => {
                                             filteredRipenessRecords.map((record, idx) => (
                                                 <tr key={record.harvest_id || `ripeness-${idx}`} className="hover:bg-gray-50">
                                                     <td className="px-6 py-4 font-medium text-gray-800">{record.harvest_id || record.harvest || record.id}</td>
-                                                    <td className="px-6 py-4 text-gray-700">{getFarmerName(record.harvest_id)}</td>
+                                                    <td className="px-6 py-4 text-gray-700">{getFarmerName(record.harvest_id || record.harvest || record.id)}</td>
                                                     <td className="px-6 py-4 text-center text-gray-700">{record.date}</td>
                                                     <td className="px-6 py-4 text-center text-gray-700">{record.sample_size}</td>
                                                     <td className="px-6 py-4 text-center text-gray-700">{record.no_of_redcherry}</td>
@@ -560,7 +563,7 @@ const QualityControl = () => {
                                                 <tr key={record.grade_id || `floating-${idx}`} className="hover:bg-gray-50">
                                                     <td className="px-6 py-4 font-medium text-gray-800">{record.grade_id}</td>
                                                     <td className="px-6 py-4 text-gray-700">{record.harvest_id || record.harvest || record.id}</td>
-                                                    <td className="px-6 py-4 text-gray-700">{getFarmerName(record.harvest_id)}</td>
+                                                    <td className="px-6 py-4 text-gray-700">{getFarmerName(record.harvest_id || record.harvest || record.id)}</td>
                                                     <td className="px-6 py-4 text-center">
                                                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 whitespace-nowrap">
                                                             Grade {record.grade}
