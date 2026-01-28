@@ -402,11 +402,12 @@ const InputField = ({ label, name, value, onChange, onBlur, placeholder, showReq
                 placeholder={placeholder}
                 type={type}
                 max={max}
-                className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 placeholder:text-gray-400 placeholder:italic"
                 style={{
                     backgroundColor: MODAL_COLORS.INPUT_BG,
                     borderColor: borderColor,
                     color: MODAL_COLORS.TEXT_PRIMARY,
+                    fontFamily: 'inherit',
                 }}
             />
             {error && <span className="text-xs text-red-500">{error}</span>}
@@ -516,7 +517,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     value={formData.first_name}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    placeholder="e.g., John"
+                                    placeholder="e.g., Jane"
                                     showRequired={true}
                                     status={getFieldStatus('first_name')}
                                     error={errors.first_name}
@@ -527,7 +528,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     value={formData.last_name}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    placeholder="e.g., Doe"
+                                    placeholder="e.g., Namubiru"
                                     showRequired={true}
                                     status={getFieldStatus('last_name')}
                                     error={errors.last_name}
@@ -538,7 +539,7 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     value={formData.item}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
-                                    placeholder="e.g., Coffee, Vanilla"
+                                    placeholder="e.g., Coffee"
                                     showRequired={true}
                                     status={getFieldStatus('item')}
                                     error={errors.item}
@@ -1256,10 +1257,10 @@ function SalesPage() {
                     <div className="flex gap-3 items-center w-full sm:w-auto order-2 sm:order-1">
                         <div className="relative flex-grow">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input 
-                                type="search" 
-                                placeholder="Search by customer name" 
-                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg"
+                            <input
+                                type="search"
+                                placeholder="Search by customer name"
+                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg placeholder:text-gray-400 placeholder:italic"
                             />
                         </div>
                         <div className="relative inline-block text-left">

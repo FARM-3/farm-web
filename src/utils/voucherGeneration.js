@@ -319,7 +319,7 @@ export const generateAndDownloadVoucher = async (wageRecord, options = {}) => {
     const qrCodeDataURL = await generateQRCode(wageRecord.id);
 
     // Load and convert logo to base64
-    const logoDataURL = await imageToBase64('/logo.jpg');
+    const logoDataURL = await imageToBase64('/logo.png');
 
     // Create temporary container for HTML
     const container = document.createElement('div');

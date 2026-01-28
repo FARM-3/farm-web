@@ -648,19 +648,30 @@ const getFieldErrorMessage = (name, value) => {
     return null; // Default: no error
 };
 
-const InputField = ({ label, name, value, onChange, placeholder, required, type = "text", isTextArea = false, status = 'initial', errorMessage = '' }) => {
+const InputField = ({ label, name, value, onChange, placeholder, required, type = "text", isTextArea = false, status = 'initial', errorMessage = '', wordLimit = null }) => {
     const borderColor = status === 'valid'
         ? CUSTOM_COLORS_MODAL.VALID_BORDER
         : status === 'invalid'
         ? CUSTOM_COLORS_MODAL.INVALID_BORDER
         : CUSTOM_COLORS_MODAL.INPUT_BORDER;
 
+    // Calculate word count for textareas with word limit
+    const wordCount = isTextArea && wordLimit ? value.trim().split(/\s+/).filter(word => word.length > 0).length : 0;
+    const isOverLimit = wordLimit && wordCount > wordLimit;
+
     return (
         <div className="flex flex-col space-y-1">
-            <label htmlFor={name} className="text-sm font-medium" style={{ color: CUSTOM_COLORS_MODAL.TEXT_SECONDARY }}>
-                {label}
-                {required && <span className="ml-1" style={{ color: CUSTOM_COLORS_MODAL.REQUIRED_ASTERISK }}>*</span>}
-            </label>
+            <div className="flex items-center justify-between">
+                <label htmlFor={name} className="text-sm font-medium" style={{ color: CUSTOM_COLORS_MODAL.TEXT_SECONDARY }}>
+                    {label}
+                    {required && <span className="ml-1" style={{ color: CUSTOM_COLORS_MODAL.REQUIRED_ASTERISK }}>*</span>}
+                </label>
+                {isTextArea && wordLimit && (
+                    <span className={`text-xs ${isOverLimit ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                        {wordCount} / {wordLimit} words
+                    </span>
+                )}
+            </div>
             {isTextArea ? (
                 <textarea
                     id={name}
@@ -673,7 +684,7 @@ const InputField = ({ label, name, value, onChange, placeholder, required, type 
                     className="flex-1 w-full px-3 py-2 text-sm rounded-md border focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150 placeholder:text-gray-400 placeholder:italic"
                     style={{
                         backgroundColor: CUSTOM_COLORS_MODAL.INPUT_BG,
-                        borderColor: borderColor,
+                        borderColor: isOverLimit ? '#ef4444' : borderColor,
                         color: CUSTOM_COLORS_MODAL.TEXT_PRIMARY,
                         resize: 'vertical'
                     }}
@@ -698,6 +709,9 @@ const InputField = ({ label, name, value, onChange, placeholder, required, type 
             )}
             {errorMessage && (
                 <p className="text-xs text-red-600 mt-1">{errorMessage}</p>
+            )}
+            {isOverLimit && (
+                <p className="text-xs text-red-600 mt-1">Description exceeds {wordLimit} word limit</p>
             )}
         </div>
     );
@@ -918,6 +932,17 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
             if (!isValid) allValid = false;
         });
 
+        // Validate description word count (100 words max)
+        if (formData.description) {
+            const wordCount = formData.description.trim().split(/\s+/).filter(word => word.length > 0).length;
+            if (wordCount > 100) {
+                allValid = false;
+                setMessage({ type: 'error', text: 'Description exceeds 100 word limit. Please shorten your description.' });
+                setLoading(false);
+                return;
+            }
+        }
+
         setValidationStatus(newValidationStatus);
         setFieldErrors(newFieldErrors);
 
@@ -1089,6 +1114,7 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                             <InputField
                                 label="Detailed Description (Optional)" name="description" value={formData.description} onChange={handleChange} placeholder="Provide details about the expense, reason for purchase, or quantity."
                                 isTextArea={true}
+                                wordLimit={100}
                             />
                         </div>
                     </div>

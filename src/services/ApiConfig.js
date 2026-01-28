@@ -75,6 +75,9 @@ export const API_ENDPOINTS = {
   FERMENTING: `${API_BASE_URL}/api/processing/fermenting/`,
   NATURAL_SUNDRYING: `${API_BASE_URL}/api/processing/sundrying/`,
   WASHING: `${API_BASE_URL}/api/processing/washing/`,
+  DRYING: `${API_BASE_URL}/api/processing/drying/`,
+
+  BAGGING: `${API_BASE_URL}/api/processing/bagging/`,
 
   // Profile endpoints
   PROFILE: `${API_BASE_URL}/api/users/profile/`,
@@ -84,15 +87,11 @@ export const API_ENDPOINTS = {
 
   // Task management endpoints
   TASKS: `${API_BASE_URL}/api/tasks/`,
+  TASK_SUBMISSIONS: `${API_BASE_URL}/api/tasks/submissions/`,
+  SEASONS: `${API_BASE_URL}/api/tasks/seasons/`,
 
-  // Exception management endpoints
-  EXCEPTIONS: `${API_BASE_URL}/api/exceptions/`,
-
-  // Farm block management endpoints
-  FARM_BLOCKS: `${API_BASE_URL}/api/farm-blocks/`,
-
-  // SOP template endpoints
-  SOP_TEMPLATES: `${API_BASE_URL}/api/sop-templates/`,
+  // Farm block management endpoints (production app)
+  BLOCKS: `${API_BASE_URL}/api/blocks/`,
 
   // Activities endpoints
   ACTIVITIES: `${API_BASE_URL}/api/activities/activities/?platform=web`,
