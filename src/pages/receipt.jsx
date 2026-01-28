@@ -132,7 +132,7 @@ export default function SalesReceipt() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <img
-                src="/logo.jpg"
+                src="/logo.png"
                 alt="Rugyeyo Farm Logo"
                 className="w-16 h-16 object-contain"
               />

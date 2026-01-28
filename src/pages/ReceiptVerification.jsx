@@ -111,7 +111,7 @@ export default function ReceiptVerification() {
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-            <img src="/logo.jpg" alt="Rugyeyo Farm" className="w-16 h-16 mx-auto mb-2 object-contain" />
+            <img src="/logo.png" alt="Rugyeyo Farm" className="w-16 h-16 mx-auto mb-2 object-contain" />
             <p className="text-sm text-gray-600">Rugyeyo Farm</p>
             <p className="text-xs text-gray-500">Coffee Production & Processing</p>
           </div>
@@ -144,7 +144,7 @@ export default function ReceiptVerification() {
         {/* Header */}
         <div className="bg-gradient-to-r from-amber-700 to-amber-900 text-white p-6 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <img src="/logo.jpg" alt="Rugyeyo Farm" className="w-12 h-12 object-contain bg-white rounded-full p-1" />
+            <img src="/logo.png" alt="Rugyeyo Farm" className="w-12 h-12 object-contain bg-white rounded-full p-1" />
             <h1 className="text-2xl font-bold">Sales Receipt Verification</h1>
           </div>
           <p className="text-amber-100 text-sm">Rugyeyo Farm – Coffee Production & Processing</p>
