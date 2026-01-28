@@ -112,13 +112,6 @@ const Hulling = () => {
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                             Refresh
                         </button>
-                        <button
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-white hover:shadow-xl transition"
-                            style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
-                        >
-                            <Plus className="w-4 h-4" />
-                            New Hulling Record
-                        </button>
                     </div>
                 </div>
 
