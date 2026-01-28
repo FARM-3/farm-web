@@ -32,7 +32,8 @@ import {
     Square,
     RotateCcw,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Loader2
 } from 'lucide-react';
 import { API_ENDPOINTS, getApiBaseUrl } from '../services/ApiConfig';
 
@@ -72,6 +73,9 @@ const TaskManagement = () => {
     const [slaTimers, setSlaTimers] = useState({});
     const [calendarEvents, setCalendarEvents] = useState([]);
     const [expandedTaskIds, setExpandedTaskIds] = useState([]); // For expandable task rows
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [taskToDelete, setTaskToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     // Removed demo/mock data — data is fetched from backend endpoints
 
@@ -406,12 +410,18 @@ const TaskManagement = () => {
         }
     };
 
-    const handleDeleteTask = async (taskId) => {
-        if (!window.confirm('Are you sure you want to delete this task?')) return;
+    const handleDeleteTask = (task) => {
+        setTaskToDelete(task);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteTask = async () => {
+        if (!taskToDelete) return;
+        setDeleting(true);
 
         try {
             const token = getAuthToken();
-            const response = await fetch(`${API_ENDPOINTS.TASKS}${taskId}/`, {
+            const response = await fetch(`${API_ENDPOINTS.TASKS}${taskToDelete.id}/`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -420,13 +430,19 @@ const TaskManagement = () => {
 
             if (response.ok) {
                 await fetchTasks();
-                alert('Task deleted successfully!');
+                setShowDeleteModal(false);
+                setTaskToDelete(null);
+                setSuccessMessage('Task deleted successfully!');
+                setShowSuccessModal(true);
+                setTimeout(() => setShowSuccessModal(false), 3000);
             } else {
                 alert('Failed to delete task');
             }
         } catch (error) {
             console.error('Error deleting task:', error);
             alert('Error deleting task');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -1298,7 +1314,7 @@ const TaskManagement = () => {
                                                         <button onClick={() => handleEditTask(task)} className="p-1 hover:bg-blue-50 rounded">
                                                             <Edit className="w-4 h-4 text-blue-600" />
                                                         </button>
-                                                        <button onClick={() => handleDeleteTask(task.id)} className="p-1 hover:bg-red-50 rounded">
+                                                        <button onClick={() => handleDeleteTask(task)} className="p-1 hover:bg-red-50 rounded" title="Delete Task">
                                                             <Trash2 className="w-4 h-4 text-red-600" />
                                                         </button>
                                                     </div>
@@ -1367,24 +1383,19 @@ const TaskManagement = () => {
                                                                             {submission.photos.map((photo, index) => {
                                                                                 const photoUrl = getPhotoUrl(photo);
                                                                                 return (
-                                                                                    <div key={index} className="relative group">
+                                                                                    <a
+                                                                                        key={index}
+                                                                                        href={photoUrl}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="block"
+                                                                                    >
                                                                                         <img
                                                                                             src={photoUrl}
-                                                                                            alt={`Task completion ${index + 1}`}
-                                                                                            className="w-full h-48 object-cover rounded-lg border-2 border-gray-200 hover:border-purple-400 transition-all cursor-pointer"
-                                                                                            onClick={() => window.open(photoUrl, '_blank')}
-                                                                                            onLoad={() => console.log('[TaskManagement] ✓ Photo loaded successfully:', photoUrl)}
-                                                                                            onError={(e) => {
-                                                                                                console.error('[TaskManagement] ✗ Failed to load photo:', photoUrl);
-                                                                                                console.error('[TaskManagement] Original path:', photo);
-                                                                                                e.target.style.backgroundColor = '#f3f4f6';
-                                                                                                e.target.alt = 'Failed to load image';
-                                                                                            }}
+                                                                                            alt={`Task photo ${index + 1}`}
+                                                                                            className="w-full h-48 object-cover rounded-lg border-2 border-gray-200 hover:border-purple-400 hover:shadow-lg transition-all bg-white"
                                                                                         />
-                                                                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
-                                                                                            <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all" />
-                                                                                        </div>
-                                                                                    </div>
+                                                                                    </a>
                                                                                 );
                                                                             })}
                                                                         </div>
@@ -2062,6 +2073,78 @@ const TaskManagement = () => {
                     </div>
                 )}
             </main>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && taskToDelete && (
+                <div
+                    className="fixed inset-0 flex justify-center items-center transition-all duration-300 backdrop-blur-sm"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(75, 52, 35, 0.5) 100%)',
+                        zIndex: 1000,
+                    }}
+                    onClick={() => {
+                        setShowDeleteModal(false);
+                        setTaskToDelete(null);
+                    }}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                Confirm Delete
+                            </h3>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setTaskToDelete(null);
+                                }}
+                                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+                        <p className="text-gray-700 mb-6">
+                            Are you sure you want to delete task:{' '}
+                            <strong>{taskToDelete.title}</strong>?
+                            <br />
+                            <span className="text-sm text-gray-500">
+                                This action cannot be undone.
+                            </span>
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setTaskToDelete(null);
+                                }}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all duration-200"
+                                disabled={deleting}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteTask}
+                                disabled={deleting}
+                                className="px-6 py-2.5 rounded-xl font-semibold text-white transition-all duration-200 flex items-center"
+                                style={{
+                                    background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                                }}
+                            >
+                                {deleting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </SideNav>
     );
 };
