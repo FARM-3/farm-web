@@ -683,7 +683,7 @@ export function HarvestPage() {
 
     // Calculate KPIs (omitted for brevity)
     const kpis = {
-        totalHarvests: harvests.length,
+//         totalHarvests: harvests.length,
         totalWeight: harvests.reduce((sum, h) => sum + parseFloat(h.weight_on_delivery || 0), 0),
         totalAmountPaid: harvests.reduce((sum, h) => sum + parseFloat(h.amount_paid || 0), 0),
     };
