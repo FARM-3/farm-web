@@ -332,13 +332,6 @@ const QualityControl = () => {
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                             Refresh
                         </button>
-                        <button
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-white transition hover:shadow-xl"
-                            style={{ backgroundColor: CoffeeColors.BUTTON_BROWN }}
-                        >
-                            <Plus className="w-4 h-4" />
-                            New Test
-                        </button>
                     </div>
                 </div>
 
