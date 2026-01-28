@@ -30,9 +30,11 @@ import {
     Play,
     Pause,
     Square,
-    RotateCcw
+    RotateCcw,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
-import { API_ENDPOINTS } from '../services/ApiConfig';
+import { API_ENDPOINTS, getApiBaseUrl } from '../services/ApiConfig';
 
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
@@ -69,6 +71,7 @@ const TaskManagement = () => {
     const [successMessage, setSuccessMessage] = useState('');
     const [slaTimers, setSlaTimers] = useState({});
     const [calendarEvents, setCalendarEvents] = useState([]);
+    const [expandedTaskIds, setExpandedTaskIds] = useState([]); // For expandable task rows
 
     // Removed demo/mock data — data is fetched from backend endpoints
 
@@ -189,10 +192,15 @@ const TaskManagement = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                setTaskSubmissions(data.results || data);
-                console.log('Task submissions fetched:', data.results || data);
+                const submissions = data.results || data;
+                setTaskSubmissions(submissions);
+                console.log('[TaskManagement] Task submissions fetched:', submissions.length, 'submissions');
+                if (submissions.length > 0) {
+                    console.log('[TaskManagement] Sample submission:', submissions[0]);
+                    console.log('[TaskManagement] All assigned_task_ids:', submissions.map(s => s.assigned_task_id));
+                }
             } else {
-                console.error('Failed to fetch task submissions, server responded with', response.status);
+                console.error('[TaskManagement] Failed to fetch task submissions, server responded with', response.status);
                 setTaskSubmissions([]);
             }
         } catch (error) {
@@ -216,6 +224,41 @@ const TaskManagement = () => {
             case 'rejected': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-600';
         }
+    };
+
+    // Toggle expanded row
+    const toggleExpandRow = (taskId) => {
+        setExpandedTaskIds(prev =>
+            prev.includes(taskId)
+                ? prev.filter(id => id !== taskId)
+                : [...prev, taskId]
+        );
+    };
+
+    // Get full submission details for a task
+    const getTaskSubmission = (taskId) => {
+        return taskSubmissions.find(s => s.assigned_task_id === taskId);
+    };
+
+    // Helper function to construct full photo URL
+    const getPhotoUrl = (photoPath) => {
+        if (!photoPath) return '';
+        // If it's already a full URL, return as is
+        if (photoPath.startsWith('http://') || photoPath.startsWith('https://')) {
+            return photoPath;
+        }
+        // Otherwise, prepend the API base URL
+        const baseUrl = getApiBaseUrl();
+        // Remove leading slash from photoPath if present to avoid double slashes
+        const path = photoPath.startsWith('/') ? photoPath.slice(1) : photoPath;
+        const fullUrl = `${baseUrl}/${path}`;
+        console.log('[TaskManagement] Photo URL construction:', {
+            original: photoPath,
+            baseUrl: baseUrl,
+            path: path,
+            fullUrl: fullUrl
+        });
+        return fullUrl;
     };
 
     useEffect(() => {
@@ -1175,7 +1218,8 @@ const TaskManagement = () => {
                                         </tr>
                                     ) : (
                                         filteredTasks.map((task) => (
-                                            <tr key={task.id} className="hover:bg-gray-50">
+                                            <React.Fragment key={task.id}>
+                                            <tr className="hover:bg-gray-50">
                                                 <td className="px-6 py-4">
                                                     <div>
                                                         <p className="font-medium text-gray-800">{task.title}</p>
@@ -1234,6 +1278,23 @@ const TaskManagement = () => {
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex justify-center gap-2">
+                                                        {(() => {
+                                                            const submission = getTaskSubmission(task.id);
+                                                            // Show chevron for ANY submission (not just completed or with photos)
+                                                            return submission ? (
+                                                                <button
+                                                                    onClick={() => toggleExpandRow(task.id)}
+                                                                    className="p-1 hover:bg-purple-50 rounded"
+                                                                    title="View submission details"
+                                                                >
+                                                                    {expandedTaskIds.includes(task.id) ? (
+                                                                        <ChevronUp className="w-4 h-4 text-purple-600" />
+                                                                    ) : (
+                                                                        <ChevronDown className="w-4 h-4 text-purple-600" />
+                                                                    )}
+                                                                </button>
+                                                            ) : null;
+                                                        })()}
                                                         <button onClick={() => handleEditTask(task)} className="p-1 hover:bg-blue-50 rounded">
                                                             <Edit className="w-4 h-4 text-blue-600" />
                                                         </button>
@@ -1243,6 +1304,106 @@ const TaskManagement = () => {
                                                     </div>
                                                 </td>
                                             </tr>
+                                            {/* Expandable row for submission details */}
+                                            {expandedTaskIds.includes(task.id) && (() => {
+                                                const submission = getTaskSubmission(task.id);
+                                                if (!submission) return null;
+
+                                                return (
+                                                    <tr key={`${task.id}-expanded`}>
+                                                        <td colSpan="8" className="px-6 py-4 bg-purple-50">
+                                                            <div className="space-y-4">
+                                                                <h4 className="font-semibold text-lg" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                                                    Submission Details
+                                                                </h4>
+
+                                                                {/* Timeline */}
+                                                                <div className="flex gap-6 text-sm text-gray-600">
+                                                                    {submission.accepted_at && (
+                                                                        <div>
+                                                                            <span className="font-medium">Accepted:</span>{' '}
+                                                                            {new Date(submission.accepted_at).toLocaleString()}
+                                                                        </div>
+                                                                    )}
+                                                                    {submission.started_at && (
+                                                                        <div>
+                                                                            <span className="font-medium">Started:</span>{' '}
+                                                                            {new Date(submission.started_at).toLocaleString()}
+                                                                        </div>
+                                                                    )}
+                                                                    {submission.completed_at && (
+                                                                        <div>
+                                                                            <span className="font-medium">Completed:</span>{' '}
+                                                                            {new Date(submission.completed_at).toLocaleString()}
+                                                                        </div>
+                                                                    )}
+                                                                    {submission.duration_minutes && (
+                                                                        <div>
+                                                                            <span className="font-medium">Duration:</span>{' '}
+                                                                            {submission.duration_minutes} minutes
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Comment */}
+                                                                {submission.completion_comment && (
+                                                                    <div>
+                                                                        <h5 className="font-medium mb-2" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                                                            Comment:
+                                                                        </h5>
+                                                                        <p className="text-gray-700 bg-white p-3 rounded border border-gray-200">
+                                                                            {submission.completion_comment}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Photos */}
+                                                                {submission.photos && submission.photos.length > 0 && (
+                                                                    <div>
+                                                                        <h5 className="font-medium mb-3" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                                                            Photos ({submission.photos.length}):
+                                                                        </h5>
+                                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                                            {submission.photos.map((photo, index) => {
+                                                                                const photoUrl = getPhotoUrl(photo);
+                                                                                return (
+                                                                                    <div key={index} className="relative group">
+                                                                                        <img
+                                                                                            src={photoUrl}
+                                                                                            alt={`Task completion ${index + 1}`}
+                                                                                            className="w-full h-48 object-cover rounded-lg border-2 border-gray-200 hover:border-purple-400 transition-all cursor-pointer"
+                                                                                            onClick={() => window.open(photoUrl, '_blank')}
+                                                                                            onLoad={() => console.log('[TaskManagement] ✓ Photo loaded successfully:', photoUrl)}
+                                                                                            onError={(e) => {
+                                                                                                console.error('[TaskManagement] ✗ Failed to load photo:', photoUrl);
+                                                                                                console.error('[TaskManagement] Original path:', photo);
+                                                                                                e.target.style.backgroundColor = '#f3f4f6';
+                                                                                                e.target.alt = 'Failed to load image';
+                                                                                            }}
+                                                                                        />
+                                                                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
+                                                                                            <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-all" />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Submitted by */}
+                                                                {submission.user && (
+                                                                    <div className="text-sm text-gray-600 pt-2 border-t border-gray-300">
+                                                                        <span className="font-medium">Submitted by:</span>{' '}
+                                                                        {submission.user.name || submission.user.phone || 'Unknown'}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })()}
+                                            </React.Fragment>
                                         ))
                                     )}
                                 </tbody>
