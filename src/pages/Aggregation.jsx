@@ -3,7 +3,7 @@ import { SideNav } from '../components/SideNav';
 import { Users, TrendingUp, Coffee, Loader2, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 import { onHarvestRecorded } from '../utils/autoExpenseCreation';
 
-// API Endpoints - Uses .env configuration
+// API Endpoints - They use .env configuration
 const API_BASE_URL = `${import.meta.env.VITE_API_URL}/api`;
 const FARMERS_API = `${API_BASE_URL}/aggregation/farmer/`;
 const FARMER_HARVEST_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
@@ -449,14 +449,14 @@ const AggregationPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                     <KPICard
                         title="Total Farmers Registered"
-                        value={kpis.totalFarmers}
+                        value={Number(kpis.totalFarmers || 0).toLocaleString('en-US')}
                         subtitle="All registered farmers"
                         icon={Users}
                         loading={loading}
                     />
                     <KPICard
                         title="Total Farmers' Harvest Received"
-                        value={kpis.totalFarmerHarvests}
+                        value={Number(kpis.totalFarmerHarvests || 0).toLocaleString('en-US')}
                         subtitle="Total farmer harvest records"
                         icon={TrendingUp}
                         loading={loading}
