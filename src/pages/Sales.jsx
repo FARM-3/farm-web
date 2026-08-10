@@ -132,14 +132,14 @@ const initialFormData = {
     first_name: '',
     last_name: '',
     item: '',
+    size: '',
     quantity: '',
     rate: '',
     amount: '',
     date_of_payment: '',
     method_of_payment: ''
 };
-
-const items = ['Coffee', 'Vanilla', 'Robusta', 'Arabica'];
+const items = ['Matooke', 'Coffee', 'Livestock', 'Plantain'];
 const paymentMethods = ['Cash', 'Mobile Money', 'Bank Transfer', 'Cheque'];
 
 const useSalesForm = (onSuccess, editData = null) => {
@@ -288,6 +288,11 @@ const useSalesForm = (onSuccess, editData = null) => {
         // Remove commas before storing the value
         const rawValue = (name === 'rate' || name === 'amount') ? value.replace(/,/g, '') : value;
         let updatedData = { ...formData, [name]: rawValue };
+
+        // If item changes and it's not Matooke, clear size
+        if (name === 'item' && rawValue !== 'Matooke') {
+            updatedData.size = '';
+        }
 
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
@@ -533,17 +538,31 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                                     status={getFieldStatus('last_name')}
                                     error={errors.last_name}
                                 />
-                                <InputField
+                                <SelectField
                                     label="Item"
                                     name="item"
                                     value={formData.item}
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     placeholder="e.g., Coffee"
+                                    options={items}
                                     showRequired={true}
                                     status={getFieldStatus('item')}
                                     error={errors.item}
                                 />
+                                {formData.item === 'Matooke' && (
+                                    <SelectField
+                                        label="Size"
+                                        name="size"
+                                        value={formData.size}
+                                        onChange={handleChange}
+                                        onBlur={handleBlur}
+                                        options={["Big", "Medium", "Small"]}
+                                        showRequired={false}
+                                        status={getFieldStatus('size')}
+                                        error={errors.size}
+                                    />
+                                )}
                             </div>
                         </div>
 
@@ -788,6 +807,7 @@ function SalesPage() {
             first_name: data.first_name?.trim() || '',
             last_name: data.last_name?.trim() || '',
             item: data.item?.trim() || '',
+            size: data.size?.trim() || '',
             quantity: parseInt(data.quantity) || 0,
             rate: String(data.rate || '0'), // API expects string for decimal
             amount: String(data.amount || '0'), // API expects string for decimal
