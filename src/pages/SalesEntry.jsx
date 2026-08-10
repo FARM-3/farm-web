@@ -16,7 +16,7 @@ function SalesEntry() {
   const navigate = useNavigate();
   const location = useLocation();
   const [formData, setFormData] = useState({
-    customerName: '', item: '', quantity: '', rate: '',
+    customerName: '', item: '', size: '', quantity: '', rate: '',
     dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: '', amountPaid: ''
   });
   const [errors, setErrors] = useState({});
@@ -29,7 +29,7 @@ function SalesEntry() {
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const items = ['Coffee', 'Banana', 'Rice'];
+  const items = ['Matooke', 'Coffee', 'Livestock', 'Plantain'];
 
   // Check if we're editing an existing sale
   useEffect(() => {
@@ -40,6 +40,7 @@ function SalesEntry() {
       setFormData({
         customerName: editSale.customer_name || '',
         item: editSale.item || '',
+        size: editSale.size || '',
         quantity: editSale.quantity?.toString() || '',
         rate: editSale.rate?.toString() || '',
         dateOfPayment: editSale.date_of_payment || '',
@@ -164,6 +165,11 @@ function SalesEntry() {
     const { name, value } = e.target;
     let updatedData = { ...formData, [name]: value };
 
+    // If item changes and it's not Matooke, clear size
+    if (name === 'item' && value !== 'Matooke') {
+      updatedData.size = '';
+    }
+
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -255,6 +261,7 @@ function SalesEntry() {
       const payload = {
         customer_name: formData.customerName,
         item: formData.item,
+        size: formData.size || undefined,
         quantity: parseFloat(formData.quantity),
         rate: parseFloat(formData.rate),
         amount: parseFloat(formData.amount),
@@ -282,7 +289,7 @@ function SalesEntry() {
         setMessage(isEditing ? 'Sale updated successfully!' : 'Sale recorded successfully!');
         // Reset form
         setFormData({
-          customerName: '', item: '', quantity: '', rate: '',
+          customerName: '', item: '', size: '', quantity: '', rate: '',
           dateOfPayment: '', status: '', balance: '', batchId: '', methodOfPayment: '', amount: '', amountPaid: ''
         });
         setErrors({});
@@ -397,6 +404,35 @@ function SalesEntry() {
               {errors.item && <span style={{ color: '#D32F2F', fontSize: '10px', display: 'block', marginTop: '2px' }}>{errors.item}</span>}
             </div>
           </div>
+          {/* Conditional size field for Matooke */}
+          {formData.item === 'Matooke' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '600', color: CUSTOM_COLORS.headerBg, display: 'block', marginBottom: '4px' }}>
+                  Size
+                </label>
+                <select
+                  name="size"
+                  value={formData.size}
+                  onChange={handleChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    border: `2px solid ${getBorderColor('size')}`,
+                    borderRadius: '6px',
+                    backgroundColor: '#FFFFFF',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="">Select size</option>
+                  <option value="Big">Big</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Small">Small</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Row 3 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>

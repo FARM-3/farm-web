@@ -32,6 +32,7 @@ function ExpenseEntry() {
     const [formData, setFormData] = useState({
         expense_name: '',
         category: CATEGORIES[0],
+        other_category: '',
         item: '',
         supplier: '',
         description: '',
@@ -111,9 +112,12 @@ function ExpenseEntry() {
         if (editExpense) {
             setIsEditing(true);
             setEditId(editExpense.id);
+            const categoryValue = CATEGORIES.includes(editExpense.category) ? editExpense.category : 'Other';
+            const otherCategoryValue = categoryValue === 'Other' ? editExpense.category || '' : '';
             setFormData({
                 expense_name: editExpense.expense_name || '',
-                category: editExpense.category || CATEGORIES[0],
+                category: categoryValue,
+                other_category: otherCategoryValue,
                 item: editExpense.item || '',
                 supplier: editExpense.supplier || '',
                 description: editExpense.description || '',
@@ -126,7 +130,11 @@ function ExpenseEntry() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({
+            ...prev,
+            [name]: value,
+            ...(name === 'category' && value !== 'Other' ? { other_category: '' } : {}),
+        }));
         // Clear message on new input
         setMessage(null);
     };
@@ -181,7 +189,7 @@ function ExpenseEntry() {
         setMessage(null);
 
         // Basic validation
-        if (!formData.expense_name || !formData.amount || !formData.date || !formData.category) {
+        if (!formData.expense_name || !formData.amount || !formData.date || !formData.category || (formData.category === 'Other' && !formData.other_category)) {
             setMessage({ type: 'error', text: 'Please fill in all required fields (Name, Amount, Date, Category).' });
             setLoading(false);
             return;
@@ -189,6 +197,8 @@ function ExpenseEntry() {
 
         const dataToSend = {
             ...formData,
+            category: formData.category === 'Other' ? formData.other_category.trim() || 'Other' : formData.category,
+            other_category: undefined,
             // Convert amount to a fixed decimal string as expected by Django DecimalField
             amount: formatCurrency(formData.amount),
         };
@@ -214,6 +224,7 @@ function ExpenseEntry() {
                 setFormData({
                     expense_name: '',
                     category: CATEGORIES[0],
+                    other_category: '',
                     item: '',
                     supplier: '',
                     description: '',
@@ -297,6 +308,20 @@ function ExpenseEntry() {
                                 Icon={Tag}
                             />
                         </div>
+                        {formData.category === 'Other' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <InputField
+                                    label="Specify Category"
+                                    name="other_category"
+                                    value={formData.other_category}
+                                    onChange={handleChange}
+                                    placeholder="e.g., Fertilizer, Certification Fee"
+                                    required
+                                    Icon={Tag}
+                                    type="text"
+                                />
+                            </div>
+                        )}
 
                         {/* Row 1.5: Pick from Farmer Harvest */}
                         <div>
@@ -348,7 +373,7 @@ function ExpenseEntry() {
                                 type="text"
                             />
                             <InputField
-                                label="Supplier"
+                                label="Supplier (Optional)"
                                 name="supplier"
                                 value={formData.supplier}
                                 onChange={handleChange}

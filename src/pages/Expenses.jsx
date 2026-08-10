@@ -610,12 +610,17 @@ const getFieldErrorMessage = (name, value) => {
     }
 
     if (name === 'quantity') {
-        if (!value || value.trim() === '') return 'Quantity is required';
+        if (!value || value.trim() === '') return null;
         const numValue = parseInt(value);
         if (isNaN(numValue)) return 'Must be a valid integer';
         if (numValue <= 0) return 'Must be a positive integer';
         if (!Number.isInteger(numValue)) return 'Must be a whole number';
         return null; // No error
+    }
+
+    if (name === 'other_category') {
+        if (!value || !value.trim()) return 'Please specify a category';
+        return null;
     }
 
     if (name === 'date') {
@@ -764,7 +769,7 @@ const SelectField = ({ label, name, value, onChange, options, required, status =
 
 function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted }) {
     const initialFormData = {
-        expense_name: '', category: '', item: '', supplier: '', description: '', unit_cost: '', quantity: '', amount: '',
+        expense_name: '', category: '', other_category: '', item: '', supplier: '', description: '', unit_cost: '', quantity: '', amount: '',
         date: new Date().toISOString().substring(0, 10), location: '',
     };
 
@@ -796,9 +801,12 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                     ? parseFloat(editExpense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : '';
 
+                const categoryValue = CATEGORIES.includes(editExpense.category) ? editExpense.category : 'Other';
+                const otherCategoryValue = categoryValue === 'Other' ? editExpense.category || '' : '';
                 setFormData({
                     expense_name: editExpense.expense_name || '',
-                    category: editExpense.category || '',
+                    category: categoryValue,
+                    other_category: otherCategoryValue,
                     item: editExpense.item || '',
                     supplier: editExpense.supplier || '',
                     description: editExpense.description || '',
@@ -838,7 +846,11 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({
+            ...prev,
+            [name]: value,
+            ...(name === 'category' && value !== 'Other' ? { other_category: '' } : {}),
+        }));
         setMessage(null);
 
         // Immediate field validation for all fields
@@ -892,13 +904,14 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                 newData.quantity = validValue;
             }
 
-            // Auto-calculate amount using values without commas
+            // Auto-calculate amount using numeric values (remove any display commas)
             const unitCostValue = typeof newData.unit_cost === 'string' ? newData.unit_cost.replace(/,/g, '') : newData.unit_cost;
             const unitCost = parseFloat(unitCostValue);
             const quantity = parseInt(newData.quantity);
-            if (!isNaN(unitCost) && !isNaN(quantity) && unitCost > 0 && quantity > 0) {
-                const totalAmount = unitCost * quantity;
-                newData.amount = totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            if (!isNaN(unitCost) && unitCost > 0 && !isNaN(quantity) && quantity > 0) {
+                newData.amount = (unitCost * quantity).toFixed(2);
+            } else if (!isNaN(unitCost) && unitCost > 0 && (!newData.quantity || newData.quantity.trim() === '')) {
+                newData.amount = unitCost.toFixed(2);
             } else {
                 newData.amount = '';
             }
@@ -917,7 +930,8 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
         setMessage(null);
 
         // Final Validation Check for all required fields
-        const requiredFields = ['expense_name', 'category', 'unit_cost', 'quantity', 'amount', 'date'];
+        const requiredFields = ['expense_name', 'category', 'unit_cost', 'amount', 'date'];
+        if (formData.category === 'Other') requiredFields.push('other_category');
         let allValid = true;
         const newValidationStatus = {};
         const newFieldErrors = {};
@@ -952,13 +966,15 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
             return;
         }
 
-        // Remove commas before parsing numeric values
+        // Prepare payload: remove display commas and normalize numeric fields
         const dataToSend = {
             ...formData,
-            unit_cost: parseFloat(formData.unit_cost.replace(/,/g, '')).toFixed(2),
-            quantity: parseInt(formData.quantity),
-            amount: parseFloat(formData.amount.replace(/,/g, '')).toFixed(2)
+            category: formData.category === 'Other' ? (formData.other_category || '').trim() || 'Other' : formData.category,
+            unit_cost: parseFloat(String(formData.unit_cost || '').replace(/,/g, '')) ? parseFloat(String(formData.unit_cost || '').replace(/,/g, '')).toFixed(2) : '0.00',
+            quantity: formData.quantity ? parseInt(formData.quantity) : undefined,
+            amount: parseFloat(String(formData.amount || '').replace(/,/g, '')) ? parseFloat(String(formData.amount || '').replace(/,/g, '')).toFixed(2) : '0.00',
         };
+        delete dataToSend.other_category;
 
         try {
             const url = isEditing ? `${EXPENSE_API_ENDPOINT}${editId}/` : EXPENSE_API_ENDPOINT;
@@ -1062,6 +1078,20 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                                 errorMessage={fieldErrors.category}
                             />
                         </div>
+                        {formData.category === 'Other' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                                <InputField
+                                    label="Specify Category"
+                                    name="other_category"
+                                    value={formData.other_category}
+                                    onChange={handleChange}
+                                    placeholder="e.g., Fertilizer, Certification Fee"
+                                    required
+                                    status={validationStatus.other_category}
+                                    errorMessage={fieldErrors.other_category}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* Purchase Details Section - Mimics Order Details */}
@@ -1073,7 +1103,7 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                                 errorMessage={fieldErrors.item}
                             />
                             <InputField
-                                label="Supplier" name="supplier" value={formData.supplier} onChange={handleChange} placeholder="e.g., Shell Petrol, Agro Distributor Ltd"
+                                label="Supplier (Optional)" name="supplier" value={formData.supplier} onChange={handleChange} placeholder="e.g., Shell Petrol, Agro Distributor Ltd"
                                 errorMessage={fieldErrors.supplier}
                             />
                         </div>
@@ -1084,7 +1114,7 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                                 errorMessage={fieldErrors.unit_cost}
                             />
                             <InputField
-                                label="Quantity" name="quantity" value={formData.quantity} onChange={handleUnitCostQuantityChange} placeholder="0" required type="number" min="1"
+                                label="Quantity (Optional)" name="quantity" value={formData.quantity} onChange={handleUnitCostQuantityChange} placeholder="0" type="number" min="1"
                                 status={validationStatus.quantity}
                                 errorMessage={fieldErrors.quantity}
                             />
