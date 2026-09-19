@@ -24,7 +24,7 @@ const numberToWords = (num) => {
   return convert(Math.floor(num));
 };
 
-const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://142.93.94.236:8000'}/api/sales/`;
+const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/sales/`;
 
 function getReceiptIdFromUrl(location) {
   const params = new URLSearchParams(location.search);

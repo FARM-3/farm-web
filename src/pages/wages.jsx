@@ -488,7 +488,7 @@ const BulkWageRecordModal = ({ isOpen, onClose, onSaveSuccess }) => {
         const fetchStaff = async () => {
             try {
                 setLoadingStaff(true);
-                const response = await fetch('http://142.93.94.236:8000/api/staff/');
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/staff/`);
                 if (!response.ok) throw new Error('Failed to fetch staff');
                 const data = await response.json();
                 const staffList = Array.isArray(data) ? data : data.results || [];
@@ -913,7 +913,7 @@ const WagesModal = ({ isOpen, onClose, onSaveSuccess, initialData = {} }) => {
                 const headers = {};
                 if (token) headers['Authorization'] = `Token ${token}`;
 
-                const response = await fetch('http://142.93.94.236:8000/api/users/', {
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/`, {
                     method: 'GET',
                     headers: headers
                 });

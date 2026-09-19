@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import rugyeyoLogo from '../assets/rugyeyo_logo.png';
 
 // --- API Client ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://142.93.94.236:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ApiClient = {
   post: async (url, data, token = null) => {

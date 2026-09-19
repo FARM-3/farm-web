@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { XCircle, Calendar, User, DollarSign, Hash, Briefcase, Download } from 'lucide-react';
 import { generateAndDownloadVoucher } from '../utils/voucherGeneration';
 
-const WAGES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://142.93.94.236:8000'}/api/wages/`;
+const WAGES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/wages/`;
 
 function getVoucherIdFromUrl(location) {
   const params = new URLSearchParams(location.search);
