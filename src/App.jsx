@@ -41,6 +41,7 @@ import Fermenting from './pages/Fermenting.jsx';
 import NaturalSundrying from './pages/NaturalSundrying.jsx';
 import Washing from './pages/Washing.jsx';
 import TaskManagement from './pages/TaskManagement.jsx';
+import BlockActivities from './pages/BlockActivities.jsx';
 import ExportInventory from './pages/export/ExportInventory.jsx';
 import ExportDispatch from './pages/export/ExportDispatch.jsx';
 import ExportTraceReport from './pages/export/ExportTraceReport.jsx';
@@ -89,6 +90,7 @@ function App() {
           <Route path="/harvest" element={<ProtectedRoute><HarvestPage /></ProtectedRoute>} />
           <Route path="/voucher" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />
+          <Route path="/block-activities" element={<ProtectedRoute><BlockActivities /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/settings/company" replace />} />
             <Route path="company" element={<CompanySettings />} />

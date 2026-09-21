@@ -160,7 +160,38 @@ const TaskManagement = () => {
         }
     }, []);
 
-    // Removed fetchSopTemplates and fetchExceptions - endpoints don't exist yet
+    const fetchSurveillanceReports = useCallback(async () => {
+        try {
+            const token = getAuthToken();
+            const response = await fetch(API_ENDPOINTS.SURVEILLANCE, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const reports = data.results || data || [];
+                setExceptions(reports.map(r => ({
+                    id: r.id,
+                    report_id: r.report_id,
+                    title: r.title,
+                    description: r.description,
+                    severity: r.severity,
+                    issue_type: r.issue_type,
+                    location: r.location || r.block_id || '—',
+                    reported_by: r.reported_by_display || r.reported_by_name || 'Mobile user',
+                    created_at: r.created_at,
+                    status: r.status,
+                    weather_conditions: r.weather_conditions || [],
+                    photo_url: r.photo_url,
+                    block_id: r.block_id,
+                })));
+            } else {
+                setExceptions([]);
+            }
+        } catch (error) {
+            console.error('Error fetching surveillance reports:', error);
+            setExceptions([]);
+        }
+    }, []);
 
     const fetchStaffMembers = useCallback(async () => {
         try {
@@ -268,11 +299,14 @@ const TaskManagement = () => {
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
-            await Promise.all([fetchTasks(), fetchFarmBlocks(), fetchStaffMembers(), fetchTaskSubmissions()]);
+            await Promise.all([
+                fetchTasks(), fetchFarmBlocks(), fetchStaffMembers(),
+                fetchTaskSubmissions(), fetchSurveillanceReports(),
+            ]);
             setLoading(false);
         };
         fetchData();
-    }, [fetchTasks, fetchFarmBlocks, fetchStaffMembers, fetchTaskSubmissions]);
+    }, [fetchTasks, fetchFarmBlocks, fetchStaffMembers, fetchTaskSubmissions, fetchSurveillanceReports]);
 
     // SLA Timer effect for exceptions
     useEffect(() => {
@@ -452,7 +486,7 @@ const TaskManagement = () => {
 
         try {
             const token = getAuthToken();
-            const response = await fetch(`${API_ENDPOINTS.EXCEPTIONS}${exceptionId}/`, {
+            const response = await fetch(`${API_ENDPOINTS.SURVEILLANCE}${exceptionId}/`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -460,7 +494,7 @@ const TaskManagement = () => {
             });
 
             if (response.ok) {
-                await fetchExceptions();
+                await fetchSurveillanceReports();
                 alert('Exception deleted successfully!');
             } else {
                 alert('Failed to delete exception');
@@ -507,20 +541,24 @@ const TaskManagement = () => {
             const token = getAuthToken();
             const method = editingException ? 'PUT' : 'POST';
             const url = editingException
-                ? `${API_ENDPOINTS.EXCEPTIONS || `${API_ENDPOINTS.getApiBaseUrl()}/api/exceptions/`}${editingException.id}/`
-                : (API_ENDPOINTS.EXCEPTIONS || `${API_ENDPOINTS.getApiBaseUrl()}/api/exceptions/`);
+                ? `${API_ENDPOINTS.SURVEILLANCE}${editingException.id}/`
+                : API_ENDPOINTS.SURVEILLANCE;
 
             const formData = new FormData();
-            Object.keys(exceptionForm).forEach(key => {
-                if (key === 'evidence_files') {
-                    exceptionForm.evidence_files.forEach(file => {
-                        formData.append('evidence_files', file);
-                    });
-                } else if (key === 'weather_conditions') {
-                    formData.append(key, JSON.stringify(exceptionForm[key]));
-                } else {
-                    formData.append(key, exceptionForm[key]);
-                }
+            if (!editingException) {
+                formData.append('report_id', `SUR-${Date.now().toString().slice(-8)}`);
+            }
+            formData.append('title', exceptionForm.title);
+            formData.append('description', exceptionForm.description);
+            formData.append('severity', exceptionForm.severity);
+            formData.append('status', exceptionForm.status || 'open');
+            formData.append('location', exceptionForm.location);
+            formData.append('block_id', exceptionForm.location);
+            formData.append('reported_by_name', exceptionForm.reported_by || 'Web user');
+            formData.append('issue_type', exceptionForm.issue_type || 'other');
+            formData.append('weather_conditions', JSON.stringify(exceptionForm.weather_conditions || []));
+            exceptionForm.evidence_files?.forEach(file => {
+                formData.append('photo', file);
             });
 
             const response = await fetch(url, {
@@ -532,7 +570,7 @@ const TaskManagement = () => {
             });
 
             if (response.ok) {
-                await fetchExceptions();
+                await fetchSurveillanceReports();
                 setShowExceptionModal(false);
                 alert(editingException ? 'Exception updated successfully!' : 'Exception recorded successfully!');
             } else {
@@ -854,11 +892,16 @@ const TaskManagement = () => {
                                                     </span>
                                                 </div>
                                                 <p className="text-sm text-gray-600 mb-2">{report.description}</p>
-                                                <div className="flex items-center gap-4 text-xs text-gray-500">
-                                                    <span>📍 {report.location}</span>
-                                                    <span>👤 {report.reported_by}</span>
-                                                    <span>📅 {new Date(report.created_at).toLocaleDateString()}</span>
+                                                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                                                    <span>Block: {report.block_id || report.location}</span>
+                                                    <span className="capitalize">{report.issue_type?.replace('_', ' ') || 'issue'}</span>
+                                                    <span>{report.reported_by}</span>
+                                                    <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                                                    <span className="capitalize px-2 py-0.5 rounded bg-gray-100">{report.status}</span>
                                                 </div>
+                                                {report.photo_url && (
+                                                    <a href={report.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#8B4513] mt-2 inline-block">View photo evidence</a>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

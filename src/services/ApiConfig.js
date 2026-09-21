@@ -96,6 +96,10 @@ export const API_ENDPOINTS = {
 
   // Activities endpoints
   ACTIVITIES: `${API_BASE_URL}/api/activities/activities/?platform=web`,
+
+  // Field operations — block activities & surveillance
+  BLOCK_ACTIVITIES: `${API_BASE_URL}/api/field-ops/block-activities/`,
+  SURVEILLANCE: `${API_BASE_URL}/api/field-ops/surveillance/`,
 };
 
 /**

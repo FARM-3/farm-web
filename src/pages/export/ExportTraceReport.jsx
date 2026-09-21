@@ -67,8 +67,55 @@ export default function ExportTraceReport() {
               <div><span className="text-gray-500">GPS</span><p className="font-medium">{detail.origin_gps || '—'}</p></div>
               <div><span className="text-gray-500">Status</span><p className="font-medium capitalize">{detail.compliance_status}</p></div>
             </div>
+            {detail.trace_data?.field_history && (
+              <div className="mt-6 border-t pt-4">
+                <h3 className="font-semibold text-[#4A3423] mb-3">Field history (block)</h3>
+                {detail.trace_data.field_history.practices_summary?.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 uppercase mb-2">Practices</p>
+                    <ul className="space-y-1 text-sm">
+                      {detail.trace_data.field_history.practices_summary.map((p, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-gray-400">{p.date}</span>
+                          <span>{p.practices?.join(', ') || p.title}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {detail.trace_data.field_history.inputs_summary?.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-500 uppercase mb-2">Inputs applied</p>
+                    <ul className="space-y-1 text-sm">
+                      {detail.trace_data.field_history.inputs_summary.map((inp, i) => (
+                        <li key={i} className="flex gap-2">
+                          <span className="text-gray-400">{inp.date}</span>
+                          <span>{inp.input} ({inp.type}){inp.quantity ? ` — ${inp.quantity} ${inp.unit || ''}` : ''}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {detail.trace_data.field_history.surveillance_reports?.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase mb-2">Surveillance notes</p>
+                    <ul className="space-y-2 text-sm">
+                      {detail.trace_data.field_history.surveillance_reports.map((s, i) => (
+                        <li key={i} className="p-2 bg-amber-50 rounded border border-amber-100">
+                          <span className="font-medium capitalize">{s.severity}</span> — {s.title}
+                          <p className="text-xs text-gray-600 mt-0.5">{s.description}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
             {detail.trace_data && (
-              <pre className="mt-4 p-3 bg-gray-50 rounded-lg text-xs overflow-auto max-h-64">{JSON.stringify(detail.trace_data, null, 2)}</pre>
+              <details className="mt-4">
+                <summary className="text-xs text-gray-500 cursor-pointer">Full trace JSON</summary>
+                <pre className="mt-2 p-3 bg-gray-50 rounded-lg text-xs overflow-auto max-h-64">{JSON.stringify(detail.trace_data, null, 2)}</pre>
+              </details>
             )}
           </div>
         )}

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
     Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings,
     BarChart3, TreePine, TrendingUp, TrendingDown, ClipboardCheck, Factory, CheckSquare,
-    Warehouse, Truck, FileText, Globe, UserCircle, Wrench, Award, GraduationCap
+    Warehouse, Truck, FileText, Globe, UserCircle, Wrench, Award, GraduationCap, Sprout
 } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 
@@ -34,6 +34,7 @@ const navItems = [
     { key: 'trainings', name: 'Training', icon: GraduationCap, href: '/trainings' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
+    { key: 'block-activities', name: 'Block Activities', icon: Sprout, href: '/block-activities' },
     { key: 'processing', name: 'Processing', icon: Factory, href: '/processing' },
     { key: 'tasks', name: 'Task Management', icon: CheckSquare, href: '/tasks' },
 ];
@@ -65,6 +66,7 @@ const getCurrentPageKey = () => {
     if (path.startsWith('receipt')) return 'receipt';
     if (path.startsWith('processing')) return 'processing';
     if (path.startsWith('tasks')) return 'tasks';
+    if (path.startsWith('block-activities')) return 'block-activities';
     if (path.startsWith('export')) {
         if (path.includes('inventory')) return 'export-inventory';
         if (path.includes('dispatch')) return 'export-dispatch';
