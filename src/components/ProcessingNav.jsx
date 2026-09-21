@@ -14,8 +14,8 @@ const processingPages = [
     { path: '/processing/quality-control', name: 'Quality Control', icon: ClipboardCheck },
     { path: '/processing/processing-type', name: 'Processing Type', icon: Settings },
     { path: '/processing/drying', name: 'Drying', icon: Wind },
+    { path: '/processing/hulling', name: 'Hulling (optional)', icon: Wheat },
     { path: '/processing/bagging', name: 'Bagging', icon: Package },
-    { path: '/processing/hulling', name: 'Hulling', icon: Wheat },
 ];
 
 export const ProcessingNav = () => {

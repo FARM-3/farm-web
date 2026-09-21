@@ -51,6 +51,7 @@ function authHeaders() {
 
 const Hulling = () => {
     const [records, setRecords] = useState([]);
+    const [staffList, setStaffList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
@@ -75,6 +76,13 @@ const Hulling = () => {
     }, []);
 
     useEffect(() => { fetchRecords(); }, [fetchRecords]);
+
+    useEffect(() => {
+        fetch(API_ENDPOINTS.STAFF, { headers: authHeaders() })
+            .then(res => res.json())
+            .then(data => setStaffList(data.results || data || []))
+            .catch(() => setStaffList([]));
+    }, []);
 
     const avgEfficiency = records.length > 0
         ? (records.reduce((sum, r) => sum + (parseFloat(r.outturn || r.expecting_outturn) || 0), 0) / records.length).toFixed(1)
@@ -132,7 +140,7 @@ const Hulling = () => {
                 <div className="flex justify-between items-center mb-8">
                     <div>
                         <h1 className="text-3xl font-bold" style={{ color: CoffeeColors.DARK_BROWN }}>Hulling Operations</h1>
-                        <p className="text-gray-600 mt-1">Record parchment removal — synced with mobile field entries</p>
+                        <p className="text-gray-600 mt-1">Optional step after drying — removes parchment before bagging. Not all lots are hulled on-site.</p>
                     </div>
                     <div className="flex gap-3">
                         <button onClick={fetchRecords} className="flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg" style={{ backgroundColor: CoffeeColors.LIGHT_BG, color: CoffeeColors.DARK_BROWN }}>
@@ -211,13 +219,27 @@ const Hulling = () => {
                             ['weight_after', 'Weight after (kg)', '2400'],
                             ['outturn', 'Outturn (%)', '80'],
                             ['screen_size', 'Screen size', '14/64'],
-                            ['staff_id', 'Staff ID', 'STF-01'],
                         ].map(([key, label, ph]) => (
                             <div key={key}>
                                 <label className="text-sm font-medium">{label}</label>
                                 <input className="w-full border rounded-lg p-2 mt-1" value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} placeholder={ph} />
                             </div>
                         ))}
+                        <div>
+                            <label className="text-sm font-medium">Staff member</label>
+                            <select
+                                className="w-full border rounded-lg p-2 mt-1"
+                                value={form.staff_id}
+                                onChange={e => setForm(f => ({ ...f, staff_id: e.target.value }))}
+                            >
+                                <option value="">Select staff member</option>
+                                {staffList.map(s => (
+                                    <option key={s.staff_id || s.id} value={s.staff_id || s.id}>
+                                        {s.staff_id || s.id} — {[s.first_name, s.last_name].filter(Boolean).join(' ') || s.full_name || s.name || 'Staff'}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <div>
                             <label className="text-sm font-medium">Date</label>
                             <input type="date" className="w-full border rounded-lg p-2 mt-1" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />

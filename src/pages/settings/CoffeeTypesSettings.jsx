@@ -78,7 +78,9 @@ export default function CoffeeTypesSettings() {
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Coffee Types</h2>
-          <p className="text-sm text-gray-500">Add a type, then add sub-types under it.</p>
+          <p className="text-sm text-gray-500">
+            Processing hierarchy for batches (e.g. Arabica → Washed). Not the same as Coffee Varieties under Lookups, which are species on farmer registration.
+          </p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm" style={{ backgroundColor: '#8B5A3C' }}>
           <Plus size={16} /> New Type
