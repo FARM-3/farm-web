@@ -389,6 +389,7 @@ import { RefreshCw, DollarSign, Calendar, User, MinusCircle, Wallet, Loader2, Ar
 import { SideNav } from '../components/SideNav';
 import { generateAndDownloadVoucher, validateWageRecordForVoucher } from '../utils/voucherGeneration';
 import BulkWageSpreadsheet from '../components/BulkWageSpreadsheet';
+import ExcelImportButton from '../components/ExcelImportButton';
 import * as XLSX from 'xlsx';
 
 const styleElement = document.createElement('style');
@@ -1972,6 +1973,7 @@ function Wages() {
                             <DollarSign className="w-4 h-4 mr-2" />
                             Bulk Record Wages
                         </button>
+                        <ExcelImportButton entityType="wages" onComplete={() => fetchWages(currentPage)} />
                         <Button type="secondary" onClick={handleExportToExcel} className="py-2 px-4 shadow-xl">
                             Export to Excel
                         </Button>

@@ -11,7 +11,7 @@
  * const url = getApiUrl('expenses');  // Returns: http://192.168.1.95:8000/api/expenses/
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://farm-api-uvor.onrender.com';
 
 /**
  * Get full API URL for an endpoint
@@ -84,6 +84,7 @@ export const API_ENDPOINTS = {
 
   // Processing tracking endpoints
   HARVEST_TRACKING: `${API_BASE_URL}/api/processing/track/`,
+  TRACE_SCAN: `${API_BASE_URL}/api/processing/trace/scan/`,
 
   // Task management endpoints
   TASKS: `${API_BASE_URL}/api/tasks/`,

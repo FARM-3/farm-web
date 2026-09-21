@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SideNav } from '../components/SideNav';
-import { Settings as SettingsIcon, User, Lock, Bell, Globe, Save, AlertCircle, CheckCircle, DollarSign } from 'lucide-react';
+import { Settings as SettingsIcon, User, Lock, Bell, Globe, Save, AlertCircle, CheckCircle, DollarSign, ListTree } from 'lucide-react';
+import { CONFIG_CATEGORIES, fetchGroupedLookups, bulkReplaceCategory } from '../services/configService';
 
 // Coffee theme colors
 const CoffeeColors = {
@@ -24,8 +25,8 @@ const Settings = () => {
     // Default settings
     const defaultSettings = {
         // Company Information
-        companyName: 'Rugyeyo Farm',
-        companyEmail: 'info@rugyeyofarm.com',
+        companyName: 'FARM FMIS',
+        companyEmail: 'info@farm-demo.com',
         companyPhone: '+256 700 000 000',
         companyAddress: 'Kampala, Uganda',
 
@@ -66,6 +67,12 @@ const Settings = () => {
 
     // Settings state
     const [settings, setSettings] = useState(loadSettings());
+
+    // Master data (configurable dropdowns)
+    const [masterData, setMasterData] = useState({});
+    const [masterDataDraft, setMasterDataDraft] = useState({});
+    const [configLoading, setConfigLoading] = useState(true);
+    const [configSaving, setConfigSaving] = useState(false);
 
     // Fetch user role from backend and load current prices
     useEffect(() => {
@@ -181,6 +188,22 @@ const Settings = () => {
         fetchUserRole();
     }, []);
 
+    useEffect(() => {
+        const loadMasterData = async () => {
+            try {
+                setConfigLoading(true);
+                const grouped = await fetchGroupedLookups();
+                setMasterData(grouped);
+                setMasterDataDraft(grouped);
+            } catch (error) {
+                console.warn('Could not load master data config:', error.message);
+            } finally {
+                setConfigLoading(false);
+            }
+        };
+        loadMasterData();
+    }, []);
+
     // Handle input change
     const handleChange = (field, value) => {
         if (!isAdmin) {
@@ -194,6 +217,31 @@ const Settings = () => {
             [field]: value
         }));
         setMessage({ type: '', text: '' });
+    };
+
+    const handleMasterDataChange = (categoryKey, text) => {
+        if (!isAdmin) return;
+        const options = text.split('\n').map(s => s.trim()).filter(Boolean);
+        setMasterDataDraft(prev => ({ ...prev, [categoryKey]: options }));
+    };
+
+    const handleSaveMasterData = async () => {
+        if (!isAdmin) return;
+        setConfigSaving(true);
+        setMessage({ type: '', text: '' });
+        try {
+            for (const cat of CONFIG_CATEGORIES) {
+                const options = masterDataDraft[cat.key] || [];
+                await bulkReplaceCategory(cat.key, options);
+            }
+            setMasterData(masterDataDraft);
+            setMessage({ type: 'success', text: 'Master data saved. Mobile apps will pick up changes on next load.' });
+            setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+        } catch (error) {
+            setMessage({ type: 'error', text: error.message || 'Failed to save master data' });
+        } finally {
+            setConfigSaving(false);
+        }
     };
 
     // Handle save settings
@@ -625,6 +673,54 @@ const Settings = () => {
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    {/* Master Data — configurable dropdowns */}
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 className="text-xl font-bold mb-2 flex items-center gap-2" style={{ color: CoffeeColors.DARK_BROWN }}>
+                            <ListTree size={20} />
+                            Master Data (Configuration)
+                        </h2>
+                        <p className="text-xs text-gray-500 mb-6">
+                            Configure coffee types, fertilizers, pesticides, and other dropdown values used across farmer registration and harvest forms. One option per line.
+                        </p>
+                        {configLoading ? (
+                            <p className="text-sm text-gray-500">Loading master data...</p>
+                        ) : (
+                            <div className="space-y-5">
+                                {CONFIG_CATEGORIES.map((cat) => (
+                                    <div key={cat.key}>
+                                        <label className="block text-sm font-medium mb-1" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                            {cat.label}
+                                        </label>
+                                        <p className="text-xs text-gray-500 mb-2">{cat.description}</p>
+                                        <textarea
+                                            rows={Math.min(6, Math.max(3, (masterDataDraft[cat.key] || []).length + 1))}
+                                            value={(masterDataDraft[cat.key] || []).join('\n')}
+                                            onChange={(e) => handleMasterDataChange(cat.key, e.target.value)}
+                                            disabled={!isAdmin}
+                                            className="w-full p-3 border rounded-lg font-mono text-sm focus:outline-none focus:ring-2"
+                                            style={{
+                                                borderColor: '#D1D5DB',
+                                                backgroundColor: isAdmin ? '#FFFFFF' : '#F3F4F6',
+                                            }}
+                                            placeholder={`Enter ${cat.label.toLowerCase()}, one per line`}
+                                        />
+                                    </div>
+                                ))}
+                                {isAdmin && (
+                                    <button
+                                        onClick={handleSaveMasterData}
+                                        disabled={configSaving}
+                                        className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-white disabled:opacity-50"
+                                        style={{ backgroundColor: CoffeeColors.MEDIUM_BROWN }}
+                                    >
+                                        <Save size={18} />
+                                        {configSaving ? 'Saving master data...' : 'Save Master Data'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Coffee Pricing Settings */}

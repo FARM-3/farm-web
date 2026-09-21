@@ -2,9 +2,10 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings,
-    BarChart3, TreePine, TrendingUp, TrendingDown, ClipboardCheck, Factory, CheckSquare
+    BarChart3, TreePine, TrendingUp, TrendingDown, ClipboardCheck, Factory, CheckSquare,
+    Warehouse, Truck, FileText, Globe, UserCircle, Wrench, Award, GraduationCap
 } from 'lucide-react';
-import rugyeyoLogo from '../assets/rugyeyo_logo.png';
+import BrandLogo from './BrandLogo';
 
 // --- CONFIGURATION: Updated Theme Colors to match the brown sidebar ---
 const CoffeeColors = {
@@ -25,12 +26,22 @@ const navItems = [
     { key: 'dashboard', name: 'Dashboard', icon: Home, href: '/dashboard' },
     { key: 'wages', name: 'Wages', icon: DollarSign, href: '/wages' },
     { key: 'sales', name: 'Sales', icon: ShoppingCart, href: '/sales' },
+    { key: 'customers', name: 'Customers', icon: UserCircle, href: '/customers' },
     { key: 'expenses', name: 'Expenses', icon: Package, href: '/expenses' },
     { key: 'staff', name: 'Staff', icon: Users, href: '/staff' },
+    { key: 'assets', name: 'Assets', icon: Wrench, href: '/assets' },
+    { key: 'documents', name: 'Documents', icon: Award, href: '/documents' },
+    { key: 'trainings', name: 'Training', icon: GraduationCap, href: '/trainings' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
     { key: 'processing', name: 'Processing', icon: Factory, href: '/processing' },
     { key: 'tasks', name: 'Task Management', icon: CheckSquare, href: '/tasks' },
+];
+
+const exportNavItems = [
+    { key: 'export-inventory', name: 'Inventory', icon: Warehouse, href: '/export/inventory' },
+    { key: 'export-dispatch', name: 'Dispatch', icon: Truck, href: '/export/dispatch' },
+    { key: 'export-trace', name: 'Trace Report', icon: FileText, href: '/export/trace' },
 ];
 
 const footerNavItems = [
@@ -43,6 +54,10 @@ const getCurrentPageKey = () => {
     const path = window.location.pathname.split('/')[1] || 'dashboard';
 
     if (path.startsWith('sales')) return 'sales';
+    if (path.startsWith('customers')) return 'customers';
+    if (path.startsWith('assets')) return 'assets';
+    if (path.startsWith('documents')) return 'documents';
+    if (path.startsWith('trainings')) return 'trainings';
     if (path.startsWith('staff')) return 'staff';
     if (path === 'wagesrecords') return 'wagesrecords';
     if (path.startsWith('wages')) return 'wages';
@@ -50,8 +65,14 @@ const getCurrentPageKey = () => {
     if (path.startsWith('receipt')) return 'receipt';
     if (path.startsWith('processing')) return 'processing';
     if (path.startsWith('tasks')) return 'tasks';
+    if (path.startsWith('export')) {
+        if (path.includes('inventory')) return 'export-inventory';
+        if (path.includes('dispatch')) return 'export-dispatch';
+        if (path.includes('trace') || path.includes('dossier')) return 'export-trace';
+        return 'export-inventory';
+    }
 
-    const item = [...navItems, ...footerNavItems].find(item => item.key === path);
+    const item = [...navItems, ...footerNavItems, ...exportNavItems].find(item => item.key === path);
     if (item) return path;
 
     return 'dashboard';
@@ -242,19 +263,8 @@ export const SideNav = ({ children }) => {
             >
                 {/* Logo and Title Section */}
                 <div className="flex items-center justify-between p-4 h-auto py-6 flex-shrink-0" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
-                    <div className="flex items-center">
-                        <img
-                            src={rugyeyoLogo}
-                            alt="Rugyeyo Farm Logo"
-                            style={{
-                                width: '80px',
-                                height: 'auto',
-                                backgroundColor: 'transparent'
-                            }}
-                        />
-                        <h2 className="text-lg font-extrabold whitespace-nowrap" style={{ color: CoffeeColors.DARK_BROWN }}>
-                            Rugyeyo Farm
-                        </h2>
+                    <div className="flex items-center gap-2">
+                        <BrandLogo size="sm" variant="dark" />
                     </div>
                     <button
                         onClick={() => setSidebarOpen(false)}
@@ -270,6 +280,14 @@ export const SideNav = ({ children }) => {
                     {navItems.map((item) => (
                         <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} />
                     ))}
+                    <div className="pt-4 mt-2 border-t border-gray-200">
+                        <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: CoffeeColors.DARK_BROWN }}>
+                            <Globe size={14} /> Export & Compliance
+                        </p>
+                        {exportNavItems.map((item) => (
+                            <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} />
+                        ))}
+                    </div>
                 </nav>
 
                 {/* Footer Links (Profile/Logout) */}

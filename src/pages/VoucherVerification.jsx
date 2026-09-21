@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { XCircle, Calendar, User, DollarSign, Hash, Briefcase, Download } from 'lucide-react';
 import { generateAndDownloadVoucher } from '../utils/voucherGeneration';
 
-const WAGES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/wages/`;
+const WAGES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'https://farm-api-uvor.onrender.com'}/api/wages/`;
 
 function getVoucherIdFromUrl(location) {
   const params = new URLSearchParams(location.search);
@@ -107,13 +107,13 @@ export default function VoucherVerification() {
 
           <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
             <p className="text-sm text-red-800">
-              <strong>Important:</strong> This voucher could not be verified. Please contact Rugyeyo Farm directly to confirm its authenticity.
+              <strong>Important:</strong> This voucher could not be verified. Please contact FARM FMIS directly to confirm its authenticity.
             </p>
           </div>
 
           <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-            <img src="/logo.png" alt="Rugyeyo Farm" className="w-16 h-16 mx-auto mb-2 object-contain" />
-            <p className="text-sm text-gray-600">Rugyeyo Farm</p>
+            <img src="/logo.png" alt="FARM FMIS" className="w-16 h-16 mx-auto mb-2 object-contain" />
+            <p className="text-sm text-gray-600">FARM FMIS</p>
             <p className="text-xs text-gray-500">Coffee Production & Processing</p>
           </div>
         </div>
@@ -134,10 +134,10 @@ export default function VoucherVerification() {
         {/* Header */}
         <div className="bg-gradient-to-r from-amber-700 to-amber-900 text-white p-6 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <img src="/logo.png" alt="Rugyeyo Farm" className="w-12 h-12 object-contain bg-white rounded-full p-1" />
+            <img src="/logo.png" alt="FARM FMIS" className="w-12 h-12 object-contain bg-white rounded-full p-1" />
             <h1 className="text-2xl font-bold">Voucher Verification</h1>
           </div>
-          <p className="text-amber-100 text-sm">Rugyeyo Farm – Coffee Production & Processing</p>
+          <p className="text-amber-100 text-sm">FARM FMIS – Coffee Production & Processing</p>
         </div>
 
         {/* Verification Badge */}
@@ -145,7 +145,7 @@ export default function VoucherVerification() {
           <div>
             <h2 className="text-lg font-bold mb-1" style={{ color: '#702A0B' }}>Verified</h2>
             <p className="text-gray-700">
-              This voucher was issued by Rugyeyo Farm on <strong>{issuedDate}</strong>.
+              This voucher was issued by FARM FMIS on <strong>{issuedDate}</strong>.
             </p>
             <p className="text-sm text-gray-600 mt-2">
               This is an authentic wage payment voucher registered in our system.
@@ -239,7 +239,7 @@ export default function VoucherVerification() {
         {/* Footer */}
         <div className="bg-gray-100 px-6 py-4 border-t border-gray-200">
           <div className="text-center text-sm text-gray-600">
-            <p className="font-semibold mb-1">Rugyeyo Farm</p>
+            <p className="font-semibold mb-1">FARM FMIS</p>
             <p className="text-xs">Namayumba, Wakiso District, Uganda</p>
             <p className="text-xs mt-1">Tel: +256772701051 | Email: rkabushenga@gmail.com</p>
             <p className="text-xs text-gray-500 mt-3">

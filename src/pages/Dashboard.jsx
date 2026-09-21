@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { SideNav } from '../components/SideNav';
-import { TrendingUp, TrendingDown, ClipboardCheck, DollarSign, Package, Users, RefreshCw, Loader2, Activity } from 'lucide-react';
+import { TrendingUp, DollarSign, Package, Users, RefreshCw, Loader2, Activity, Wheat, Warehouse, ShoppingCart } from 'lucide-react';
 import { API_ENDPOINTS } from '../services/ApiConfig';
 
 // API Endpoints - Uses .env configuration
@@ -9,6 +9,9 @@ const SALES_API = `${API_BASE_URL}/sales/`;
 const EXPENSES_API = `${API_BASE_URL}/expenses/`;
 const WAGES_API = `${API_BASE_URL}/wages/`;
 const STAFF_API = `${API_BASE_URL}/staff/`;
+const HARVESTS_API = `${API_BASE_URL}/harvests/`;
+const FARMER_HARVEST_API = `${API_BASE_URL}/aggregation/farmer-harvest/`;
+const INVENTORY_API = `${API_BASE_URL}/export/inventory/`;
 const ACTIVITIES_API = API_ENDPOINTS.ACTIVITIES;
 
 // Updated colors to match the Farmer Registry design
@@ -178,6 +181,13 @@ export const DashboardScreen = () => {
         totalExpenses: 0,
         totalWages: 0,
         activeStaff: 0,
+        productionHarvestKg: 0,
+        farmerPurchaseKg: 0,
+        inventoryStockKg: 0,
+        salesCount: 0,
+        harvestCount: 0,
+        productionHarvestCount: 0,
+        farmerHarvestCount: 0,
         recentTransactions: [],
         recentActivities: [],
         monthlySales: [],
@@ -234,11 +244,14 @@ export const DashboardScreen = () => {
             };
 
             // Fetch all data in parallel
-            const [sales, expenses, wages, staff, activities] = await Promise.all([
+            const [sales, expenses, wages, staff, harvests, farmerHarvests, inventory, activities] = await Promise.all([
                 fetchAllPages(SALES_API),
                 fetchAllPages(EXPENSES_API),
                 fetchAllPages(WAGES_API),
                 fetchAllPages(STAFF_API),
+                fetchAllPages(HARVESTS_API),
+                fetchAllPages(FARMER_HARVEST_API),
+                fetchAllPages(INVENTORY_API),
                 fetchAllPages(ACTIVITIES_API).catch(err => {
                     console.error('Failed to fetch activities:', err);
                     console.error('Activities API URL:', ACTIVITIES_API);
@@ -251,6 +264,15 @@ export const DashboardScreen = () => {
             const totalExpenses = expenses.reduce((sum, expense) => sum + parseFloat(expense.amount || 0), 0);
             const totalWages = wages.reduce((sum, wage) => sum + parseFloat(wage.amount_paid || 0), 0);
             const activeStaff = staff.length;
+            const productionHarvestKg = harvests.reduce((sum, h) => sum + parseFloat(h.weight_on_delivery || 0), 0);
+            const farmerPurchaseKg = farmerHarvests.reduce((sum, h) => sum + parseFloat(h.weight_on_delivery || 0), 0);
+            const inventoryStockKg = inventory
+                .filter(lot => lot.status === 'in_stock' || lot.status === 'reserved')
+                .reduce((sum, lot) => sum + parseFloat(lot.total_kg || 0), 0);
+            const salesCount = sales.length;
+            const productionHarvestCount = harvests.length;
+            const farmerHarvestCount = farmerHarvests.length;
+            const harvestCount = productionHarvestCount + farmerHarvestCount;
 
             // Prepare recent transactions (combine sales and expenses, sort by date)
             const recentTransactions = [
@@ -316,6 +338,13 @@ export const DashboardScreen = () => {
                 totalExpenses,
                 totalWages,
                 activeStaff,
+                productionHarvestKg,
+                farmerPurchaseKg,
+                inventoryStockKg,
+                salesCount,
+                harvestCount,
+                productionHarvestCount,
+                farmerHarvestCount,
                 recentTransactions,
                 recentActivities,
                 monthlySales: last6Months,
@@ -344,16 +373,24 @@ export const DashboardScreen = () => {
         return () => clearInterval(interval);
     }, [fetchDashboardData]);
 
-    const { totalSales, totalExpenses, totalWages, activeStaff, recentTransactions, recentActivities, monthlySales } = dashboardData;
+    const {
+        totalSales, totalExpenses, totalWages, activeStaff,
+        productionHarvestKg, farmerPurchaseKg, inventoryStockKg,
+        salesCount, harvestCount, productionHarvestCount, farmerHarvestCount,
+        recentTransactions, recentActivities, monthlySales,
+    } = dashboardData;
     const maxValue = Math.max(...monthlySales.map(m => Math.max(m.sales, m.expense)), 1);
 
     return (
         <SideNav>
             <div className="pt-6">
-                <div className="flex justify-between items-center mb-8">
+                <div className="mb-8">
                     <h1 className="text-3xl font-bold" style={{ color: CoffeeColors.DARK_TEXT }}>
-                        Financial Dashboard
+                        Business Intelligence Dashboard
                     </h1>
+                    <p className="text-sm mt-1" style={{ color: '#666' }}>
+                        Live KPIs from production, inventory, and financial records
+                    </p>
                 </div>
 
                 {lastUpdated && (
@@ -368,12 +405,54 @@ export const DashboardScreen = () => {
                     </div>
                 )}
 
-                {/* Top Financial/Staff Cards - 4 cards in one row */}
+                {/* Operations KPIs — TOR BI talking point */}
+                <h2 className="text-lg font-semibold mb-3" style={{ color: CoffeeColors.DARK_TEXT }}>
+                    Operations
+                </h2>
+                <div className="flex flex-wrap gap-4 mb-8">
+                    <DashboardCard
+                        title="Production Harvest"
+                        value={formatCurrency(productionHarvestKg)}
+                        unit="kg (estate)"
+                        subtitle={`${productionHarvestCount} delivery record${productionHarvestCount === 1 ? '' : 's'}`}
+                        icon={Wheat}
+                        loading={loading}
+                    />
+                    <DashboardCard
+                        title="Farmer Purchases"
+                        value={formatCurrency(farmerPurchaseKg)}
+                        unit="kg (aggregation)"
+                        subtitle={`${farmerHarvestCount} farmer delivery record${farmerHarvestCount === 1 ? '' : 's'}`}
+                        icon={ShoppingCart}
+                        loading={loading}
+                    />
+                    <DashboardCard
+                        title="Inventory in Stock"
+                        value={formatCurrency(inventoryStockKg)}
+                        unit="kg export warehouse"
+                        subtitle="In stock + reserved lots"
+                        icon={Warehouse}
+                        loading={loading}
+                    />
+                    <DashboardCard
+                        title="Harvest Events"
+                        value={harvestCount.toString()}
+                        subtitle="Production + farmer deliveries"
+                        icon={Activity}
+                        loading={loading}
+                    />
+                </div>
+
+                {/* Financial KPIs */}
+                <h2 className="text-lg font-semibold mb-3" style={{ color: CoffeeColors.DARK_TEXT }}>
+                    Financials
+                </h2>
                 <div className="flex flex-wrap gap-4 mb-10">
                     <DashboardCard
                         title="Total Sales"
                         value={formatCurrency(totalSales)}
                         unit="UGX"
+                        subtitle={`${salesCount} sale record${salesCount === 1 ? '' : 's'}`}
                         icon={DollarSign}
                         loading={loading}
                     />

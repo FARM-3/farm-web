@@ -16,7 +16,19 @@ import Voucher from './pages/voucher.jsx';
 import VoucherVerification from './pages/VoucherVerification.jsx';
 import ReceiptVerification from './pages/ReceiptVerification.jsx';
 import { HarvestPage } from './pages/harvest.jsx';
-import Settings from './pages/Settings.jsx';
+import SettingsLayout from './components/settings/SettingsLayout.jsx';
+import CompanySettings from './pages/settings/CompanySettings.jsx';
+import PricingSettings from './pages/settings/PricingSettings.jsx';
+import CoffeeTypesSettings from './pages/settings/CoffeeTypesSettings.jsx';
+import MasterDataSettings from './pages/settings/MasterDataSettings.jsx';
+import SaleItemsSettings from './pages/settings/SaleItemsSettings.jsx';
+import Customers from './pages/Customers.jsx';
+import Assets from './pages/Assets.jsx';
+import Documents from './pages/Documents.jsx';
+import Trainings from './pages/Trainings.jsx';
+import UsersSettings from './pages/settings/UsersSettings.jsx';
+import PermissionsSettings from './pages/settings/PermissionsSettings.jsx';
+import AuditSettings from './pages/settings/AuditSettings.jsx';
 import LocationSelector from './components/LocationSelector';
 import Processing from './pages/Processing.jsx';
 import ProcessingOverview from './pages/ProcessingOverview.jsx';
@@ -29,6 +41,9 @@ import Fermenting from './pages/Fermenting.jsx';
 import NaturalSundrying from './pages/NaturalSundrying.jsx';
 import Washing from './pages/Washing.jsx';
 import TaskManagement from './pages/TaskManagement.jsx';
+import ExportInventory from './pages/export/ExportInventory.jsx';
+import ExportDispatch from './pages/export/ExportDispatch.jsx';
+import ExportTraceReport from './pages/export/ExportTraceReport.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
@@ -58,6 +73,10 @@ function App() {
           {/* Protected Routes - require authentication */}
           <Route path="/sales-entry" element={<ProtectedRoute><SalesEntry /></ProtectedRoute>} />
           <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+          <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
+          <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
+          <Route path="/documents" element={<ProtectedRoute><Documents /></ProtectedRoute>} />
+          <Route path="/trainings" element={<ProtectedRoute><Trainings /></ProtectedRoute>} />
           <Route path="/wage-entry" element={<ProtectedRoute><WageEntry /></ProtectedRoute>} />
           <Route path="/wages" element={<ProtectedRoute><Wages /></ProtectedRoute>} />
           <Route path="/expense-entry" element={<ProtectedRoute><ExpenseEntry /></ProtectedRoute>} />
@@ -70,7 +89,19 @@ function App() {
           <Route path="/harvest" element={<ProtectedRoute><HarvestPage /></ProtectedRoute>} />
           <Route path="/voucher" element={<ProtectedRoute><Voucher /></ProtectedRoute>} />
           <Route path="/tasks" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
+            <Route index element={<Navigate to="/settings/company" replace />} />
+            <Route path="company" element={<CompanySettings />} />
+            <Route path="pricing" element={<PricingSettings />} />
+            <Route path="coffee-types" element={<CoffeeTypesSettings />} />
+            <Route path="sale-items" element={<SaleItemsSettings />} />
+            <Route path="master-data" element={<MasterDataSettings />} />
+            <Route path="customers" element={<Navigate to="/customers" replace />} />
+            <Route path="assets" element={<Navigate to="/assets" replace />} />
+            <Route path="users" element={<UsersSettings />} />
+            <Route path="permissions" element={<PermissionsSettings />} />
+            <Route path="audit" element={<AuditSettings />} />
+          </Route>
 
           {/* Processing Routes */}
           <Route path="/processing" element={<Navigate to="/processing/overview" replace />} />
@@ -85,6 +116,12 @@ function App() {
           <Route path="/processing/fermenting" element={<ProtectedRoute><Fermenting /></ProtectedRoute>} />
           <Route path="/processing/natural-sundrying" element={<ProtectedRoute><NaturalSundrying /></ProtectedRoute>} />
           <Route path="/processing/washing" element={<ProtectedRoute><Washing /></ProtectedRoute>} />
+
+          {/* Export & Compliance */}
+          <Route path="/export/inventory" element={<ProtectedRoute><ExportInventory /></ProtectedRoute>} />
+          <Route path="/export/dispatch" element={<ProtectedRoute><ExportDispatch /></ProtectedRoute>} />
+          <Route path="/export/trace" element={<ProtectedRoute><ExportTraceReport /></ProtectedRoute>} />
+          <Route path="/export/dossier" element={<Navigate to="/export/trace" replace />} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>

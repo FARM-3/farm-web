@@ -129,6 +129,7 @@ const Button = ({ children, onClick, className, disabled, type = 'primary' }) =>
 // --- SALES ENTRY LOGIC ---
 
 const initialFormData = {
+    customer: '',
     first_name: '',
     last_name: '',
     item: '',
@@ -139,13 +140,26 @@ const initialFormData = {
     date_of_payment: '',
     method_of_payment: ''
 };
-const items = ['Matooke', 'Coffee', 'Livestock', 'Plantain'];
+const DEFAULT_ITEMS = ['Green Coffee', 'Roasted Coffee', 'Coffee Cherry', 'Parchment'];
 const paymentMethods = ['Cash', 'Mobile Money', 'Bank Transfer', 'Cheque'];
 
 const useSalesForm = (onSuccess, editData = null) => {
     const [formData, setFormData] = useState(editData || initialFormData);
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
+    const [items, setItems] = useState(DEFAULT_ITEMS);
+
+    useEffect(() => {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        fetch(`${import.meta.env.VITE_API_URL}/api/config/lookups/grouped/`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.sale_item?.length) setItems(data.sale_item);
+            })
+            .catch(() => {});
+    }, []);
 
     // Update form when editData changes
     useEffect(() => {
@@ -360,7 +374,7 @@ const useSalesForm = (onSuccess, editData = null) => {
         }
     };
 
-    return { formData, errors, touched, items, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit, resetForm, getTodayDate };
+    return { formData, setFormData, errors, touched, items, paymentMethods, getBorderColor, handleChange, handleBlur, handleSubmit, resetForm, getTodayDate };
 };
 
 // --- MODAL HELPER COMPONENTS ---
@@ -476,8 +490,17 @@ const ActionButton = ({ children, onClick, className, style, disabled, type = "b
 // =========================================================
 
 const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
-    const { formData, errors, touched, items, paymentMethods, handleChange, handleBlur, handleSubmit, getTodayDate } = useSalesForm(onSubmit, editData);
+    const { formData, errors, touched, items, paymentMethods, handleChange, handleBlur, handleSubmit, getTodayDate, setFormData } = useSalesForm(onSubmit, editData);
     const [loading, setLoading] = useState(false);
+    const [customers, setCustomers] = useState([]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        fetch(`${import.meta.env.VITE_API_URL}/api/customers/`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }).then(r => r.json()).then(d => setCustomers(d.results || d || [])).catch(() => {});
+    }, [isOpen]);
 
     const getFieldStatus = (fieldName) => {
         if (errors[fieldName]) return 'invalid';
@@ -516,6 +539,33 @@ const SalesEntryModal = ({ isOpen, onClose, onSubmit, editData }) => {
                         <div className="p-5 rounded-lg border border-gray-200" style={{ backgroundColor: MODAL_COLORS.SECTION_BG }}>
                             <ModalSectionHeader icon={User} title="Customer & Item Information" />
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium mb-1">Customer</label>
+                                    <select
+                                        className="w-full border rounded-lg p-2.5 text-sm"
+                                        value={formData.customer || ''}
+                                        onChange={(e) => {
+                                            const id = e.target.value;
+                                            const c = customers.find(x => String(x.id) === String(id));
+                                            if (c) {
+                                                const parts = c.name.split(' ', 2);
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    customer: c.id,
+                                                    first_name: parts[0] || c.name,
+                                                    last_name: parts[1] || '',
+                                                }));
+                                            } else {
+                                                setFormData(prev => ({ ...prev, customer: '' }));
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Select customer or enter name below</option>
+                                        {customers.map(c => (
+                                            <option key={c.id} value={c.id}>{c.name}{c.organisation ? ` (${c.organisation})` : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <InputField
                                     label="First Name"
                                     name="first_name"
@@ -804,6 +854,7 @@ function SalesPage() {
 
         // Prepare data for API - convert numbers to strings for decimal fields
         const apiData = {
+            customer: data.customer || null,
             first_name: data.first_name?.trim() || '',
             last_name: data.last_name?.trim() || '',
             item: data.item?.trim() || '',

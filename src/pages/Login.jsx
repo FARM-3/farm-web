@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
-import rugyeyoLogo from '../assets/rugyeyo_logo.png';
+import BrandLogo from '../components/BrandLogo';
 
 // --- Coffee Theme Colors (with brown accents) ---
 const CoffeeColors = {
@@ -19,7 +19,7 @@ const CoffeeColors = {
 };
 
 // --- API Client ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://farm-api-uvor.onrender.com';
 
 const ApiClient = {
   post: async (url, data) => {
@@ -363,16 +363,7 @@ function Login() {
             display: 'flex',
             justifyContent: 'center',
           }}>
-            <img
-              src={rugyeyoLogo}
-              alt="Rugyeyo Farm Logo"
-              style={{
-                maxWidth: '200px',
-                height: 'auto',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-                backgroundColor: 'transparent',
-              }}
-            />
+            <BrandLogo size="lg" showSubtitle />
           </div>
 
           {/* Welcome Text */}
@@ -386,7 +377,7 @@ function Login() {
             lineHeight: '1.2',
             fontFamily: 'Eina03, sans-serif',
           }}>
-            Welcome to<br />Rugyeyo Farm<br />Management System
+            Welcome to<br />FARM<br />Management System
           </h1>
 
           <p style={{
@@ -487,15 +478,7 @@ function Login() {
               justifyContent: 'center',
               marginBottom: '30px',
             }}>
-              <img
-                src={rugyeyoLogo}
-                alt="Logo"
-                style={{
-                  width: '100px',
-                  height: 'auto',
-                  backgroundColor: 'transparent',
-                }}
-              />
+              <BrandLogo size="md" />
             </div>
 
             <h3 style={{
@@ -910,15 +893,7 @@ function Login() {
             justifyContent: 'center',
             marginBottom: '20px',
           }}>
-            <img
-              src={rugyeyoLogo}
-              alt="Logo"
-              style={{
-                width: '100px',
-                height: 'auto',
-                backgroundColor: 'transparent',
-              }}
-            />
+            <BrandLogo size="md" />
           </div>
 
           <h3 style={{

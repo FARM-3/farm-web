@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import rugyeyoLogo from '../assets/rugyeyo_logo.png';
+import BrandLogo from '../components/BrandLogo';
 
 // --- API Client ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://farm-api-uvor.onrender.com';
 
 const ApiClient = {
   post: async (url, data, token = null) => {
@@ -398,15 +398,7 @@ function SecurityQuestions() {
             justifyContent: 'center',
             marginBottom: '30px',
           }}>
-            <img
-              src={rugyeyoLogo}
-              alt="Logo"
-              style={{
-                width: '100px',
-                height: 'auto',
-                backgroundColor: 'transparent',
-              }}
-            />
+            <BrandLogo size="md" />
           </div>
 
           <h2 style={{

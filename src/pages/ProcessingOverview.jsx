@@ -30,6 +30,7 @@ import {
 } from 'recharts';
 import { API_ENDPOINTS } from '../services/ApiConfig';
 import { ProcessingTypeChart } from './ProcessingType';
+import { getAuthHeaders } from '../utils/authHeaders';
 
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
@@ -106,20 +107,12 @@ const ProcessingOverview = () => {
     const fetchHarvestOptions = useCallback(async () => {
         setLoadingHarvests(true);
         try {
-            const token = localStorage.getItem('authToken');
+            const headers = getAuthHeaders();
 
             // Fetch from both regular harvests and farmer-harvest aggregation endpoints
             const [harvestsResponse, farmerHarvestsResponse] = await Promise.all([
-                fetch(API_ENDPOINTS.HARVESTS, {
-                    headers: {
-                        'Authorization': `Token ${token}`,
-                    },
-                }),
-                fetch(API_ENDPOINTS.FARMER_HARVEST, {
-                    headers: {
-                        'Authorization': `Token ${token}`,
-                    },
-                })
+                fetch(API_ENDPOINTS.HARVESTS, { headers }),
+                fetch(API_ENDPOINTS.FARMER_HARVEST, { headers }),
             ]);
 
             const [harvestsData, farmerHarvestsData] = await Promise.all([
@@ -185,13 +178,8 @@ const ProcessingOverview = () => {
         setTrackingResult(null);
 
         try {
-            const token = localStorage.getItem('authToken');
-
-            // Try to fetch tracking data from the backend
             const response = await fetch(`${API_ENDPOINTS.HARVEST_TRACKING}${selectedHarvest}/`, {
-                headers: {
-                    'Authorization': `Token ${token}`,
-                },
+                headers: getAuthHeaders(),
             });
 
             // Find the selected harvest details
@@ -201,20 +189,15 @@ const ProcessingOverview = () => {
                 // If backend endpoint exists, use real data
                 const data = await response.json();
 
-                const trackingResult = {
+                setTrackingResult({
                     harvest_id: data.harvest_id || selectedHarvest,
                     farmer_name: data.farmer_name || selectedOption?.farmerName || 'Unknown Farmer',
                     current_stage: data.current_stage || 'Not Started',
-                    stages: data.stages || [
-                        { name: 'Quality Control', status: data.quality_control_completed ? 'completed' : 'pending', date: data.quality_control_date },
-                        { name: 'Processing Type Selection', status: data.processing_type_selected ? 'completed' : 'pending', date: data.processing_type_date },
-                        { name: 'Drying', status: data.drying_completed ? 'completed' : data.drying_started ? 'in_progress' : 'pending', date: data.drying_date },
-                        { name: 'Hulling', status: data.hulling_completed ? 'completed' : data.hulling_started ? 'in_progress' : 'pending', date: data.hulling_date },
-                        { name: 'Bagging', status: data.bagging_completed ? 'completed' : data.bagging_started ? 'in_progress' : 'pending', date: data.bagging_date },
-                    ]
-                };
-
-                setTrackingResult(trackingResult);
+                    source_type: data.source_type,
+                    loss_summary: data.loss_summary,
+                    lineage: data.lineage,
+                    stages: data.stages || [],
+                });
             } else if (response.status === 404) {
                 // If tracking endpoint doesn't exist, show mock data with a note
                 console.warn('Tracking endpoint not available, showing sample data');
@@ -404,6 +387,44 @@ const ProcessingOverview = () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {trackingResult.loss_summary?.stages?.length > 0 && (
+                                        <div className="mb-6">
+                                            <h3 className="text-lg font-bold mb-3" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                                Processing Loss Summary
+                                            </h3>
+                                            <div className="overflow-x-auto rounded-xl border border-gray-200">
+                                                <table className="min-w-full text-sm">
+                                                    <thead className="bg-gray-50">
+                                                        <tr>
+                                                            <th className="px-4 py-2 text-left font-semibold">Stage</th>
+                                                            <th className="px-4 py-2 text-right font-semibold">Input (kg)</th>
+                                                            <th className="px-4 py-2 text-right font-semibold">Output (kg)</th>
+                                                            <th className="px-4 py-2 text-right font-semibold">Loss %</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {trackingResult.loss_summary.stages.map((row, idx) => (
+                                                            <tr key={idx} className="border-t border-gray-100">
+                                                                <td className="px-4 py-2">{row.stage}</td>
+                                                                <td className="px-4 py-2 text-right">{row.input_kg ?? '—'}</td>
+                                                                <td className="px-4 py-2 text-right">{row.output_kg ?? '—'}</td>
+                                                                <td className="px-4 py-2 text-right font-medium text-amber-700">
+                                                                    {row.loss_pct != null ? `${row.loss_pct}%` : '—'}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            {trackingResult.loss_summary.overall_loss_pct != null && (
+                                                <p className="mt-2 text-sm text-gray-600">
+                                                    Overall loss from intake to bagged output:{' '}
+                                                    <strong>{trackingResult.loss_summary.overall_loss_pct}%</strong>
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Stage Timeline */}
                                     <div>

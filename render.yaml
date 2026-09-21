@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: farm-web
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: VITE_API_URL
+        value: https://farm-api-uvor.onrender.com

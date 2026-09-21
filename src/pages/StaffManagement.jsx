@@ -29,6 +29,7 @@ import "@geoapify/geocoder-autocomplete/styles/minimal.css";
 import LocationSelector from "../components/LocationSelector";
 import CustomAutocomplete from "../components/CustomAutocomplete";
 import BulkStaffSpreadsheet from "../components/BulkStaffSpreadsheet";
+import ExcelImportButton from "../components/ExcelImportButton";
 import * as XLSX from "xlsx";
 
 const CoffeeColors = {
@@ -3973,6 +3974,7 @@ function StaffPage() {
               <Users className="w-4 h-4 mr-2" />
               Bulk Staff Entry
             </button>
+            <ExcelImportButton entityType="staff" onComplete={() => fetchStaff()} />
             <button
               onClick={handleExportToExcel}
               className="py-2 px-4 shadow-xl rounded-xl font-semibold hover:shadow-2xl transition-all duration-200"

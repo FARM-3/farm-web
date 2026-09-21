@@ -98,8 +98,8 @@ const NavBar = () => {
                 <div className="flex justify-between items-center max-w-7xl mx-auto min-w-0">
                     <div className="text-white text-xl font-bold flex items-center min-w-0">
                         <span className="mr-2 text-3xl flex-shrink-0">💰</span>
-                        <span className="hidden md:inline truncate">Rugyeyo Farm Management</span>
-                        <span className="inline md:hidden truncate">Rugyeyo Farm</span>
+                        <span className="hidden md:inline truncate">FARM Management System</span>
+                        <span className="inline md:hidden truncate">FARM FMIS</span>
                     </div>
                     <div className="flex items-center space-x-4 flex-shrink-0">
                         <button

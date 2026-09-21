@@ -24,7 +24,7 @@ const numberToWords = (num) => {
   return convert(Math.floor(num));
 };
 
-const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/sales/`;
+const SALES_API_ENDPOINT = `${import.meta.env.VITE_API_URL || 'https://farm-api-uvor.onrender.com'}/api/sales/`;
 
 function getReceiptIdFromUrl(location) {
   const params = new URLSearchParams(location.search);
@@ -133,12 +133,12 @@ export default function SalesReceipt() {
             <div className="flex items-center gap-4">
               <img
                 src="/logo.png"
-                alt="Rugyeyo Farm Logo"
+                alt="FARM FMIS Logo"
                 className="w-16 h-16 object-contain"
               />
               <div>
                 <h1 className="text-3xl font-bold mb-1" style={{ color: '#702A0B', letterSpacing: '0.5px' }}>
-                  RUGYEYO FARM
+                  FARM FMIS
                 </h1>
                 <p className="text-sm text-gray-600">Coffee Production & Processing</p>
               </div>
@@ -250,7 +250,7 @@ export default function SalesReceipt() {
           {/* Footer */}
           <div className="mt-6 text-center">
             <p className="text-xs italic text-gray-500">
-              This is an official sales receipt from Rugyeyo Farm
+              This is an official sales receipt from FARM FMIS
             </p>
             <p className="text-xs text-gray-500 mt-1">
               Namayumba, Wakiso District, Uganda | Tel: +256772701051

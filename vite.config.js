@@ -14,9 +14,9 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://farm-api-uvor.onrender.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
             console.log('proxy error', err);

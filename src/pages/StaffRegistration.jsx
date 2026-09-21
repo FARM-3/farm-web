@@ -345,14 +345,14 @@ function StaffRegistration() {
       >
         <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: CoffeeColors.MEDIUM_BROWN }}>
           <div className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="Rugyeyo Farm Logo"
-              className="w-10 h-10 rounded-full object-cover border-2"
-              style={{ borderColor: CoffeeColors.WHITE }}
-            />
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center border-2 font-bold text-sm"
+              style={{ borderColor: CoffeeColors.WHITE, color: CoffeeColors.WHITE, backgroundColor: 'rgba(255,255,255,0.15)' }}
+            >
+              FM
+            </div>
             <h2 className="text-xl font-bold" style={{ color: CoffeeColors.WHITE }}>
-              Rugyeyo Farm
+              FARM FMIS
             </h2>
           </div>
           <button 
