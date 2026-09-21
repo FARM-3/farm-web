@@ -14,6 +14,23 @@ const ROLES = [
 
 const emptyForm = { name: '', phone: '', pin: '', role: 'block_champion', is_active: true };
 
+function parseApiError(data, status, rawText) {
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data?.detail) return typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+  const parts = [];
+  if (data && typeof data === 'object') {
+    for (const [key, val] of Object.entries(data)) {
+      if (Array.isArray(val) && val[0]) parts.push(`${key}: ${val[0]}`);
+      else if (typeof val === 'string') parts.push(val);
+    }
+  }
+  if (parts.length) return parts.join(' · ');
+  if (rawText && rawText.trim() && rawText.trim() !== '{}') return rawText.slice(0, 200);
+  if (status === 405) return 'User creation is not enabled on the server yet — redeploy the API.';
+  if (status >= 500) return 'Server error while creating user. Try again or use Django Admin.';
+  return 'Could not create user. Check the phone is unique and PIN is 4 digits.';
+}
+
 export default function UsersSettings() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,10 +84,11 @@ export default function UsersSettings() {
           is_active: form.is_active,
         }),
       });
-      const data = await res.json().catch(() => ({}));
+      const rawText = await res.text();
+      let data = {};
+      try { data = rawText ? JSON.parse(rawText) : {}; } catch { data = { detail: rawText }; }
       if (!res.ok) {
-        const msg = data.phone?.[0] || data.pin?.[0] || data.detail || JSON.stringify(data);
-        setError(typeof msg === 'string' ? msg : 'Could not create user.');
+        setError(parseApiError(data, res.status, rawText));
         return;
       }
       setModalOpen(false);

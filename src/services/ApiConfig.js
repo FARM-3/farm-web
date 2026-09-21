@@ -77,6 +77,7 @@ export const API_ENDPOINTS = {
   WASHING: `${API_BASE_URL}/api/processing/washing/`,
   DRYING: `${API_BASE_URL}/api/processing/drying/`,
 
+  HULLING: `${API_BASE_URL}/api/processing/hulling/`,
   BAGGING: `${API_BASE_URL}/api/processing/bagging/`,
 
   // Profile endpoints

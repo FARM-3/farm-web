@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import {
     Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings,
     BarChart3, TreePine, TrendingUp, TrendingDown, ClipboardCheck, Factory, CheckSquare,
-    Warehouse, Truck, FileText, Globe, UserCircle, Wrench, Award, GraduationCap, Sprout
+    Warehouse, Truck, FileText, Globe, UserCircle, Wrench, Award, GraduationCap, Sprout,
+    PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 
@@ -94,7 +95,7 @@ const performLogout = () => {
 };
 
 // --- COMPONENT: Sidebar Link ---
-const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
+const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick, collapsed }) => {
     const isActive = item.key === currentPage;
 
     const activeColor = CoffeeColors.DARK_BROWN;
@@ -104,15 +105,16 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
     const textColor = isActive ? activeColor : defaultColor;
 
     const hoverBg = CoffeeColors.LIGHT_HOVER;
+    const linkClass = `flex items-center gap-2 py-2 rounded-lg transition-all font-medium hover:scale-[1.01] ${isActive ? 'shadow-sm' : ''} ${collapsed ? 'justify-center px-2' : 'px-3'}`;
 
     // Special handling for logout link
     if (item.key === 'logout') {
         return (
             <button
+                type="button"
+                title={collapsed ? item.name : undefined}
                 onClick={onLogoutClick}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all font-medium w-full text-left
-                            hover:scale-[1.01]
-                            ${isActive ? 'shadow-sm' : ''}`}
+                className={`${linkClass} w-full text-left`}
                 style={{
                     color: textColor,
                     backgroundColor: isActive ? CoffeeColors.LIGHT_BG : 'transparent',
@@ -128,11 +130,8 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
                     }
                 }}
             >
-                <item.icon
-                    size={18}
-                    style={{ color: iconColor }}
-                />
-                <span className="text-sm">{item.name}</span>
+                <item.icon size={18} style={{ color: iconColor }} />
+                {!collapsed && <span className="text-sm">{item.name}</span>}
             </button>
         );
     }
@@ -141,9 +140,8 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
         <Link
             key={item.name}
             to={item.href}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all font-medium
-                        hover:scale-[1.01]
-                        ${isActive ? 'shadow-sm' : ''}`}
+            title={collapsed ? item.name : undefined}
+            className={linkClass}
             style={{
                 color: textColor,
                 backgroundColor: isActive ? 'rgba(200, 200, 200, 0.3)' : 'transparent',
@@ -159,31 +157,38 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick }) => {
                 }
             }}
         >
-            <item.icon
-                size={18}
-                style={{ color: iconColor }}
-            />
-            <span className="text-sm">{item.name}</span>
+            <item.icon size={18} style={{ color: iconColor }} />
+            {!collapsed && <span className="text-sm">{item.name}</span>}
         </Link>
     );
 };
 
 // --- MAIN COMPONENT: SideNav (Exported) ---
 export const SideNav = ({ children }) => {
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [userProfileData, setUserProfileData] = useState({ name: 'User', phone: '', email: '', rawPassword: null });
     const currentPage = useMemo(() => getCurrentPageKey(), []);
-    const sidebarWidthClass = 'w-56';
+    const sidebarWidthClass = collapsed ? 'w-16' : 'w-56';
+    const sidebarMarginClass = collapsed ? 'md:ml-16' : 'md:ml-56';
+    const headerLeftClass = collapsed ? 'md:left-16' : 'md:left-56';
+
+    const toggleCollapsed = () => {
+        setCollapsed(prev => {
+            const next = !prev;
+            localStorage.setItem('sidebarCollapsed', String(next));
+            return next;
+        });
+    };
 
     useEffect(() => {
         const handleResize = () => {
             if (typeof window !== 'undefined') {
-                if (window.innerWidth < 768) {
-                    setSidebarOpen(false);
-                } else {
-                    setSidebarOpen(true);
-                }
+                const mobile = window.innerWidth < 768;
+                setIsMobile(mobile);
+                if (mobile) setMobileOpen(false);
             }
         };
 
@@ -249,84 +254,97 @@ export const SideNav = ({ children }) => {
         <div className="min-h-screen flex w-full" style={{ backgroundColor: CoffeeColors.SCREEN_BG, fontFamily: 'Inter, sans-serif' }}>
             
             {/* Mobile Sidebar Overlay */}
-            {sidebarOpen && typeof window !== 'undefined' && window.innerWidth < 768 && (
+            {isMobile && mobileOpen && (
                 <div
                     className="fixed inset-0 bg-black bg-opacity-20 z-40"
-                    onClick={() => setSidebarOpen(false)}
+                    onClick={() => setMobileOpen(false)}
                 />
             )}
 
-            {/* Sidebar (Collapsible) - Now with brown background */}
+            {/* Sidebar */}
             <aside
                 className={`fixed top-0 left-0 h-full ${sidebarWidthClass} transform ${
-                    sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                } transition-transform duration-300 ease-in-out z-50 shadow-lg md:translate-x-0 flex flex-col`}
+                    mobileOpen ? 'translate-x-0' : '-translate-x-full'
+                } md:translate-x-0 transition-all duration-300 ease-in-out z-50 shadow-lg flex flex-col`}
                 style={{ backgroundColor: CoffeeColors.SIDEBAR_BG }}
             >
-                {/* Logo and Title Section */}
-                <div className="flex items-center justify-between p-4 h-auto py-6 flex-shrink-0" style={{ borderBottom: `1px solid rgba(255,255,255,0.1)` }}>
-                    <div className="flex items-center gap-2">
-                        <BrandLogo size="sm" variant="dark" />
+                {/* Logo and collapse toggle */}
+                <div className={`flex items-center ${collapsed ? 'flex-col gap-2 px-2' : 'justify-between px-4'} py-4 h-auto flex-shrink-0 border-b border-gray-200`}>
+                    <BrandLogo size="sm" variant="dark" iconOnly={collapsed} />
+                    <div className="flex items-center gap-1">
+                        <button
+                            type="button"
+                            onClick={toggleCollapsed}
+                            className="hidden md:flex p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                            style={{ color: CoffeeColors.DARK_BROWN }}
+                            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        >
+                            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMobileOpen(false)}
+                            className="md:hidden p-1 rounded-lg hover:bg-gray-100"
+                            style={{ color: CoffeeColors.WHITE_TEXT }}
+                        >
+                            <X size={22} />
+                        </button>
                     </div>
-                    <button
-                        onClick={() => setSidebarOpen(false)}
-                        className="md:hidden hover:bg-opacity-20 hover:bg-white p-1 rounded-lg"
-                        style={{ color: CoffeeColors.WHITE_TEXT }}
-                    >
-                        <X size={24} />
-                    </button>
                 </div>
 
                 {/* Main Navigation */}
-                <nav className="mt-4 flex flex-col space-y-1 px-3 flex-1 overflow-y-auto min-h-0">
+                <nav className={`mt-3 flex flex-col space-y-1 flex-1 overflow-y-auto min-h-0 ${collapsed ? 'px-1.5' : 'px-3'}`}>
                     {navItems.map((item) => (
-                        <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} />
+                        <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} collapsed={collapsed} />
                     ))}
                     <div className="pt-4 mt-2 border-t border-gray-200">
-                        <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: CoffeeColors.DARK_BROWN }}>
-                            <Globe size={14} /> Export & Compliance
-                        </p>
+                        {!collapsed && (
+                            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                <Globe size={14} /> Export & Compliance
+                            </p>
+                        )}
+                        {collapsed && (
+                            <div className="flex justify-center pb-2" title="Export & Compliance">
+                                <Globe size={14} style={{ color: CoffeeColors.DARK_BROWN }} />
+                            </div>
+                        )}
                         {exportNavItems.map((item) => (
-                            <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} />
+                            <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} collapsed={collapsed} />
                         ))}
                     </div>
                 </nav>
 
-                {/* Footer Links (Profile/Logout) */}
-                <div className="py-4 px-3 flex-shrink-0" style={{ borderTop: `1px solid rgba(255,255,255,0.1)`, backgroundColor: CoffeeColors.SIDEBAR_BG }}>
+                {/* Footer Links */}
+                <div className={`py-4 flex-shrink-0 border-t border-gray-200 ${collapsed ? 'px-1.5' : 'px-3'}`} style={{ backgroundColor: CoffeeColors.SIDEBAR_BG }}>
                     <div className="flex flex-col space-y-1">
                         {footerNavItems.map((item) => (
-                            <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} onLogoutClick={() => setShowLogoutModal(true)} />
+                            <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} collapsed={collapsed} onLogoutClick={() => setShowLogoutModal(true)} />
                         ))}
                     </div>
                 </div>
             </aside>
 
             {/* Main Content Area */}
-            <div 
-                className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'md:ml-56' : 'md:ml-0'} w-full`} 
+            <div
+                className={`flex-1 transition-all duration-300 ${sidebarMarginClass} w-full`}
                 style={{ minHeight: '100vh', backgroundColor: CoffeeColors.SCREEN_BG }}
             >
-                
-                {/* Fixed Header Bar (Top right corner icons) */}
                 <header
-                    className={`fixed top-0 right-0 z-40 p-4 h-20 shadow-sm transition-all duration-300 ${sidebarOpen ? 'md:left-56' : 'md:left-0'} w-full`}
+                    className={`fixed top-0 right-0 z-40 p-4 h-20 shadow-sm transition-all duration-300 ${headerLeftClass} w-full`}
                     style={{ backgroundColor: '#FFFFFF', borderBottom: `1px solid ${CoffeeColors.BORDER_GRAY}` }}
                 >
-                    <div className="flex items-center justify-end h-full max-w-7xl mx-auto">
-                        
-                        {/* Mobile Menu Button (Toggle Sidebar) - Left side on mobile */}
-                        {!sidebarOpen && typeof window !== 'undefined' && window.innerWidth < 768 && (
+                    <div className="flex items-center h-full max-w-7xl mx-auto">
+                        {(isMobile && !mobileOpen) && (
                             <button
-                                onClick={() => setSidebarOpen(!sidebarOpen)}
-                                className={`p-2 rounded-full hover:bg-light-hover transition-colors mr-auto`}
+                                type="button"
+                                onClick={() => setMobileOpen(true)}
+                                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
                                 style={{ color: CoffeeColors.DARK_BROWN }}
-                                title="Open Sidebar"
+                                title="Open menu"
                             >
                                 <Menu size={24} />
                             </button>
                         )}
-
                     </div>
                 </header>
 
