@@ -4,7 +4,7 @@ import {
     Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings,
     BarChart3, TreePine, TrendingUp, TrendingDown, ClipboardCheck, Factory, CheckSquare,
     Warehouse, Truck, FileText, Globe, UserCircle, Wrench, Award, GraduationCap, Sprout,
-    PanelLeftClose, PanelLeftOpen,
+    PanelLeftClose, PanelLeftOpen, MapPin, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 
@@ -35,9 +35,13 @@ const navItems = [
     { key: 'trainings', name: 'Training', icon: GraduationCap, href: '/trainings' },
     { key: 'aggregation', name: 'Aggregation', icon: BarChart3, href: '/aggregation' },
     { key: 'harvest', name: 'Harvest', icon: TreePine, href: '/harvest' },
-    { key: 'block-activities', name: 'Block Activities', icon: Sprout, href: '/block-activities' },
     { key: 'processing', name: 'Processing', icon: Factory, href: '/processing' },
     { key: 'tasks', name: 'Task Management', icon: CheckSquare, href: '/tasks' },
+];
+
+const blocksNavItems = [
+    { key: 'blocks', name: 'All Blocks', icon: MapPin, href: '/blocks' },
+    { key: 'block-activities', name: 'Block Activities', icon: Sprout, href: '/block-activities' },
 ];
 
 const exportNavItems = [
@@ -68,6 +72,7 @@ const getCurrentPageKey = () => {
     if (path.startsWith('processing')) return 'processing';
     if (path.startsWith('tasks')) return 'tasks';
     if (path.startsWith('block-activities')) return 'block-activities';
+    if (path.startsWith('blocks')) return 'blocks';
     if (path.startsWith('export')) {
         if (path.includes('inventory')) return 'export-inventory';
         if (path.includes('dispatch')) return 'export-dispatch';
@@ -94,8 +99,48 @@ const performLogout = () => {
     window.location.href = '/';
 };
 
+const BlocksNavGroup = ({ items, currentPage, CoffeeColors, collapsed, expanded, onToggle }) => {
+    const isChildActive = items.some(i => i.key === currentPage);
+    const iconColor = CoffeeColors.DARK_BROWN;
+
+    if (collapsed) {
+        return (
+            <div className="flex flex-col gap-1">
+                {items.map(item => (
+                    <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} collapsed />
+                ))}
+            </div>
+        );
+    }
+
+    return (
+        <div>
+            <button
+                type="button"
+                onClick={onToggle}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all font-medium w-full text-left hover:scale-[1.01] ${isChildActive ? 'shadow-sm' : ''}`}
+                style={{
+                    color: iconColor,
+                    backgroundColor: isChildActive ? 'rgba(200, 200, 200, 0.3)' : 'transparent',
+                }}
+            >
+                <MapPin size={18} style={{ color: iconColor }} />
+                <span className="text-sm flex-1">Blocks</span>
+                {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
+            {expanded && (
+                <div className="ml-4 mt-1 flex flex-col gap-1 border-l border-gray-200 pl-2">
+                    {items.map(item => (
+                        <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} collapsed={false} nested />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 // --- COMPONENT: Sidebar Link ---
-const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick, collapsed }) => {
+const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick, collapsed, nested = false }) => {
     const isActive = item.key === currentPage;
 
     const activeColor = CoffeeColors.DARK_BROWN;
@@ -105,7 +150,7 @@ const SidebarLink = ({ item, currentPage, CoffeeColors, onLogoutClick, collapsed
     const textColor = isActive ? activeColor : defaultColor;
 
     const hoverBg = CoffeeColors.LIGHT_HOVER;
-    const linkClass = `flex items-center gap-2 py-2 rounded-lg transition-all font-medium hover:scale-[1.01] ${isActive ? 'shadow-sm' : ''} ${collapsed ? 'justify-center px-2' : 'px-3'}`;
+    const linkClass = `flex items-center gap-2 py-2 rounded-lg transition-all font-medium hover:scale-[1.01] ${isActive ? 'shadow-sm' : ''} ${collapsed ? 'justify-center px-2' : nested ? 'px-2' : 'px-3'}`;
 
     // Special handling for logout link
     if (item.key === 'logout') {
@@ -168,9 +213,12 @@ export const SideNav = ({ children }) => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
+    const currentPage = useMemo(() => getCurrentPageKey(), []);
+    const [blocksExpanded, setBlocksExpanded] = useState(
+        () => ['blocks', 'block-activities'].includes(getCurrentPageKey())
+    );
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [userProfileData, setUserProfileData] = useState({ name: 'User', phone: '', email: '', rawPassword: null });
-    const currentPage = useMemo(() => getCurrentPageKey(), []);
     const sidebarWidthClass = collapsed ? 'w-16' : 'w-56';
     const sidebarMarginClass = collapsed ? 'md:ml-16' : 'md:ml-56';
     const headerLeftClass = collapsed ? 'md:left-16' : 'md:left-56';
@@ -297,6 +345,14 @@ export const SideNav = ({ children }) => {
                     {navItems.map((item) => (
                         <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} collapsed={collapsed} />
                     ))}
+                    <BlocksNavGroup
+                        items={blocksNavItems}
+                        currentPage={currentPage}
+                        CoffeeColors={CoffeeColors}
+                        collapsed={collapsed}
+                        expanded={blocksExpanded}
+                        onToggle={() => setBlocksExpanded(v => !v)}
+                    />
                     <div className="pt-4 mt-2 border-t border-gray-200">
                         {!collapsed && (
                             <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: CoffeeColors.DARK_BROWN }}>

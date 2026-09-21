@@ -9,6 +9,7 @@ const SIZES = {
 export default function BrandLogo({
   size = 'md',
   showSubtitle = false,
+  iconOnly = false,
   variant = 'light',
   className = '',
   style = {},
@@ -33,18 +34,20 @@ export default function BrandLogo({
       >
         <Sprout size={s.icon} color={iconColor} strokeWidth={2} />
       </div>
-      <span
-        style={{
-          fontSize: s.text,
-          fontWeight: 700,
-          color: textColor,
-          marginTop: 8,
-          letterSpacing: 1,
-        }}
-      >
-        FARM FMIS
-      </span>
-      {showSubtitle && (
+      {!iconOnly && (
+        <span
+          style={{
+            fontSize: s.text,
+            fontWeight: 700,
+            color: textColor,
+            marginTop: 8,
+            letterSpacing: 1,
+          }}
+        >
+          FMIS
+        </span>
+      )}
+      {!iconOnly && showSubtitle && (
         <span
           style={{
             fontSize: '11px',
@@ -52,7 +55,7 @@ export default function BrandLogo({
             marginTop: 4,
           }}
         >
-          Coffee Value Chain
+          Farm Management Information System
         </span>
       )}
     </div>

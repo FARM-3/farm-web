@@ -368,31 +368,65 @@ function Login() {
 
           {/* Welcome Text */}
           <h1 style={{
-            fontSize: 'clamp(26px, 8vw, 58px)',
+            fontSize: 'clamp(26px, 8vw, 52px)',
             fontWeight: '700',
             color: 'white',
-            marginBottom: '20px',
+            marginBottom: '12px',
             textShadow: '2px 4px 8px rgba(0, 0, 0, 0.5)',
-            letterSpacing: '2px',
+            letterSpacing: '1px',
             lineHeight: '1.2',
             fontFamily: 'Eina03, sans-serif',
           }}>
-            Welcome to<br />FARM<br />Management System
+            Farm Management<br />Information System
           </h1>
 
           <p style={{
-            fontSize: 'clamp(10px, 3vw, 16px)',
-            color: 'rgba(255, 255, 255, 0.95)',
-            marginBottom: '50px',
-            maxWidth: '600px',
-            margin: '0 auto 50px',
+            fontSize: 'clamp(12px, 2.5vw, 16px)',
+            color: 'rgba(255, 255, 255, 0.92)',
+            marginBottom: '36px',
+            maxWidth: '640px',
+            margin: '0 auto 36px',
             textShadow: '1px 2px 4px rgba(0, 0, 0, 0.5)',
-            lineHeight: '1.6',
+            lineHeight: '1.7',
             fontFamily: 'Eina03, sans-serif',
             fontWeight: '400',
           }}>
-            Streamline your farm operations with our comprehensive management solution
+            End-to-end digital platform for coffee farm operations — harvest and aggregation,
+            processing and quality control, field activities, export compliance, staff and finances,
+            all in one place.
           </p>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: '12px',
+            maxWidth: '640px',
+            margin: '0 auto 40px',
+            textAlign: 'left',
+          }}>
+            {[
+              'Harvest & blocks',
+              'Processing trace',
+              'Export & EUDR',
+              'Staff & wages',
+            ].map((label) => (
+              <div
+                key={label}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.12)',
+                  backdropFilter: 'blur(8px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  fontSize: '13px',
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  fontWeight: '500',
+                }}
+              >
+                {label}
+              </div>
+            ))}
+          </div>
 
           {/* Get Started Button */}
           <button
