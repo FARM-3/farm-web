@@ -1,8 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Modal from '../../components/settings/Modal';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import { apiUrl } from '../../utils/apiBase';
+import { PageTableShell, StyledTable, StyledThead, StyledTh, StyledTbody, TableEmptyRow } from '../../components/PageTableShell';
+import TableFilterBar from '../../components/TableFilterBar';
+import { exportRowsCsv } from '../../utils/tableExport';
 
 const API = apiUrl('/api/config/lookups/');
 
@@ -12,6 +15,13 @@ export default function LookupListSettings({ category, title, description, addLa
   const [modalOpen, setModalOpen] = useState(false);
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return items;
+    const q = search.toLowerCase();
+    return items.filter(i => String(i.label || i.value || '').toLowerCase().includes(q));
+  }, [items, search]);
 
   const load = useCallback(async () => {
     const res = await fetch(`${API}?category=${category}&active_only=1`, { headers: getAuthHeaders() });
@@ -51,15 +61,32 @@ export default function LookupListSettings({ category, title, description, addLa
           <Plus size={16} /> {addLabel}
         </button>
       </div>
-      <ul className="divide-y border rounded-lg">
-        {items.map(item => (
-          <li key={item.id} className="flex justify-between items-center px-4 py-2.5 text-sm">
-            <span>{item.label || item.value}</span>
-            <button onClick={() => remove(item.id)} className="text-gray-400 hover:text-red-600"><Trash2 size={16} /></button>
-          </li>
-        ))}
-        {!items.length && <li className="px-4 py-8 text-center text-gray-400 text-sm">No items yet — click {addLabel}</li>}
-      </ul>
+      <PageTableShell filters={
+        <TableFilterBar
+          filters={[{ key: 'search', label: 'Search', type: 'search', value: search, onChange: setSearch }]}
+          showClear={!!search}
+          onClear={() => setSearch('')}
+          onExport={() => exportRowsCsv(`${category}-list.csv`, [{ label: 'Value', get: r => r.label || r.value }], filtered)}
+          exportDisabled={!filtered.length}
+        />
+      }>
+        <StyledTable>
+          <StyledThead>
+            <tr><StyledTh>Value</StyledTh><StyledTh align="center">Actions</StyledTh></tr>
+          </StyledThead>
+          <StyledTbody>
+            {filtered.map(item => (
+              <tr key={item.id} className="hover:bg-gray-50/80">
+                <td className="px-4 py-3">{item.label || item.value}</td>
+                <td className="px-4 py-3 text-center">
+                  <button type="button" onClick={() => remove(item.id)} className="text-gray-400 hover:text-red-600"><Trash2 size={16} /></button>
+                </td>
+              </tr>
+            ))}
+            {!filtered.length && <TableEmptyRow colSpan={2} message={items.length ? 'No items match search' : `No items yet — click ${addLabel}`} />}
+          </StyledTbody>
+        </StyledTable>
+      </PageTableShell>
 
       <Modal open={modalOpen} title={addLabel} onClose={() => setModalOpen(false)}
         footer={<><button onClick={() => setModalOpen(false)} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>

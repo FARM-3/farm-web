@@ -1472,9 +1472,28 @@ function Wages() {
     const [wageToDelete, setWageToDelete] = useState(null);
     const [allWagesForKPI, setAllWagesForKPI] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [filterStaffId, setFilterStaffId] = useState('');
+    const [staffOptions, setStaffOptions] = useState([]);
     const [deleting, setDeleting] = useState(false);
     const [showBulkRecordModal, setShowBulkRecordModal] = useState(false);
     const itemsPerPage = 7;
+
+    useEffect(() => {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        const headers = token ? { Authorization: `Token ${token}` } : {};
+        fetch(`${import.meta.env.VITE_API_URL}/api/staff/?page_size=200`, { headers })
+            .then(r => r.json())
+            .then(d => {
+                const list = d.results || d || [];
+                setStaffOptions(list.map(s => ({
+                    value: s.staff_id,
+                    label: `${s.first_name || ''} ${s.last_name || ''}`.trim() || s.staff_id,
+                })));
+            })
+            .catch(() => setStaffOptions([]));
+    }, []);
 
     // Helper function to round amount_paid to nearest 100
     const roundAmountToHundred = (amount) => {
@@ -1494,7 +1513,16 @@ function Wages() {
             }
 
             console.log('🔄 Fetching wages from API (page:', page, ')');
-            const response = await fetch(`${WAGES_API_ENDPOINT}?page=${page}&page_size=${itemsPerPage}&ordering=-id`, {
+            const params = new URLSearchParams({
+                page: String(page),
+                page_size: String(itemsPerPage),
+                ordering: '-id',
+            });
+            if (dateFrom) params.set('date_from', dateFrom);
+            if (dateTo) params.set('date_to', dateTo);
+            if (filterStaffId) params.set('staff_id', filterStaffId);
+            if (searchTerm.trim()) params.set('search', searchTerm.trim());
+            const response = await fetch(`${WAGES_API_ENDPOINT}?${params}`, {
                 headers: headers
             });
 
@@ -1597,11 +1625,24 @@ function Wages() {
         } finally {
             setLoading(false);
         }
-    }, [itemsPerPage]);
+    }, [itemsPerPage, dateFrom, dateTo, filterStaffId, searchTerm]);
 
     useEffect(() => {
         fetchWages(currentPage);
     }, [fetchWages, currentPage]);
+
+    const applyWageFilters = () => {
+        setCurrentPage(1);
+        fetchWages(1);
+    };
+
+    const clearWageFilters = () => {
+        setSearchTerm('');
+        setDateFrom('');
+        setDateTo('');
+        setFilterStaffId('');
+        setCurrentPage(1);
+    };
 
     const handleSaveSuccess = () => {
         setIsModalOpen(false);
@@ -1638,18 +1679,7 @@ function Wages() {
     const sortedWages = React.useMemo(() => {
         const base = Array.isArray(wages) ? wages : [];
 
-        // First, filter by search term
-        let filteredItems = base;
-        if (searchTerm.trim()) {
-            const searchLower = searchTerm.toLowerCase();
-            filteredItems = base.filter(wage => {
-                const employeeName = (wage.employee_name || '').toLowerCase();
-                return employeeName.includes(searchLower);
-            });
-        }
-
-        // Then, sort the filtered results
-        let sortableItems = [...filteredItems];
+        let sortableItems = [...base];
             sortableItems.sort((a, b) => {
                 const dateA = new Date(a.date_of_payment || 0);
                 const dateB = new Date(b.date_of_payment || 0);
@@ -1988,30 +2018,42 @@ function Wages() {
                         </button>
                     </div>
 
-                    <div className="flex gap-3 items-center flex-wrap">
-                        {/* Search Input */}
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                                type="search"
-                                placeholder="Search by employee name"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-[#795548] focus:border-[#795548] transition-colors shadow-lg placeholder:text-gray-400 placeholder:italic"
-                            />
-                        </div>
-
-                        <div className="relative inline-block text-left">
-                            <select className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-[#795548] focus:border-[#795548] shadow-lg hover:shadow-xl transition duration-300 ease-in-out" defaultValue="">
-                                <option value="" disabled>Filter by</option>
-                                <option value="date">Date</option>
-                                <option value="employee">Employee</option>
-                                <option value="deduction">Deduction Status</option>
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <div className="flex flex-wrap gap-3 items-end">
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">Employee</label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="search"
+                                    placeholder="Search name or ID"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && applyWageFilters()}
+                                    className="p-2 pl-10 text-sm w-full sm:w-44 border border-gray-300 rounded-xl shadow-lg"
+                                />
                             </div>
                         </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">Staff member</label>
+                            <select value={filterStaffId} onChange={e => setFilterStaffId(e.target.value)} className="p-2 text-sm border border-gray-300 rounded-xl shadow-lg min-w-[140px]">
+                                <option value="">All staff</option>
+                                {staffOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">From date</label>
+                            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="p-2 text-sm border border-gray-300 rounded-xl shadow-lg" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">To date</label>
+                            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="p-2 text-sm border border-gray-300 rounded-xl shadow-lg" />
+                        </div>
+                        <button type="button" onClick={applyWageFilters} className="py-2 px-4 shadow-xl rounded-xl text-sm font-medium text-white" style={{ backgroundColor: '#8B4513' }}>
+                            Apply filters
+                        </button>
+                        {(searchTerm || dateFrom || dateTo || filterStaffId) && (
+                            <button type="button" onClick={clearWageFilters} className="py-2 px-3 text-xs text-[#8B4513]">Clear</button>
+                        )}
                     </div>
                 </div>
 

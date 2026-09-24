@@ -11,9 +11,8 @@ import {
     Package,
     Archive,
     AlertCircle,
-    QrCode,
-    Printer
 } from 'lucide-react';
+import QrLabelActions from '../components/QrLabelActions';
 
 const CoffeeColors = {
     DARK_BROWN: '#4A3423',
@@ -322,20 +321,11 @@ const Bagging = () => {
                                                 <td className="px-6 py-4 text-center text-gray-700">{record.expected_outturn != null ? parseFloat(record.expected_outturn).toLocaleString() : '-'}</td>
                                                 <td className="px-6 py-4 text-center text-gray-700">
                                                     {record.id ? (
-                                                        <div className="flex flex-col items-center gap-1">
-                                                            <span className="text-xs font-mono">{record.qr_code || `LOT:${record.lot_id}`}</span>
-                                                            <a
-                                                                href={`${API_ENDPOINTS.BAGGING}${record.id}/qr-image/`}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                className="inline-flex items-center gap-1 text-xs text-[#8B4513] hover:underline"
-                                                                title="Print label"
-                                                            >
-                                                                <QrCode className="w-3 h-3" />
-                                                                <Printer className="w-3 h-3" />
-                                                                Label
-                                                            </a>
-                                                        </div>
+                                                        <QrLabelActions
+                                                            qrImageUrl={`${API_ENDPOINTS.BAGGING}${record.id}/qr-image/`}
+                                                            label={`Lot ${record.lot_id}`}
+                                                            payload={record.qr_code || `LOT:${record.lot_id}`}
+                                                        />
                                                     ) : (record.qr_code || '-')}
                                                 </td>
                                                 <td className="px-6 py-4 text-center text-gray-700">{createdDate}</td>

@@ -1,7 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Save } from 'lucide-react';
 import Modal from '../../components/settings/Modal';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import { PageTableShell, StyledTable, StyledThead, StyledTh, StyledTbody, TableEmptyRow } from '../../components/PageTableShell';
+import TableFilterBar from '../../components/TableFilterBar';
+import { exportRowsCsv, uniqueSorted } from '../../utils/tableExport';
 
 const API = `${import.meta.env.VITE_API_URL}/api/config/assets/`;
 
@@ -12,6 +15,18 @@ export default function AssetsSettings() {
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+
+  const typeOptions = useMemo(() => uniqueSorted(assets.map(a => a.asset_type)), [assets]);
+  const filtered = useMemo(() => assets.filter(a => {
+    if (typeFilter && a.asset_type !== typeFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return [a.name, a.asset_id, a.location].some(v => String(v || '').toLowerCase().includes(q));
+    }
+    return true;
+  }), [assets, search, typeFilter]);
 
   const load = useCallback(async () => {
     const res = await fetch(API, { headers: getAuthHeaders() });
@@ -31,24 +46,53 @@ export default function AssetsSettings() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-6">
+    <div>
       <div className="flex justify-between mb-4">
         <p className="text-sm text-gray-500">Farm equipment, vehicles, buildings</p>
-        <button onClick={() => { setEditing(null); setForm(empty); setModalOpen(true); }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-white text-sm" style={{ backgroundColor: '#8B5A3C' }}>
+        <button type="button" onClick={() => { setEditing(null); setForm(empty); setModalOpen(true); }} className="flex items-center gap-1 px-4 py-2 rounded-xl text-white text-sm shadow-lg hover:shadow-xl transition" style={{ backgroundColor: '#8B5A3C' }}>
           <Plus size={16} /> Add Asset
         </button>
       </div>
-      <table className="w-full text-sm">
-        <thead><tr className="border-b text-left text-gray-500"><th className="py-2">ID</th><th>Name</th><th>Type</th><th>Location</th><th>Value</th></tr></thead>
-        <tbody>
-          {assets.map(a => (
-            <tr key={a.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => { setEditing(a); setForm(a); setModalOpen(true); }}>
-              <td className="py-2">{a.asset_id}</td><td>{a.name}</td><td>{a.asset_type}</td><td>{a.location || '—'}</td>
-              <td>{a.current_value ? `UGX ${Number(a.current_value).toLocaleString()}` : '—'}</td>
+      <PageTableShell filters={
+        <TableFilterBar
+          filters={[
+            { key: 'search', label: 'Search', type: 'search', value: search, onChange: setSearch, placeholder: 'Name, ID, location...' },
+            { key: 'type', label: 'Asset type', type: 'select', value: typeFilter, onChange: setTypeFilter, options: typeOptions.map(t => ({ value: t, label: t })) },
+          ]}
+          showClear={!!(search || typeFilter)}
+          onClear={() => { setSearch(''); setTypeFilter(''); }}
+          onExport={() => exportRowsCsv('assets.csv', [
+            { label: 'ID', get: r => r.asset_id }, { label: 'Name', get: r => r.name },
+            { label: 'Type', get: r => r.asset_type }, { label: 'Location', get: r => r.location },
+            { label: 'Value', get: r => r.current_value },
+          ], filtered)}
+          exportDisabled={!filtered.length}
+        />
+      }>
+        <StyledTable>
+          <StyledThead>
+            <tr>
+              <StyledTh>ID</StyledTh>
+              <StyledTh>Name</StyledTh>
+              <StyledTh>Type</StyledTh>
+              <StyledTh>Location</StyledTh>
+              <StyledTh align="right">Value</StyledTh>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </StyledThead>
+          <StyledTbody>
+            {filtered.map(a => (
+              <tr key={a.id} className="hover:bg-gray-50/80 cursor-pointer" onClick={() => { setEditing(a); setForm(a); setModalOpen(true); }}>
+                <td className="px-4 py-3">{a.asset_id}</td>
+                <td className="px-4 py-3 font-medium">{a.name}</td>
+                <td className="px-4 py-3 capitalize">{a.asset_type}</td>
+                <td className="px-4 py-3">{a.location || '—'}</td>
+                <td className="px-4 py-3 text-right">{a.current_value ? `UGX ${Number(a.current_value).toLocaleString()}` : '—'}</td>
+              </tr>
+            ))}
+            {!filtered.length && <TableEmptyRow colSpan={5} message={assets.length ? 'No assets match filters' : 'No assets registered yet'} />}
+          </StyledTbody>
+        </StyledTable>
+      </PageTableShell>
 
       <Modal open={modalOpen} title={editing ? 'Edit Asset' : 'Add Asset'} onClose={() => setModalOpen(false)}
         footer={<><button onClick={() => setModalOpen(false)} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>

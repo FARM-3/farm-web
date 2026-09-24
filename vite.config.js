@@ -20,10 +20,13 @@ export default defineConfig({
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
             console.log('proxy error', err);
-            res.writeHead(500, {
-              'Content-Type': 'text/plain',
-            });
-            res.end('Something went wrong with the proxy.');
+            if (!res.headersSent) {
+              res.writeHead(502, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                error: 'api_unreachable',
+                detail: 'Cannot reach Django on port 8000. Run: python manage.py runserver 0.0.0.0:8000',
+              }));
+            }
           });
           proxy.on('proxyReq', (proxyReq, req, res) => {
             console.log('Sending Request to the Target:', req.method, req.url);

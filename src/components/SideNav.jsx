@@ -40,9 +40,9 @@ const navItems = [
     { key: 'tasks', name: 'Task Management', icon: CheckSquare, href: '/tasks' },
 ];
 
-const blocksNavItems = [
-    { key: 'blocks', name: 'All Blocks', icon: MapPin, href: '/blocks' },
-    { key: 'block-activities', name: 'Field Activities', icon: Sprout, href: '/block-activities' },
+const fieldOpsNavItems = [
+    { key: 'block-activities', name: 'Field Activities', icon: Sprout, href: '/field-activities' },
+    { key: 'blocks', name: 'Blocks', icon: MapPin, href: '/field-activities?tab=blocks' },
 ];
 
 const reportsNavItems = [
@@ -78,8 +78,11 @@ const getCurrentPageKey = () => {
     if (path.startsWith('receipt')) return 'receipt';
     if (path.startsWith('processing')) return 'processing';
     if (path.startsWith('tasks')) return 'tasks';
-    if (path.startsWith('block-activities')) return 'block-activities';
-    if (path.startsWith('blocks')) return 'blocks';
+    if (path.startsWith('field-activities') || path.startsWith('block-activities') || path.startsWith('blocks')) {
+        const tab = new URLSearchParams(window.location.search).get('tab');
+        if (tab === 'blocks' || path.startsWith('blocks')) return 'blocks';
+        return 'block-activities';
+    }
     if (path.startsWith('reports')) return 'reports';
     if (path.startsWith('export')) {
         if (path.includes('inventory')) return 'export-inventory';
@@ -108,7 +111,7 @@ const performLogout = () => {
     window.location.href = '/';
 };
 
-const BlocksNavGroup = ({ items, currentPage, CoffeeColors, collapsed, expanded, onToggle }) => {
+const FieldOpsNavGroup = ({ items, currentPage, CoffeeColors, collapsed, expanded, onToggle }) => {
     const isChildActive = items.some(i => i.key === currentPage);
     const iconColor = CoffeeColors.DARK_BROWN;
 
@@ -133,8 +136,8 @@ const BlocksNavGroup = ({ items, currentPage, CoffeeColors, collapsed, expanded,
                     backgroundColor: isChildActive ? 'rgba(200, 200, 200, 0.3)' : 'transparent',
                 }}
             >
-                <MapPin size={18} style={{ color: iconColor }} />
-                <span className="text-sm flex-1">Blocks</span>
+                <Sprout size={18} style={{ color: iconColor }} />
+                <span className="text-sm flex-1">Field Operations</span>
                 {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </button>
             {expanded && (
@@ -223,7 +226,7 @@ export const SideNav = ({ children }) => {
     const [isMobile, setIsMobile] = useState(false);
     const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebarCollapsed') === 'true');
     const currentPage = useMemo(() => getCurrentPageKey(), []);
-    const [blocksExpanded, setBlocksExpanded] = useState(
+    const [fieldOpsExpanded, setFieldOpsExpanded] = useState(
         () => ['blocks', 'block-activities'].includes(getCurrentPageKey())
     );
     const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -354,13 +357,13 @@ export const SideNav = ({ children }) => {
                     {navItems.map((item) => (
                         <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} collapsed={collapsed} />
                     ))}
-                    <BlocksNavGroup
-                        items={blocksNavItems}
+                    <FieldOpsNavGroup
+                        items={fieldOpsNavItems}
                         currentPage={currentPage}
                         CoffeeColors={CoffeeColors}
                         collapsed={collapsed}
-                        expanded={blocksExpanded}
-                        onToggle={() => setBlocksExpanded(v => !v)}
+                        expanded={fieldOpsExpanded}
+                        onToggle={() => setFieldOpsExpanded(v => !v)}
                     />
                     <div className="pt-4 mt-2 border-t border-gray-200">
                         {!collapsed && (

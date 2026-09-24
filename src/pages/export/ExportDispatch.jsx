@@ -1,8 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SideNav } from '../../components/SideNav';
 import Modal from '../../components/settings/Modal';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import { Loader2, Plus, Truck, FileText } from 'lucide-react';
+import { PageTableShell, StyledTable, StyledThead, StyledTh, StyledTbody, TableEmptyRow } from '../../components/PageTableShell';
+import TableFilterBar from '../../components/TableFilterBar';
+import { exportRowsCsv } from '../../utils/tableExport';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 const DISPATCH_API = `${API_BASE}/api/export/dispatch/`;
@@ -24,6 +27,17 @@ export default function ExportDispatch() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(empty);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const filtered = useMemo(() => dispatches.filter(d => {
+    if (statusFilter && d.status !== statusFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return [d.dispatch_id, d.buyer_name, d.lot_id_display, d.vehicle].some(v => String(v || '').toLowerCase().includes(q));
+    }
+    return true;
+  }), [dispatches, search, statusFilter]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -93,17 +107,42 @@ export default function ExportDispatch() {
           </button>
         </div>
 
-        {loading ? <Loader2 className="animate-spin" /> : (
-          <div className="bg-white rounded-xl shadow border overflow-x-auto">
-            <table className="w-full text-sm min-w-[900px]">
-              <thead className="bg-gray-50"><tr className="text-left text-gray-500">
-                <th className="px-4 py-3">ID</th><th className="px-4 py-3">Lot</th><th className="px-4 py-3">Buyer</th>
-                <th className="px-4 py-3">Sale</th><th className="px-4 py-3">Kg</th><th className="px-4 py-3">Vehicle</th>
-                <th className="px-4 py-3">Date</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Note</th>
-              </tr></thead>
-              <tbody>
-                {dispatches.map(d => (
-                  <tr key={d.id} className="border-t hover:bg-gray-50">
+        {loading ? <div className="flex justify-center py-16"><Loader2 className="animate-spin text-[#8B5A3C]" /></div> : (
+          <PageTableShell filters={
+            <TableFilterBar
+              filters={[
+                { key: 'search', label: 'Search', type: 'search', value: search, onChange: setSearch, placeholder: 'Dispatch ID, buyer, lot...' },
+                { key: 'status', label: 'Status', type: 'select', value: statusFilter, onChange: setStatusFilter, options: [
+                  { value: 'pending', label: 'Pending' }, { value: 'in_transit', label: 'In transit' }, { value: 'delivered', label: 'Delivered' },
+                ]},
+              ]}
+              showClear={!!(search || statusFilter)}
+              onClear={() => { setSearch(''); setStatusFilter(''); }}
+              onExport={() => exportRowsCsv('dispatch.csv', [
+                { label: 'ID', get: r => r.dispatch_id }, { label: 'Lot', get: r => r.lot_id_display || r.lot },
+                { label: 'Buyer', get: r => r.buyer_name }, { label: 'Kg', get: r => r.quantity_kg },
+                { label: 'Date', get: r => r.dispatch_date }, { label: 'Status', get: r => r.status },
+              ], filtered)}
+              exportDisabled={!filtered.length}
+            />
+          }>
+            <StyledTable minWidth="900px">
+              <StyledThead>
+                <tr>
+                  <StyledTh>ID</StyledTh>
+                  <StyledTh>Lot</StyledTh>
+                  <StyledTh>Buyer</StyledTh>
+                  <StyledTh>Sale</StyledTh>
+                  <StyledTh align="right">Kg</StyledTh>
+                  <StyledTh>Vehicle</StyledTh>
+                  <StyledTh>Date</StyledTh>
+                  <StyledTh>Status</StyledTh>
+                  <StyledTh>Note</StyledTh>
+                </tr>
+              </StyledThead>
+              <StyledTbody>
+                {filtered.map(d => (
+                  <tr key={d.id} className="hover:bg-gray-50/80">
                     <td className="px-4 py-3 font-medium">
                       <a href={pdfUrl(d.id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[#8B5A3C] hover:underline">
                         <FileText size={14} /> {d.dispatch_id}
@@ -119,10 +158,10 @@ export default function ExportDispatch() {
                     <td className="px-4 py-3 text-xs text-gray-500 max-w-[120px] truncate" title={d.proof_notes}>{d.proof_notes || '—'}</td>
                   </tr>
                 ))}
-                {!dispatches.length && <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400"><Truck className="mx-auto mb-2" />No dispatches yet</td></tr>}
-              </tbody>
-            </table>
-          </div>
+                {!filtered.length && <TableEmptyRow colSpan={9} message={dispatches.length ? 'No dispatches match filters' : 'No dispatches yet'} icon={Truck} />}
+              </StyledTbody>
+            </StyledTable>
+          </PageTableShell>
         )}
 
         <Modal open={modalOpen} title="New Dispatch" onClose={() => setModalOpen(false)}

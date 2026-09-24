@@ -1,8 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import Modal from '../../components/settings/Modal';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import { apiUrl } from '../../utils/apiBase';
+import { PageTableShell, StyledTable, StyledThead, StyledTh, StyledTbody, TableEmptyRow } from '../../components/PageTableShell';
+import TableFilterBar from '../../components/TableFilterBar';
+import { exportRowsCsv } from '../../utils/tableExport';
 
 const API = apiUrl('/api/suppliers/');
 
@@ -25,6 +28,17 @@ export default function SuppliersSettings() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+
+  const filtered = useMemo(() => items.filter(s => {
+    if (categoryFilter && s.category !== categoryFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return [s.name, s.contact_person, s.phone, s.district].some(v => String(v || '').toLowerCase().includes(q));
+    }
+    return true;
+  }), [items, search, categoryFilter]);
 
   const load = useCallback(async () => {
     const res = await fetch(`${API}?include_inactive=1`, { headers: getAuthHeaders() });
@@ -81,33 +95,55 @@ export default function SuppliersSettings() {
           <Plus size={16} /> Add Supplier
         </button>
       </div>
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-500 text-left">
+      <PageTableShell filters={
+        <TableFilterBar
+          filters={[
+            { key: 'search', label: 'Search', type: 'search', value: search, onChange: setSearch, placeholder: 'Name, contact, district...' },
+            { key: 'category', label: 'Category', type: 'select', value: categoryFilter, onChange: setCategoryFilter, options: CATEGORIES.map(c => ({ value: c.value, label: c.label })) },
+          ]}
+          showClear={!!(search || categoryFilter)}
+          onClear={() => { setSearch(''); setCategoryFilter(''); }}
+          onExport={() => exportRowsCsv('suppliers.csv', [
+            { label: 'Name', get: r => r.name },
+            { label: 'Category', get: r => r.category },
+            { label: 'Contact', get: r => r.contact_person },
+            { label: 'Phone', get: r => r.phone },
+            { label: 'District', get: r => r.district },
+          ], filtered)}
+          exportDisabled={!filtered.length}
+        />
+      }>
+        <StyledTable>
+          <StyledThead>
             <tr>
-              <th className="px-4 py-3">Name</th><th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Contact</th><th className="px-4 py-3">Phone</th>
-              <th className="px-4 py-3">District</th><th className="px-4 py-3 w-20">Actions</th>
+              <StyledTh>Name</StyledTh>
+              <StyledTh>Category</StyledTh>
+              <StyledTh>Contact</StyledTh>
+              <StyledTh>Phone</StyledTh>
+              <StyledTh>District</StyledTh>
+              <StyledTh align="center">Actions</StyledTh>
             </tr>
-          </thead>
-          <tbody>
-            {items.map(s => (
-              <tr key={s.supplier_id} className="border-t">
+          </StyledThead>
+          <StyledTbody>
+            {filtered.map(s => (
+              <tr key={s.supplier_id} className="hover:bg-gray-50/80">
                 <td className="px-4 py-3 font-medium">{s.name}</td>
                 <td className="px-4 py-3 capitalize">{s.category}</td>
                 <td className="px-4 py-3">{s.contact_person || '—'}</td>
                 <td className="px-4 py-3">{s.phone || '—'}</td>
                 <td className="px-4 py-3">{s.district || '—'}</td>
-                <td className="px-4 py-3 flex gap-2">
-                  <button onClick={() => openEdit(s)} className="text-blue-600"><Pencil size={16} /></button>
-                  <button onClick={() => remove(s.supplier_id)} className="text-red-500"><Trash2 size={16} /></button>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex justify-center gap-2">
+                    <button type="button" onClick={() => openEdit(s)} className="text-blue-600"><Pencil size={16} /></button>
+                    <button type="button" onClick={() => remove(s.supplier_id)} className="text-red-500"><Trash2 size={16} /></button>
+                  </div>
                 </td>
               </tr>
             ))}
-            {!items.length && <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400">No suppliers — run seed_suppliers or add one</td></tr>}
-          </tbody>
-        </table>
-      </div>
+            {!filtered.length && <TableEmptyRow colSpan={6} message={items.length ? 'No suppliers match filters' : 'No suppliers — run seed_suppliers or add one'} />}
+          </StyledTbody>
+        </StyledTable>
+      </PageTableShell>
 
       <Modal open={modalOpen} title={editing ? 'Edit Supplier' : 'New Supplier'} onClose={() => setModalOpen(false)}
         footer={<>

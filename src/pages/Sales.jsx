@@ -767,13 +767,27 @@ function SalesPage() {
     const [editingSale, setEditingSale] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [saleToDelete, setSaleToDelete] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [filterItem, setFilterItem] = useState('');
+    const [filterPayment, setFilterPayment] = useState('');
     const itemsPerPage = 7;
+
+    const itemOptions = useMemo(() => [...new Set(sales.map(s => s.item).filter(Boolean))].sort(), [sales]);
+    const paymentOptions = useMemo(() => [...new Set(sales.map(s => s.method_of_payment || s.payment_method).filter(Boolean))].sort(), [sales]);
     
     const fetchSales = useCallback(async (page = 1) => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${SALES_API_ENDPOINT}?page=${page}&page_size=${itemsPerPage}`);
+            const params = new URLSearchParams({ page: String(page), page_size: String(itemsPerPage) });
+            if (dateFrom) params.set('date_from', dateFrom);
+            if (dateTo) params.set('date_to', dateTo);
+            if (filterItem) params.set('item', filterItem);
+            if (filterPayment) params.set('method_of_payment', filterPayment);
+            if (searchTerm.trim()) params.set('search', searchTerm.trim());
+            const response = await fetch(`${SALES_API_ENDPOINT}?${params}`);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
@@ -808,11 +822,25 @@ function SalesPage() {
         } finally {
             setLoading(false);
         }
-    }, [itemsPerPage]);
+    }, [itemsPerPage, dateFrom, dateTo, filterItem, filterPayment, searchTerm]);
 
     useEffect(() => {
         fetchSales(currentPage);
     }, [fetchSales, currentPage]);
+
+    const applyFilters = () => {
+        setCurrentPage(1);
+        fetchSales(1);
+    };
+
+    const clearFilters = () => {
+        setSearchTerm('');
+        setDateFrom('');
+        setDateTo('');
+        setFilterItem('');
+        setFilterPayment('');
+        setCurrentPage(1);
+    };
 
     const sortedSales = useMemo(() => {
         const base = Array.isArray(sales) ? sales : [];
@@ -1345,39 +1373,59 @@ function SalesPage() {
                 
                 <KPICards />
 
-                {/* Action Bar & Filter */}
-                <div className="mb-4 flex flex-wrap justify-between items-center gap-3">
-                    <div className="flex gap-3 items-center w-full sm:w-auto order-2 sm:order-1">
-                        <div className="relative flex-grow">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                                type="search"
-                                placeholder="Search by customer name"
-                                className="p-2 pl-10 text-sm w-full sm:w-56 border border-gray-300 rounded-xl focus:ring-accent-btn focus:border-accent-btn transition-colors shadow-lg placeholder:text-gray-400 placeholder:italic"
-                            />
-                        </div>
-                        <div className="relative inline-block text-left">
-                            <select 
-                                className="appearance-none bg-white border border-gray-300 rounded-xl py-2 pl-4 pr-8 text-sm text-gray-700 leading-tight focus:outline-none focus:ring-accent-btn focus:border-accent-btn shadow-lg transition duration-300 ease-in-out"
-                                defaultValue=""
-                            >
-                                <option value="" disabled>Filter by</option>
-                                <option value="date">Date</option>
-                                <option value="method">Payment Method</option>
-                                <option value="item">Item</option>
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                {/* Action Bar & Filter — each category has its own control */}
+                <div className="mb-4 flex flex-wrap justify-between items-end gap-3">
+                    <div className="flex flex-wrap gap-3 items-end w-full sm:w-auto order-2 sm:order-1">
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">Customer / item</label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="search"
+                                    placeholder="Search name or item"
+                                    value={searchTerm}
+                                    onChange={e => setSearchTerm(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && applyFilters()}
+                                    className="p-2 pl-10 text-sm w-full sm:w-44 border border-gray-300 rounded-xl shadow-lg"
+                                />
                             </div>
                         </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">From date</label>
+                            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="p-2 text-sm border border-gray-300 rounded-xl shadow-lg" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">To date</label>
+                            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="p-2 text-sm border border-gray-300 rounded-xl shadow-lg" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">Item</label>
+                            <select value={filterItem} onChange={e => setFilterItem(e.target.value)} className="p-2 text-sm border border-gray-300 rounded-xl shadow-lg min-w-[120px]">
+                                <option value="">All items</option>
+                                {itemOptions.map(i => <option key={i} value={i}>{i}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-0.5">Payment method</label>
+                            <select value={filterPayment} onChange={e => setFilterPayment(e.target.value)} className="p-2 text-sm border border-gray-300 rounded-xl shadow-lg min-w-[130px]">
+                                <option value="">All methods</option>
+                                {paymentOptions.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
+                        <button type="button" onClick={applyFilters} className="py-2 px-4 shadow-xl rounded-xl text-sm font-medium" style={{ backgroundColor: '#8B4513', color: '#fff' }}>
+                            Apply filters
+                        </button>
+                        {(searchTerm || dateFrom || dateTo || filterItem || filterPayment) && (
+                            <button type="button" onClick={clearFilters} className="py-2 px-3 text-xs text-[#8B4513]">Clear</button>
+                        )}
                         <button
                             onClick={() => fetchSales(currentPage)}
                             disabled={loading}
-                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                            className="py-2 px-4 shadow-xl rounded-xl flex items-center justify-center disabled:opacity-50 flex-shrink-0"
                             style={{ backgroundColor: '#efebe9', color: '#783A1E', border: 'none' }}
                         >
                             <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-                            Refresh Data
+                            Refresh
                         </button>
                     </div>
                       

@@ -1,8 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import Modal from '../../components/settings/Modal';
 import { getAuthHeaders } from '../../utils/authHeaders';
 import { apiUrl } from '../../utils/apiBase';
+import { PageTableShell, StyledTable, StyledThead, StyledTh, StyledTbody, TableEmptyRow } from '../../components/PageTableShell';
+import TableFilterBar from '../../components/TableFilterBar';
+import { exportRowsCsv } from '../../utils/tableExport';
 
 const API = apiUrl('/api/config/lookups/');
 
@@ -12,6 +15,13 @@ export default function SaleItemsSettings() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ value: '', default_rate: '', unit_label: 'kg' });
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return items;
+    const q = search.toLowerCase();
+    return items.filter(i => String(i.label || i.value || '').toLowerCase().includes(q));
+  }, [items, search]);
 
   const load = useCallback(async () => {
     const res = await fetch(`${API}?category=sale_item&active_only=1`, { headers: getAuthHeaders() });
@@ -68,7 +78,7 @@ export default function SaleItemsSettings() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-6">
+    <div>
       <div className="flex justify-between items-start mb-4">
         <div>
           <h2 className="text-lg font-semibold">Sale Items</h2>
@@ -76,37 +86,51 @@ export default function SaleItemsSettings() {
             Products in the Sales dropdown. Set a default price per unit/kg — it auto-fills when recording a sale.
           </p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-white text-sm shrink-0" style={{ backgroundColor: '#8B5A3C' }}>
+        <button type="button" onClick={openNew} className="flex items-center gap-1 px-4 py-2 rounded-xl text-white text-sm shrink-0 shadow-lg" style={{ backgroundColor: '#8B5A3C' }}>
           <Plus size={16} /> Add Sale Item
         </button>
       </div>
 
-      <table className="w-full text-sm border rounded-lg overflow-hidden">
-        <thead className="bg-gray-50 text-gray-500 text-left">
-          <tr>
-            <th className="px-4 py-2">Item</th>
-            <th className="px-4 py-2">Default rate (UGX)</th>
-            <th className="px-4 py-2">Unit</th>
-            <th className="px-4 py-2 w-20">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(item => (
-            <tr key={item.id} className="border-t">
-              <td className="px-4 py-2.5">{item.label || item.value}</td>
-              <td className="px-4 py-2.5">{item.default_rate ? Number(item.default_rate).toLocaleString() : '—'}</td>
-              <td className="px-4 py-2.5">{item.unit_label || 'kg'}</td>
-              <td className="px-4 py-2.5 flex gap-2">
-                <button onClick={() => openEdit(item)} className="text-gray-500 hover:text-[#8B5A3C]"><Pencil size={16} /></button>
-                <button onClick={() => remove(item.id)} className="text-gray-400 hover:text-red-600"><Trash2 size={16} /></button>
-              </td>
+      <PageTableShell filters={
+        <TableFilterBar
+          filters={[{ key: 'search', label: 'Search', type: 'search', value: search, onChange: setSearch, placeholder: 'Item name...' }]}
+          showClear={!!search}
+          onClear={() => setSearch('')}
+          onExport={() => exportRowsCsv('sale-items.csv', [
+            { label: 'Item', get: r => r.label || r.value },
+            { label: 'Default rate', get: r => r.default_rate },
+            { label: 'Unit', get: r => r.unit_label },
+          ], filtered)}
+          exportDisabled={!filtered.length}
+        />
+      }>
+        <StyledTable>
+          <StyledThead>
+            <tr>
+              <StyledTh>Item</StyledTh>
+              <StyledTh align="right">Default rate (UGX)</StyledTh>
+              <StyledTh>Unit</StyledTh>
+              <StyledTh align="center">Actions</StyledTh>
             </tr>
-          ))}
-          {!items.length && (
-            <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">No sale items yet</td></tr>
-          )}
-        </tbody>
-      </table>
+          </StyledThead>
+          <StyledTbody>
+            {filtered.map(item => (
+              <tr key={item.id} className="hover:bg-gray-50/80">
+                <td className="px-4 py-3 font-medium">{item.label || item.value}</td>
+                <td className="px-4 py-3 text-right">{item.default_rate ? Number(item.default_rate).toLocaleString() : '—'}</td>
+                <td className="px-4 py-3">{item.unit_label || 'kg'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex justify-center gap-2">
+                    <button type="button" onClick={() => openEdit(item)} className="text-gray-500 hover:text-[#8B5A3C]"><Pencil size={16} /></button>
+                    <button type="button" onClick={() => remove(item.id)} className="text-gray-400 hover:text-red-600"><Trash2 size={16} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {!filtered.length && <TableEmptyRow colSpan={4} message={items.length ? 'No items match search' : 'No sale items yet'} />}
+          </StyledTbody>
+        </StyledTable>
+      </PageTableShell>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Sale Item' : 'Add Sale Item'}>
         <div className="space-y-4">

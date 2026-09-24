@@ -1,9 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { SideNav } from '../components/SideNav';
 import Modal from '../components/settings/Modal';
 import { getAuthHeaders } from '../utils/authHeaders';
 import { apiUrl } from '../utils/apiBase';
 import { Plus, Trash2, CheckCircle } from 'lucide-react';
+import { PageTableShell, StyledTable, StyledThead, StyledTh, StyledTbody, TableEmptyRow } from '../components/PageTableShell';
+import TableFilterBar from '../components/TableFilterBar';
+import { exportRowsCsv } from '../utils/tableExport';
 
 const API = apiUrl('/api/config/trainings/');
 
@@ -23,6 +26,17 @@ export default function Trainings() {
   const [records, setRecords] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(empty);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const filtered = useMemo(() => records.filter(r => {
+    if (statusFilter && r.status !== statusFilter) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return [r.title, r.topic, r.trainer, r.location].some(v => String(v || '').toLowerCase().includes(q));
+    }
+    return true;
+  }), [records, search, statusFilter]);
 
   const load = useCallback(async () => {
     const res = await fetch(API, { headers: getAuthHeaders() });
@@ -71,37 +85,63 @@ export default function Trainings() {
             <Plus size={16} /> Schedule Training
           </button>
         </div>
-        <div className="bg-white rounded-xl border overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50"><tr className="text-left text-gray-500">
-              <th className="px-4 py-3">Title</th><th className="px-4 py-3">Topic</th><th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Trainer</th><th className="px-4 py-3">Attendees</th><th className="px-4 py-3">Status</th><th className="px-4 py-3 w-28">Actions</th>
-            </tr></thead>
-            <tbody>
-              {records.map(r => (
-                <tr key={r.id} className="border-t">
+        <PageTableShell filters={
+          <TableFilterBar
+            filters={[
+              { key: 'search', label: 'Search', type: 'search', value: search, onChange: setSearch, placeholder: 'Title, topic, trainer...' },
+              { key: 'status', label: 'Status', type: 'select', value: statusFilter, onChange: setStatusFilter, options: [
+                { value: 'scheduled', label: 'Scheduled' }, { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' },
+              ]},
+            ]}
+            showClear={!!(search || statusFilter)}
+            onClear={() => { setSearch(''); setStatusFilter(''); }}
+            onExport={() => exportRowsCsv('trainings.csv', [
+              { label: 'Title', get: r => r.title }, { label: 'Topic', get: r => r.topic },
+              { label: 'Date', get: r => r.start_date }, { label: 'Trainer', get: r => r.trainer },
+              { label: 'Status', get: r => r.status },
+            ], filtered)}
+            exportDisabled={!filtered.length}
+          />
+        }>
+          <StyledTable>
+            <StyledThead>
+              <tr>
+                <StyledTh>Title</StyledTh>
+                <StyledTh>Topic</StyledTh>
+                <StyledTh>Date</StyledTh>
+                <StyledTh>Trainer</StyledTh>
+                <StyledTh align="center">Attendees</StyledTh>
+                <StyledTh>Status</StyledTh>
+                <StyledTh align="center">Actions</StyledTh>
+              </tr>
+            </StyledThead>
+            <StyledTbody>
+              {filtered.map(r => (
+                <tr key={r.id} className="hover:bg-gray-50/80">
                   <td className="px-4 py-3 font-medium">{r.title}</td>
                   <td className="px-4 py-3">{r.topic || '—'}</td>
                   <td className="px-4 py-3">{r.start_date}</td>
                   <td className="px-4 py-3">{r.trainer || '—'}</td>
-                  <td className="px-4 py-3">{r.attendees ?? 0}</td>
+                  <td className="px-4 py-3 text-center">{r.attendees ?? 0}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs capitalize ${STATUS_STYLES[r.status] || ''}`}>{r.status}</span>
                   </td>
-                  <td className="px-4 py-3 flex gap-2 items-center">
-                    {r.status !== 'completed' && (
-                      <button onClick={() => markComplete(r)} title="Mark complete" className="text-green-700 hover:text-green-900">
-                        <CheckCircle size={16} />
-                      </button>
-                    )}
-                    <button onClick={() => remove(r.id)} className="text-red-500"><Trash2 size={16} /></button>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-center gap-2 items-center">
+                      {r.status !== 'completed' && (
+                        <button type="button" onClick={() => markComplete(r)} title="Mark complete" className="text-green-700 hover:text-green-900">
+                          <CheckCircle size={16} />
+                        </button>
+                      )}
+                      <button type="button" onClick={() => remove(r.id)} className="text-red-500"><Trash2 size={16} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
-              {!records.length && <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">No trainings scheduled — run seed_demo_all or add one</td></tr>}
-            </tbody>
-          </table>
-        </div>
+              {!filtered.length && <TableEmptyRow colSpan={7} message={records.length ? 'No trainings match filters' : 'No trainings scheduled — run seed_demo_all or add one'} />}
+            </StyledTbody>
+          </StyledTable>
+        </PageTableShell>
 
         <Modal open={modalOpen} title="Schedule Training" onClose={() => setModalOpen(false)}
           footer={<><button onClick={() => setModalOpen(false)} className="px-4 py-2 border rounded-lg text-sm">Cancel</button>

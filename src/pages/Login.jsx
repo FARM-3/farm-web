@@ -40,7 +40,16 @@ const ApiClient = {
 
       console.log('Response Status:', response.status);
 
-      const responseData = await response.json();
+      const raw = await response.text();
+      let responseData = {};
+      try {
+        responseData = raw ? JSON.parse(raw) : {};
+      } catch {
+        const hint = raw.includes('Something went wrong with the proxy') || raw.includes('ECONNREFUSED')
+          ? 'Cannot reach the API. Start Django on port 8000 (python manage.py runserver 0.0.0.0:8000) or set VITE_API_URL in web/.env to your Render API URL.'
+          : (raw.slice(0, 160) || 'Server returned a non-JSON response.');
+        throw new Error(hint);
+      }
       console.log('Response Data:', responseData);
 
       if (!response.ok) {
