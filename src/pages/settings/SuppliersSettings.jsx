@@ -74,7 +74,7 @@ export default function SuppliersSettings() {
     <div>
       <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-xl font-bold text-[#4A3423]">Suppliers</h2>
+          <h1 className="text-2xl font-bold text-[#4A3423]">Suppliers</h1>
           <p className="text-sm text-gray-500">Vendors for inputs, equipment, fuel, and services — separate from coffee farmers</p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm" style={{ backgroundColor: '#8B5A3C' }}>

@@ -22,7 +22,7 @@ import PricingSettings from './pages/settings/PricingSettings.jsx';
 import CoffeeTypesSettings from './pages/settings/CoffeeTypesSettings.jsx';
 import FertilizerTypesSettings from './pages/settings/FertilizerTypesSettings.jsx';
 import ExpenseCategoriesSettings from './pages/settings/ExpenseCategoriesSettings.jsx';
-import SuppliersSettings from './pages/settings/SuppliersSettings.jsx';
+import Suppliers from './pages/Suppliers.jsx';
 import MasterDataSettings from './pages/settings/MasterDataSettings.jsx';
 import SaleItemsSettings from './pages/settings/SaleItemsSettings.jsx';
 import ReportsHub from './pages/reports/ReportsHub.jsx';
@@ -88,6 +88,7 @@ function App() {
           <Route path="/wages" element={<ProtectedRoute><Wages /></ProtectedRoute>} />
           <Route path="/expense-entry" element={<ProtectedRoute><ExpenseEntry /></ProtectedRoute>} />
           <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+          <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
           <Route path="/staff-registration" element={<ProtectedRoute><StaffRegistration /></ProtectedRoute>} />
           <Route path="/staff-management" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
           <Route path="/staff" element={<ProtectedRoute><StaffManagement /></ProtectedRoute>} />
@@ -107,7 +108,7 @@ function App() {
             <Route path="fertilizer-types" element={<FertilizerTypesSettings />} />
             <Route path="sale-items" element={<SaleItemsSettings />} />
             <Route path="expense-categories" element={<ExpenseCategoriesSettings />} />
-            <Route path="suppliers" element={<SuppliersSettings />} />
+            <Route path="suppliers" element={<Navigate to="/suppliers" replace />} />
             <Route path="master-data" element={<MasterDataSettings />} />
             <Route path="customers" element={<Navigate to="/customers" replace />} />
             <Route path="assets" element={<Navigate to="/assets" replace />} />

@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { SideNav } from '../SideNav';
 import {
-  Building2, DollarSign, Coffee, ListTree, ShoppingBag, Users, ScrollText, KeyRound, Sprout, Receipt, Truck,
+  Building2, DollarSign, Coffee, ListTree, ShoppingBag, Users, ScrollText, KeyRound, Sprout, Receipt,
 } from 'lucide-react';
 
 const CoffeeColors = { DARK_BROWN: '#4A3423', ACTIVE: '#8B5A3C', BG: '#FFF8F6' };
@@ -22,7 +22,6 @@ const sections = [
       { to: '/settings/fertilizer-types', label: 'Fertilizer Types', icon: Sprout },
       { to: '/settings/sale-items', label: 'Sale Items', icon: ShoppingBag },
       { to: '/settings/expense-categories', label: 'Expense Categories', icon: Receipt },
-      { to: '/settings/suppliers', label: 'Suppliers', icon: Truck },
       { to: '/settings/master-data', label: 'Farm Lists', icon: ListTree },
     ],
   },

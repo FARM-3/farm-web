@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
     Menu, X, Home, DollarSign, ShoppingCart, Package, Users, LogOut, Settings,
     BarChart3, TreePine, TrendingUp, TrendingDown, ClipboardCheck, Factory, CheckSquare,
-    Warehouse, Truck, FileText, Globe, UserCircle, Wrench, Award, GraduationCap, Sprout,
+    Warehouse, Truck, FileText, Globe, UserCircle, Wrench, Award, GraduationCap, Sprout, Building2,
     PanelLeftClose, PanelLeftOpen, MapPin, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import BrandLogo from './BrandLogo';
@@ -29,6 +29,7 @@ const navItems = [
     { key: 'sales', name: 'Sales', icon: ShoppingCart, href: '/sales' },
     { key: 'customers', name: 'Customers', icon: UserCircle, href: '/customers' },
     { key: 'expenses', name: 'Expenses', icon: Package, href: '/expenses' },
+    { key: 'suppliers', name: 'Suppliers', icon: Building2, href: '/suppliers' },
     { key: 'staff', name: 'Staff', icon: Users, href: '/staff' },
     { key: 'assets', name: 'Assets', icon: Wrench, href: '/assets' },
     { key: 'documents', name: 'Documents', icon: Award, href: '/documents' },
@@ -66,6 +67,7 @@ const getCurrentPageKey = () => {
 
     if (path.startsWith('sales')) return 'sales';
     if (path.startsWith('customers')) return 'customers';
+    if (path.startsWith('suppliers')) return 'suppliers';
     if (path.startsWith('assets')) return 'assets';
     if (path.startsWith('documents')) return 'documents';
     if (path.startsWith('trainings')) return 'trainings';
