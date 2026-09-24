@@ -20,8 +20,12 @@ import SettingsLayout from './components/settings/SettingsLayout.jsx';
 import CompanySettings from './pages/settings/CompanySettings.jsx';
 import PricingSettings from './pages/settings/PricingSettings.jsx';
 import CoffeeTypesSettings from './pages/settings/CoffeeTypesSettings.jsx';
+import FertilizerTypesSettings from './pages/settings/FertilizerTypesSettings.jsx';
+import ExpenseCategoriesSettings from './pages/settings/ExpenseCategoriesSettings.jsx';
+import SuppliersSettings from './pages/settings/SuppliersSettings.jsx';
 import MasterDataSettings from './pages/settings/MasterDataSettings.jsx';
 import SaleItemsSettings from './pages/settings/SaleItemsSettings.jsx';
+import ReportsHub from './pages/reports/ReportsHub.jsx';
 import Customers from './pages/Customers.jsx';
 import Assets from './pages/Assets.jsx';
 import Documents from './pages/Documents.jsx';
@@ -46,6 +50,7 @@ import Blocks from './pages/Blocks.jsx';
 import ExportInventory from './pages/export/ExportInventory.jsx';
 import ExportDispatch from './pages/export/ExportDispatch.jsx';
 import ExportTraceReport from './pages/export/ExportTraceReport.jsx';
+import ExportEudrDossier from './pages/export/ExportEudrDossier.jsx';
 
 // Remove unused imports like reactLogo, viteLogo, './App.css', etc.
 
@@ -93,12 +98,16 @@ function App() {
           <Route path="/tasks" element={<ProtectedRoute><TaskManagement /></ProtectedRoute>} />
           <Route path="/blocks" element={<ProtectedRoute><Blocks /></ProtectedRoute>} />
           <Route path="/block-activities" element={<ProtectedRoute><BlockActivities /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><ReportsHub /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/settings/company" replace />} />
             <Route path="company" element={<CompanySettings />} />
             <Route path="pricing" element={<PricingSettings />} />
             <Route path="coffee-types" element={<CoffeeTypesSettings />} />
+            <Route path="fertilizer-types" element={<FertilizerTypesSettings />} />
             <Route path="sale-items" element={<SaleItemsSettings />} />
+            <Route path="expense-categories" element={<ExpenseCategoriesSettings />} />
+            <Route path="suppliers" element={<SuppliersSettings />} />
             <Route path="master-data" element={<MasterDataSettings />} />
             <Route path="customers" element={<Navigate to="/customers" replace />} />
             <Route path="assets" element={<Navigate to="/assets" replace />} />
@@ -125,7 +134,7 @@ function App() {
           <Route path="/export/inventory" element={<ProtectedRoute><ExportInventory /></ProtectedRoute>} />
           <Route path="/export/dispatch" element={<ProtectedRoute><ExportDispatch /></ProtectedRoute>} />
           <Route path="/export/trace" element={<ProtectedRoute><ExportTraceReport /></ProtectedRoute>} />
-          <Route path="/export/dossier" element={<Navigate to="/export/trace" replace />} />
+          <Route path="/export/dossier" element={<ProtectedRoute><ExportEudrDossier /></ProtectedRoute>} />
 
           <Route path="*" element={<h1>404: Page Not Found</h1>} />
         </Routes>

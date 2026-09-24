@@ -14,7 +14,7 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'https://farm-api-uvor.onrender.com',
+        target: process.env.VITE_API_URL || 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: true,
         configure: (proxy, options) => {

@@ -530,10 +530,10 @@ const CUSTOM_COLORS_MODAL = {
     INVALID_BORDER: '#EF4444', // Red-500 for validation failure
 };
 
-const CATEGORIES = [
-    'Aggregation', // Added for harvest expenses
-    'General Supplies', 'Fuel/Energy', 'Equipment Maintenance',
-    'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
+const DEFAULT_CATEGORIES = [
+    'Aggregation',
+    'General Supplies', 'Fuel & Transport', 'Labour', 'Equipment',
+    'Utilities', 'Maintenance', 'Chemicals & Inputs', 'Training', 'Other',
 ];
 
 const EXPENSE_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/expenses/`;
@@ -640,8 +640,7 @@ const getFieldErrorMessage = (name, value) => {
 
     if (name === 'category') {
         if (!value || value === '') return 'Category is required';
-        if (!CATEGORIES.includes(value)) return 'Please select a valid category';
-        return null; // No error
+        return null;
     }
 
     if (name === 'supplier' || name === 'item' || name === 'location') {
@@ -767,7 +766,7 @@ const SelectField = ({ label, name, value, onChange, options, required, status =
 
 // --- ExpenseEntryModal Component (with Subtle Blur and Validation Logic) ---
 
-function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted }) {
+function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted, categories = DEFAULT_CATEGORIES }) {
     const initialFormData = {
         expense_name: '', category: '', other_category: '', item: '', supplier: '', description: '', unit_cost: '', quantity: '', amount: '',
         date: new Date().toISOString().substring(0, 10), location: '',
@@ -801,7 +800,7 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                     ? parseFloat(editExpense.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : '';
 
-                const categoryValue = CATEGORIES.includes(editExpense.category) ? editExpense.category : 'Other';
+                const categoryValue = categories.includes(editExpense.category) ? editExpense.category : 'Other';
                 const otherCategoryValue = categoryValue === 'Other' ? editExpense.category || '' : '';
                 setFormData({
                     expense_name: editExpense.expense_name || '',
@@ -1073,7 +1072,7 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
                                 errorMessage={fieldErrors.expense_name}
                             />
                             <SelectField
-                                label="Category" name="category" value={formData.category} onChange={handleChange} options={CATEGORIES} required
+                                label="Category" name="category" value={formData.category} onChange={handleChange} options={categories} required
                                 status={validationStatus.category}
                                 errorMessage={fieldErrors.category}
                             />
@@ -1189,7 +1188,8 @@ function ExpenseEntryModal({ isOpen, onClose, editExpense, onExpenseSubmitted })
 
 export function ExpensesPage() {
     const navigate = useNavigate();
-    const [expenses, setExpenses] = useState([]);
+    const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+    const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -1269,6 +1269,18 @@ const [recentlyEdited, setRecentlyEdited] = useState(new Set());
     useEffect(() => {
         fetchExpenses();
     }, [fetchExpenses]);
+
+    useEffect(() => {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        fetch(`${import.meta.env.VITE_API_URL}/api/config/lookups/grouped/`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.expense_category?.length) setCategories(data.expense_category);
+            })
+            .catch(() => {});
+    }, []);
 
     const filteredExpenses = useMemo(() => {
         let filtered = expenses;
@@ -1719,6 +1731,7 @@ const [recentlyEdited, setRecentlyEdited] = useState(new Set());
                 onClose={handleModalCloseAndRefresh}
                 editExpense={expenseToEdit}
                 onExpenseSubmitted={fetchExpenses}
+                categories={categories}
             />
 
         </SideNav>

@@ -29,7 +29,32 @@ function SalesEntry() {
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const items = ['Matooke', 'Coffee', 'Livestock', 'Plantain'];
+  const [items, setItems] = useState(['Green Coffee', 'Roasted Coffee', 'Coffee Cherry', 'Parchment']);
+  const [saleItemCatalog, setSaleItemCatalog] = useState([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    fetch(`${import.meta.env.VITE_API_URL}/api/config/lookups/grouped/?_=${Date.now()}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.sale_item?.length) {
+          const catalog = data.sale_item.map(entry =>
+            typeof entry === 'string'
+              ? { name: entry, default_rate: '', unit_label: 'kg' }
+              : {
+                  name: entry.name,
+                  default_rate: entry.default_rate != null && entry.default_rate !== '' ? String(entry.default_rate) : '',
+                  unit_label: entry.unit_label || 'kg',
+                }
+          );
+          setSaleItemCatalog(catalog);
+          setItems(catalog.map(i => i.name));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Check if we're editing an existing sale
   useEffect(() => {
@@ -170,18 +195,25 @@ function SalesEntry() {
       updatedData.size = '';
     }
 
+    if (name === 'item') {
+      const selected = saleItemCatalog.find(i => i.name === value);
+      if (selected?.default_rate) {
+        updatedData.rate = String(selected.default_rate);
+      }
+    }
+
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
 
-    // Auto-calculate amount when quantity or rate changes
-    if (name === 'quantity' || name === 'rate') {
-      const qty = parseFloat(name === 'quantity' ? value : formData.quantity);
-      const rte = parseFloat(name === 'rate' ? value : formData.rate);
-      if (!isNaN(qty) && !isNaN(rte)) {
+    // Auto-calculate amount when quantity, rate, or item changes
+    if (name === 'quantity' || name === 'rate' || name === 'item') {
+      const qty = parseFloat(name === 'quantity' ? value : updatedData.quantity || formData.quantity);
+      const rte = parseFloat(name === 'rate' ? value : updatedData.rate || formData.rate);
+      if (!isNaN(qty) && !isNaN(rte) && qty > 0 && rte > 0) {
         updatedData.amount = (qty * rte).toFixed(2);
-      } else {
+      } else if (name !== 'item') {
         updatedData.amount = '';
       }
     }

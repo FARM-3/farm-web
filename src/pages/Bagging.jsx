@@ -10,7 +10,9 @@ import {
     RefreshCw,
     Package,
     Archive,
-    AlertCircle
+    AlertCircle,
+    QrCode,
+    Printer
 } from 'lucide-react';
 
 const CoffeeColors = {
@@ -52,7 +54,6 @@ const Bagging = () => {
         date: new Date().toISOString().slice(0, 10),
         outturn: '',
         expected_outturn: '',
-        qr_code: '',
     });
     const [submitLoading, setSubmitLoading] = useState(false);
     const [submitError, setSubmitError] = useState(null);
@@ -152,7 +153,6 @@ const Bagging = () => {
                 date: new Date().toISOString().slice(0, 10),
                 outturn: '',
                 expected_outturn: '',
-                qr_code: '',
             });
 
             // Refresh list
@@ -184,7 +184,7 @@ const Bagging = () => {
                         <h1 className="text-3xl font-bold" style={{ color: CoffeeColors.DARK_BROWN }}>
                             Bagging Operations
                         </h1>
-                        <p className="text-gray-600 mt-1">Monitor bagging and inventory</p>
+                        <p className="text-gray-600 mt-1">Monitor bagging — QR labels auto-generate and sync to inventory</p>
                     </div>
                     <div className="flex gap-3">
                         <button
@@ -268,10 +268,6 @@ const Bagging = () => {
                                         <input name="expected_outturn" value={formData.expected_outturn} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
                                     </div>
                                     <div>
-                                        <label className="text-xs text-gray-600">QR Code</label>
-                                        <input name="qr_code" value={formData.qr_code} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
-                                    </div>
-                                    <div>
                                         <label className="text-xs text-gray-600">Date</label>
                                         <input name="date" type="date" value={formData.date} onChange={handleInputChange} className="mt-1 w-full border rounded px-3 py-2" />
                                     </div>
@@ -324,7 +320,24 @@ const Bagging = () => {
                                                 <td className="px-6 py-4 text-center text-gray-700">{record.no_of_bags != null ? record.no_of_bags : 'N/A'}</td>
                                                 <td className="px-6 py-4 text-center font-semibold text-gray-800">{record.outturn != null ? parseFloat(record.outturn).toLocaleString() : '-'}</td>
                                                 <td className="px-6 py-4 text-center text-gray-700">{record.expected_outturn != null ? parseFloat(record.expected_outturn).toLocaleString() : '-'}</td>
-                                                <td className="px-6 py-4 text-center text-gray-700">{record.qr_code || '-'}</td>
+                                                <td className="px-6 py-4 text-center text-gray-700">
+                                                    {record.id ? (
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <span className="text-xs font-mono">{record.qr_code || `LOT:${record.lot_id}`}</span>
+                                                            <a
+                                                                href={`${API_ENDPOINTS.BAGGING}${record.id}/qr-image/`}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1 text-xs text-[#8B4513] hover:underline"
+                                                                title="Print label"
+                                                            >
+                                                                <QrCode className="w-3 h-3" />
+                                                                <Printer className="w-3 h-3" />
+                                                                Label
+                                                            </a>
+                                                        </div>
+                                                    ) : (record.qr_code || '-')}
+                                                </td>
                                                 <td className="px-6 py-4 text-center text-gray-700">{createdDate}</td>
                                                 <td className="px-6 py-4 text-center">
                                                     <div className="flex justify-center gap-2">

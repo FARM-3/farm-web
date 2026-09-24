@@ -3,7 +3,6 @@ import LookupListSettings from './LookupListSettings';
 
 const CATEGORIES = [
   { key: 'coffee_variety', title: 'Coffee Varieties', description: 'Species/variety on farmer registration (Arabica, Robusta). Separate from Coffee Types, which define processing batches.' },
-  { key: 'fertilizer', title: 'Fertilizers', description: 'Fertilizer options for field activity logs' },
   { key: 'pesticide', title: 'Pesticides', description: 'Pesticide options — include "None" where applicable' },
   { key: 'standard_practice', title: 'Standard Practices', description: 'Farming practices checklist on block activities' },
   { key: 'seedling_type', title: 'Seedling Types', description: 'Nursery seedling codes when recording replanting — not the same as coffee species or processing types' },

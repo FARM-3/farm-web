@@ -148,18 +148,33 @@ const useSalesForm = (onSuccess, editData = null) => {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [items, setItems] = useState(DEFAULT_ITEMS);
+    const [saleItemCatalog, setSaleItemCatalog] = useState([]);
 
-    useEffect(() => {
+    const loadSaleItems = useCallback(() => {
         const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-        fetch(`${import.meta.env.VITE_API_URL}/api/config/lookups/grouped/`, {
+        fetch(`${import.meta.env.VITE_API_URL}/api/config/lookups/grouped/?_=${Date.now()}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
         })
             .then(r => r.json())
             .then(data => {
-                if (data.sale_item?.length) setItems(data.sale_item);
+                if (data.sale_item?.length) {
+                    const catalog = data.sale_item.map(entry =>
+                        typeof entry === 'string'
+                            ? { name: entry, default_rate: '', unit_label: 'kg' }
+                            : {
+                                name: entry.name,
+                                default_rate: entry.default_rate != null && entry.default_rate !== '' ? String(entry.default_rate) : '',
+                                unit_label: entry.unit_label || 'kg',
+                            }
+                    );
+                    setSaleItemCatalog(catalog);
+                    setItems(catalog.map(i => i.name));
+                }
             })
             .catch(() => {});
     }, []);
+
+    useEffect(() => { loadSaleItems(); }, [loadSaleItems]);
 
     // Update form when editData changes
     useEffect(() => {
@@ -308,16 +323,23 @@ const useSalesForm = (onSuccess, editData = null) => {
             updatedData.size = '';
         }
 
+        if (name === 'item') {
+            const selected = saleItemCatalog.find(i => i.name === rawValue);
+            if (selected?.default_rate) {
+                updatedData.rate = String(selected.default_rate);
+            }
+        }
+
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
         }
 
-        if (name === 'quantity' || name === 'rate') {
-            const qty = parseFloat(name === 'quantity' ? rawValue : formData.quantity);
-            const rte = parseFloat(name === 'rate' ? rawValue : formData.rate);
+        if (name === 'quantity' || name === 'rate' || name === 'item') {
+            const qty = parseFloat(name === 'quantity' ? rawValue : updatedData.quantity || formData.quantity);
+            const rte = parseFloat(name === 'rate' ? rawValue : updatedData.rate || formData.rate);
             if (!isNaN(qty) && !isNaN(rte) && qty > 0 && rte > 0) {
                 updatedData.amount = (qty * rte).toFixed(2);
-            } else {
+            } else if (name !== 'item') {
                 updatedData.amount = '0.00';
             }
         }

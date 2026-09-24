@@ -41,13 +41,18 @@ const navItems = [
 
 const blocksNavItems = [
     { key: 'blocks', name: 'All Blocks', icon: MapPin, href: '/blocks' },
-    { key: 'block-activities', name: 'Block Activities', icon: Sprout, href: '/block-activities' },
+    { key: 'block-activities', name: 'Field Activities', icon: Sprout, href: '/block-activities' },
+];
+
+const reportsNavItems = [
+    { key: 'reports', name: 'All Reports', icon: FileText, href: '/reports' },
 ];
 
 const exportNavItems = [
     { key: 'export-inventory', name: 'Inventory', icon: Warehouse, href: '/export/inventory' },
     { key: 'export-dispatch', name: 'Dispatch', icon: Truck, href: '/export/dispatch' },
     { key: 'export-trace', name: 'Trace Report', icon: FileText, href: '/export/trace' },
+    { key: 'export-dossier', name: 'Export Dossier', icon: FileText, href: '/export/dossier' },
 ];
 
 const footerNavItems = [
@@ -73,14 +78,16 @@ const getCurrentPageKey = () => {
     if (path.startsWith('tasks')) return 'tasks';
     if (path.startsWith('block-activities')) return 'block-activities';
     if (path.startsWith('blocks')) return 'blocks';
+    if (path.startsWith('reports')) return 'reports';
     if (path.startsWith('export')) {
         if (path.includes('inventory')) return 'export-inventory';
         if (path.includes('dispatch')) return 'export-dispatch';
-        if (path.includes('trace') || path.includes('dossier')) return 'export-trace';
+        if (path.includes('dossier')) return 'export-dossier';
+        if (path.includes('trace')) return 'export-trace';
         return 'export-inventory';
     }
 
-    const item = [...navItems, ...footerNavItems, ...exportNavItems].find(item => item.key === path);
+    const item = [...navItems, ...footerNavItems, ...exportNavItems, ...reportsNavItems].find(item => item.key === path);
     if (item) return path;
 
     return 'dashboard';
@@ -354,6 +361,21 @@ export const SideNav = ({ children }) => {
                         onToggle={() => setBlocksExpanded(v => !v)}
                     />
                     <div className="pt-4 mt-2 border-t border-gray-200">
+                        {!collapsed && (
+                            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: CoffeeColors.DARK_BROWN }}>
+                                <BarChart3 size={14} /> Reports
+                            </p>
+                        )}
+                        {collapsed && (
+                            <div className="flex justify-center pb-2" title="Reports">
+                                <BarChart3 size={14} style={{ color: CoffeeColors.DARK_BROWN }} />
+                            </div>
+                        )}
+                        {reportsNavItems.map((item) => (
+                            <SidebarLink key={item.key} item={item} currentPage={currentPage} CoffeeColors={CoffeeColors} collapsed={collapsed} />
+                        ))}
+                    </div>
+                    <div className="pt-2 mt-2 border-t border-gray-200">
                         {!collapsed && (
                             <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide flex items-center gap-1" style={{ color: CoffeeColors.DARK_BROWN }}>
                                 <Globe size={14} /> Export & Compliance

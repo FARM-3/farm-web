@@ -36,6 +36,7 @@ import {
     Loader2
 } from 'lucide-react';
 import { API_ENDPOINTS, getApiBaseUrl } from '../services/ApiConfig';
+import AuthMedia from '../components/AuthMedia';
 
 const CoffeeColors = {
     SCREEN_BG: '#FFF8F6',
@@ -64,6 +65,10 @@ const TaskManagement = () => {
     const [editingException, setEditingException] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
+    const [survDateFrom, setSurvDateFrom] = useState('');
+    const [survDateTo, setSurvDateTo] = useState('');
+    const [survBlockFilter, setSurvBlockFilter] = useState('');
+    const [surveillanceDetail, setSurveillanceDetail] = useState(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [draggedSop, setDraggedSop] = useState(null);
     const [calendarView, setCalendarView] = useState('week'); // 'week', 'month', 'year'
@@ -119,19 +124,23 @@ const TaskManagement = () => {
     const fetchTasks = useCallback(async () => {
         try {
             const token = getAuthToken();
-            const response = await fetch(API_ENDPOINTS.TASKS, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-
-            if (response.ok) {
+            if (!token) return;
+            const headers = { Authorization: `Bearer ${token}` };
+            const all = [];
+            let page = 1;
+            while (page <= 50) {
+                const response = await fetch(`${API_ENDPOINTS.TASKS}?page=${page}`, { headers });
+                if (!response.ok) {
+                    console.error('Failed to fetch tasks, server responded with', response.status);
+                    break;
+                }
                 const data = await response.json();
-                setTasks(data.results || data);
-            } else {
-                console.error('Failed to fetch tasks, server responded with', response.status);
-                setTasks([]);
+                const batch = data.results || (Array.isArray(data) ? data : []);
+                all.push(...batch);
+                if (!data.next || !batch.length) break;
+                page += 1;
             }
+            setTasks(all);
         } catch (error) {
             console.error('Error fetching tasks:', error);
             setTasks([]);
@@ -163,7 +172,13 @@ const TaskManagement = () => {
     const fetchSurveillanceReports = useCallback(async () => {
         try {
             const token = getAuthToken();
-            const response = await fetch(API_ENDPOINTS.SURVEILLANCE, {
+            const params = new URLSearchParams();
+            if (filterStatus !== 'all') params.set('status', filterStatus);
+            if (survBlockFilter) params.set('block_id', survBlockFilter);
+            if (survDateFrom) params.set('date_from', survDateFrom);
+            if (survDateTo) params.set('date_to', survDateTo);
+            const url = params.toString() ? `${API_ENDPOINTS.SURVEILLANCE}?${params}` : API_ENDPOINTS.SURVEILLANCE;
+            const response = await fetch(url, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (response.ok) {
@@ -182,7 +197,10 @@ const TaskManagement = () => {
                     status: r.status,
                     weather_conditions: r.weather_conditions || [],
                     photo_url: r.photo_url,
+                    has_photo: r.has_photo,
                     block_id: r.block_id,
+                    resolution_notes: r.resolution_notes,
+                    gps_coordinates: r.gps_coordinates,
                 })));
             } else {
                 setExceptions([]);
@@ -191,7 +209,7 @@ const TaskManagement = () => {
             console.error('Error fetching surveillance reports:', error);
             setExceptions([]);
         }
-    }, []);
+    }, [filterStatus, survBlockFilter, survDateFrom, survDateTo]);
 
     const fetchStaffMembers = useCallback(async () => {
         try {
@@ -215,45 +233,48 @@ const TaskManagement = () => {
         }
     }, []);
 
-    // Fetch task submissions from mobile app
+    // Fetch task submissions from mobile app (all pages)
     const fetchTaskSubmissions = useCallback(async () => {
         try {
             const token = getAuthToken();
-            const response = await fetch(API_ENDPOINTS.TASK_SUBMISSIONS, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-
-            if (response.ok) {
+            const headers = { Authorization: `Bearer ${token}` };
+            const all = [];
+            let page = 1;
+            while (page <= 50) {
+                const response = await fetch(`${API_ENDPOINTS.TASK_SUBMISSIONS}?page=${page}`, { headers });
+                if (!response.ok) break;
                 const data = await response.json();
-                const submissions = data.results || data;
-                setTaskSubmissions(submissions);
-                console.log('[TaskManagement] Task submissions fetched:', submissions.length, 'submissions');
-                if (submissions.length > 0) {
-                    console.log('[TaskManagement] Sample submission:', submissions[0]);
-                    console.log('[TaskManagement] All assigned_task_ids:', submissions.map(s => s.assigned_task_id));
-                }
-            } else {
-                console.error('[TaskManagement] Failed to fetch task submissions, server responded with', response.status);
-                setTaskSubmissions([]);
+                const batch = data.results || (Array.isArray(data) ? data : []);
+                all.push(...batch);
+                if (!data.next || !batch.length) break;
+                page += 1;
             }
+            setTaskSubmissions(all);
         } catch (error) {
             console.error('Error fetching task submissions:', error);
             setTaskSubmissions([]);
         }
     }, []);
 
-    // Helper function to get submission status for a task
-    const getTaskSubmissionStatus = (taskId) => {
-        const submission = taskSubmissions.find(s => s.assigned_task_id === taskId);
-        return submission ? submission.status : null;
+    const getTaskSubmission = (taskId) => {
+        const id = Number(taskId);
+        return taskSubmissions
+            .filter(s => Number(s.assigned_task_id) === id)
+            .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))[0] ?? null;
     };
 
-    // Get status badge color
+    const getTaskSubmissionStatus = (task) => {
+        if (task.submission_status && task.submission_status !== 'assigned') {
+            return task.submission_status;
+        }
+        const submission = getTaskSubmission(task.id);
+        return submission?.status || (task.completed ? 'completed' : 'assigned');
+    };
+
     const getSubmissionStatusColor = (status) => {
         switch (status) {
-            case 'accepted': return 'bg-blue-100 text-blue-800';
+            case 'accepted':
+            case 'pending': return 'bg-blue-100 text-blue-800';
             case 'in_progress': return 'bg-yellow-100 text-yellow-800';
             case 'completed': return 'bg-green-100 text-green-800';
             case 'rejected': return 'bg-red-100 text-red-800';
@@ -268,11 +289,6 @@ const TaskManagement = () => {
                 ? prev.filter(id => id !== taskId)
                 : [...prev, taskId]
         );
-    };
-
-    // Get full submission details for a task
-    const getTaskSubmission = (taskId) => {
-        return taskSubmissions.find(s => s.assigned_task_id === taskId);
     };
 
     // Helper function to construct full photo URL
@@ -307,6 +323,21 @@ const TaskManagement = () => {
         };
         fetchData();
     }, [fetchTasks, fetchFarmBlocks, fetchStaffMembers, fetchTaskSubmissions, fetchSurveillanceReports]);
+
+    // Refresh tasks + submissions so mobile status updates appear on web
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchTasks();
+            fetchTaskSubmissions();
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [fetchTasks, fetchTaskSubmissions]);
+
+    useEffect(() => {
+        if (activeTab === 'surveillance') {
+            fetchSurveillanceReports();
+        }
+    }, [activeTab, fetchSurveillanceReports]);
 
     // SLA Timer effect for exceptions
     useEffect(() => {
@@ -707,7 +738,10 @@ const TaskManagement = () => {
         const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             assignedStaffNames.includes(searchTerm.toLowerCase());
-        const matchesFilter = filterStatus === 'all' || task.status === filterStatus;
+        const taskStatus = getTaskSubmissionStatus(task);
+        const matchesFilter = activeTab !== 'tasks' || filterStatus === 'all'
+            || taskStatus === filterStatus
+            || (filterStatus === 'completed' && task.completed);
         return matchesSearch && matchesFilter;
     });
 
@@ -778,7 +812,7 @@ const TaskManagement = () => {
                 <div className="mb-6 bg-white rounded-2xl shadow-lg p-2">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <button
-                            onClick={() => setActiveTab('tasks')}
+                            onClick={() => { setActiveTab('tasks'); setFilterStatus('all'); }}
                             className={`px-4 py-2.5 rounded-xl transition-all font-medium text-center ${
                                 activeTab === 'tasks' ? 'shadow-md' : 'hover:bg-gray-50'
                             }`}
@@ -829,18 +863,32 @@ const TaskManagement = () => {
                         />
                     </div>
 
-                    {/* Show status filter only for surveillance tab */}
                     {activeTab === 'surveillance' && (
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value)}
-                            className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="open">Open</option>
-                            <option value="investigating">Investigating</option>
-                            <option value="resolved">Resolved</option>
-                        </select>
+                        <>
+                            <select
+                                value={survBlockFilter}
+                                onChange={(e) => setSurvBlockFilter(e.target.value)}
+                                className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
+                            >
+                                <option value="">All blocks</option>
+                                {farmBlocks.map(b => (
+                                    <option key={b.block_id || b.id} value={b.block_id || b.id}>{b.block_id || b.name}</option>
+                                ))}
+                            </select>
+                            <input type="date" value={survDateFrom} onChange={e => setSurvDateFrom(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-xl text-sm" />
+                            <input type="date" value={survDateTo} onChange={e => setSurvDateTo(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-xl text-sm" />
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-offset-0 focus:ring-brown-500 outline-none"
+                            >
+                                <option value="all">All Status</option>
+                                <option value="open">Open</option>
+                                <option value="in_review">In Review</option>
+                                <option value="investigating">Investigating</option>
+                                <option value="resolved">Resolved</option>
+                            </select>
+                        </>
                     )}
 
                     {/* Show calendar view selector only for weekly-plan tab */}
@@ -870,41 +918,57 @@ const TaskManagement = () => {
                                 </p>
                             </div>
 
-                            <div className="p-6">
-                                {exceptions.length === 0 ? (
+                            <div className="p-6 overflow-x-auto">
+                                {filteredExceptions.length === 0 ? (
                                     <div className="text-center py-12">
                                         <Eye size={48} className="mx-auto text-gray-400 mb-4" />
-                                        <p className="text-gray-500">No surveillance reports yet</p>
-                                        <p className="text-sm text-gray-400 mt-2">Reports from mobile app will appear here</p>
+                                        <p className="text-gray-500">No surveillance reports match your filters</p>
                                     </div>
                                 ) : (
-                                    <div className="grid gap-4">
-                                        {exceptions.map((report) => (
-                                            <div key={report.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h3 className="font-semibold text-gray-800">{report.title}</h3>
-                                                    <span className={`px-2 py-1 text-xs rounded-full ${
-                                                        report.severity === 'high' ? 'bg-red-100 text-red-800' :
-                                                        report.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                                        'bg-green-100 text-green-800'
-                                                    }`}>
-                                                        {report.severity}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-gray-600 mb-2">{report.description}</p>
-                                                <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                                                    <span>Block: {report.block_id || report.location}</span>
-                                                    <span className="capitalize">{report.issue_type?.replace('_', ' ') || 'issue'}</span>
-                                                    <span>{report.reported_by}</span>
-                                                    <span>{new Date(report.created_at).toLocaleDateString()}</span>
-                                                    <span className="capitalize px-2 py-0.5 rounded bg-gray-100">{report.status}</span>
-                                                </div>
-                                                {report.photo_url && (
-                                                    <a href={report.photo_url} target="_blank" rel="noopener noreferrer" className="text-xs text-[#8B4513] mt-2 inline-block">View photo evidence</a>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-50 text-gray-500 text-left">
+                                            <tr>
+                                                <th className="px-4 py-3">Date</th>
+                                                <th className="px-4 py-3">Block</th>
+                                                <th className="px-4 py-3">Title</th>
+                                                <th className="px-4 py-3">Category</th>
+                                                <th className="px-4 py-3">Severity</th>
+                                                <th className="px-4 py-3">Status</th>
+                                                <th className="px-4 py-3">By</th>
+                                                <th className="px-4 py-3">Photo</th>
+                                                <th className="px-4 py-3"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {filteredExceptions.map(report => (
+                                                <tr key={report.id} className="border-t hover:bg-gray-50/50">
+                                                    <td className="px-4 py-3 whitespace-nowrap">{new Date(report.created_at).toLocaleDateString()}</td>
+                                                    <td className="px-4 py-3">{report.block_id || report.location}</td>
+                                                    <td className="px-4 py-3 font-medium max-w-xs truncate">{report.title}</td>
+                                                    <td className="px-4 py-3 capitalize">{report.issue_type?.replace(/_/g, ' ') || '—'}</td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={`px-2 py-0.5 text-xs rounded-full capitalize ${
+                                                            report.severity === 'high' ? 'bg-red-100 text-red-800' :
+                                                            report.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                            'bg-green-100 text-green-800'
+                                                        }`}>{report.severity}</span>
+                                                    </td>
+                                                    <td className="px-4 py-3 capitalize">{report.status?.replace(/_/g, ' ')}</td>
+                                                    <td className="px-4 py-3">{report.reported_by}</td>
+                                                    <td className="px-4 py-3">
+                                                        {(report.has_photo || report.photo_url) ? (
+                                                            <AuthMedia url={report.photo_url} alt="Evidence" className="h-10 w-10 rounded object-cover border" linkLabel="" />
+                                                        ) : '—'}
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <button onClick={() => setSurveillanceDetail(report)} className="text-xs text-[#8B4513] font-medium flex items-center gap-1">
+                                                            <Eye size={14} /> Details
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 )}
                             </div>
                         </div>
@@ -1323,7 +1387,7 @@ const TaskManagement = () => {
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     {(() => {
-                                                        const status = getTaskSubmissionStatus(task.id);
+                                                        const status = getTaskSubmissionStatus(task);
                                                         return status ? (
                                                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getSubmissionStatusColor(status)}`}>
                                                                 {status === 'in_progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -2184,6 +2248,36 @@ const TaskManagement = () => {
                                     'Delete'
                                 )}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {surveillanceDetail && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-start p-5 border-b">
+                            <div>
+                                <h2 className="text-lg font-bold" style={{ color: CoffeeColors.DARK_BROWN }}>{surveillanceDetail.title}</h2>
+                                <p className="text-sm text-gray-500">{surveillanceDetail.block_id} · {new Date(surveillanceDetail.created_at).toLocaleString()}</p>
+                            </div>
+                            <button onClick={() => setSurveillanceDetail(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                        </div>
+                        <div className="p-5 space-y-3 text-sm">
+                            <p><span className="font-medium">Severity:</span> <span className="capitalize">{surveillanceDetail.severity}</span></p>
+                            <p><span className="font-medium">Status:</span> <span className="capitalize">{surveillanceDetail.status?.replace(/_/g, ' ')}</span></p>
+                            <p><span className="font-medium">Category:</span> <span className="capitalize">{surveillanceDetail.issue_type?.replace(/_/g, ' ') || '—'}</span></p>
+                            <p><span className="font-medium">Reported by:</span> {surveillanceDetail.reported_by}</p>
+                            <p><span className="font-medium">Description:</span> {surveillanceDetail.description}</p>
+                            {surveillanceDetail.resolution_notes && (
+                                <p><span className="font-medium">Resolution:</span> {surveillanceDetail.resolution_notes}</p>
+                            )}
+                            {(surveillanceDetail.has_photo || surveillanceDetail.photo_url) && (
+                                <div>
+                                    <p className="font-medium mb-2">Photo evidence</p>
+                                    <AuthMedia url={surveillanceDetail.photo_url} alt="Surveillance evidence" className="max-h-56 rounded-lg border object-contain" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

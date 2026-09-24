@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import Modal from '../../components/settings/Modal';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import { apiUrl } from '../../utils/apiBase';
 
-const API = `${import.meta.env.VITE_API_URL}/api/config/lookups/`;
+const API = apiUrl('/api/config/lookups/');
 
 /** Reusable list with independent add/delete — one item at a time. */
 export default function LookupListSettings({ category, title, description, addLabel = 'Add Item' }) {

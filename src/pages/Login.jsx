@@ -19,7 +19,9 @@ const CoffeeColors = {
 };
 
 // --- API Client ---
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://farm-api-uvor.onrender.com';
+import { getApiBaseUrl } from '../utils/apiBase';
+
+const API_BASE_URL = getApiBaseUrl();
 
 const ApiClient = {
   post: async (url, data) => {
@@ -46,6 +48,8 @@ const ApiClient = {
           throw new Error("USER_NOT_REGISTERED");
         } else if (response.status === 401) {
           throw new Error("INVALID_CREDENTIALS");
+        } else if (response.status === 403 && responseData.error === 'mobile_only') {
+          throw new Error(responseData.message || "MOBILE_ONLY");
         } else if (response.status === 400) {
           const errorMsg = responseData.detail
             || responseData.error
@@ -118,6 +122,7 @@ function Login() {
       const response = await ApiClient.post("login/", {
         phone: phoneNumber,
         pin: fullPin,
+        platform: 'web',
       });
 
       console.log(' Login Response:', response);
@@ -178,6 +183,9 @@ function Login() {
         setMessageType("error");
       } else if (err.message === "INVALID_CREDENTIALS") {
         setMessage("Invalid phone number or PIN. Please check your credentials and try again.");
+        setMessageType("error");
+      } else if (err.message.includes("mobile access only") || err.message === "MOBILE_ONLY") {
+        setMessage("Block Champion accounts are registered for mobile access only. Please use the FMIS mobile app to log in.");
         setMessageType("error");
       } else if (err.message.includes("Cannot connect to server")) {
         setMessage("Cannot connect to server. Please check your internet connection.");

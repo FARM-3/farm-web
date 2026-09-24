@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import Modal from '../../components/settings/Modal';
 import { getAuthHeaders } from '../../utils/authHeaders';
+import { apiUrl } from '../../utils/apiBase';
 
-const API = `${import.meta.env.VITE_API_URL}/api/config/coffee-types/`;
+const API = apiUrl('/api/config/coffee-types/');
 
 export default function CoffeeTypesSettings() {
   const [types, setTypes] = useState([]);

@@ -20,18 +20,18 @@ const CUSTOM_COLORS = {
 const EXPENSE_API_ENDPOINT = `${import.meta.env.VITE_API_URL}/api/expenses/`;
 const FARMER_HARVEST_API = `${import.meta.env.VITE_API_URL}/api/aggregation/farmer-harvest/`;
 
-// Mock list of common expense categories
-const CATEGORIES = [
-    'General Supplies', 'Fuel/Energy', 'Equipment Maintenance',
-    'Feed/Seed', 'Labor', 'Utilities', 'Transportation', 'Other'
+const DEFAULT_CATEGORIES = [
+    'General Supplies', 'Fuel & Transport', 'Labour', 'Equipment',
+    'Utilities', 'Maintenance', 'Chemicals & Inputs', 'Training', 'Other',
 ];
 
 function ExpenseEntry() {
     const navigate = useNavigate();
     const location = useLocation();
+    const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
     const [formData, setFormData] = useState({
         expense_name: '',
-        category: CATEGORIES[0],
+        category: DEFAULT_CATEGORIES[0],
         other_category: '',
         item: '',
         supplier: '',
@@ -48,6 +48,21 @@ function ExpenseEntry() {
     // Farmer harvests state
     const [farmerHarvests, setFarmerHarvests] = useState([]);
     const [harvestsLoading, setHarvestsLoading] = useState(false);
+
+    useEffect(() => {
+        const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+        fetch(`${import.meta.env.VITE_API_URL}/api/config/lookups/grouped/`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.expense_category?.length) {
+                    setCategories(data.expense_category);
+                    setFormData(prev => ({ ...prev, category: prev.category || data.expense_category[0] }));
+                }
+            })
+            .catch(() => {});
+    }, []);
     const [selectedHarvest, setSelectedHarvest] = useState(null);
 
     // Sidebar state
@@ -112,7 +127,7 @@ function ExpenseEntry() {
         if (editExpense) {
             setIsEditing(true);
             setEditId(editExpense.id);
-            const categoryValue = CATEGORIES.includes(editExpense.category) ? editExpense.category : 'Other';
+            const categoryValue = categories.includes(editExpense.category) ? editExpense.category : 'Other';
             const otherCategoryValue = categoryValue === 'Other' ? editExpense.category || '' : '';
             setFormData({
                 expense_name: editExpense.expense_name || '',
@@ -223,7 +238,7 @@ function ExpenseEntry() {
                 // Reset form
                 setFormData({
                     expense_name: '',
-                    category: CATEGORIES[0],
+                    category: categories[0] || DEFAULT_CATEGORIES[0],
                     other_category: '',
                     item: '',
                     supplier: '',
@@ -303,7 +318,7 @@ function ExpenseEntry() {
                                 name="category"
                                 value={formData.category}
                                 onChange={handleChange}
-                                options={CATEGORIES}
+                                options={categories}
                                 required
                                 Icon={Tag}
                             />
